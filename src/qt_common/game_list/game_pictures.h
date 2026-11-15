@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Game list pictures PhoenixEmu found online or the player picked, one PNG per title ID in

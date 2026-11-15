@@ -1063,6 +1063,7 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
     if (title_id == 0) {
         return;
     }
+    VideoCommon::StutterTrace::BootMarker("shader_load_begin");
     if (precache_after_skip.joinable()) {
         precache_after_skip.request_stop();
         precache_after_skip.join();
@@ -1444,6 +1445,10 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
     } else {
         background_pipelines.Start(std::clamp<size_t>(num_pipeline_workers / 4, 1, 2));
     }
+    VideoCommon::StutterTrace::BootMarker(
+        "shader_load_end",
+        fmt::format("graphics_records={} compute_records={}",
+                    precached_pipelines.size(), compute_cache.size()));
 }
 
 /// What the jobs of one recipe run share.
@@ -2077,6 +2082,7 @@ void PipelineCache::PrecacheShaders(u64 title_id, std::vector<PrecacheJob> jobs,
     }
     if (jobs.empty() && !compute_pending) {
         LOG_INFO(Render_Vulkan, "Shader precache: nothing to precache");
+        VideoCommon::StutterTrace::BootMarker("precache_end", "seconds=0.000 built=0");
         return;
     }
 
@@ -2267,11 +2273,16 @@ void PipelineCache::PrecacheShaders(u64 title_id, std::vector<PrecacheJob> jobs,
         }
         const size_t done = state->done.load();
         const size_t not_needed = recipe ? recipe->skipped + recipe->not_for_this_gpu : 0;
+        const double precache_duration =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
         LOG_INFO(Render_Vulkan,
                  "Shader precache: {}, {} built, {} not needed, {} failed, {} not reached, {:.1f} s",
                  how, total_built, not_needed, done - std::min(done, total_built + not_needed),
                  state->jobs.size() - std::min(state->jobs.size(), done),
-                 std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count());
+                 precache_duration);
+        VideoCommon::StutterTrace::BootMarker(
+            "precache_end",
+            fmt::format("seconds={:.3f} built={}", precache_duration, total_built));
     };
 
     if (after_skip) {
@@ -3110,7 +3121,24 @@ std::unique_ptr<GraphicsPipeline> PipelineCache::CreateGraphicsPipeline(
         bool eligible{mesh_index != 0 && (mesh_index == 1 || has_task) &&
                       layer_source_program == nullptr};
         const Shader::IR::Program& mesh{programs[mesh_index]};
-        eligible = eligible && mesh.mesh.topology == 4 && mesh.mesh.primitive_lines.empty() &&
+        bool primitive_lines_compatible = mesh.mesh.primitive_lines.empty();
+        if (!primitive_lines_compatible) {
+            bool consumes_primitive_generics = false;
+            for (const u32 line : mesh.mesh.primitive_lines) {
+                const auto attribute{static_cast<Shader::IR::Attribute>(line)};
+                if (Shader::IR::IsGeneric(attribute)) {
+                    const u32 generic_idx = Shader::IR::GenericAttributeIndex(attribute);
+                    if (programs[0].info.loads.Generic(generic_idx)) {
+                        consumes_primitive_generics = true;
+                        break;
+                    }
+                }
+            }
+            if (!consumes_primitive_generics) {
+                primitive_lines_compatible = true;
+            }
+        }
+        eligible = eligible && mesh.mesh.topology == 4 && primitive_lines_compatible &&
                    !mesh.mesh.vertex_lines.empty() && mesh.mesh.max_vertices != 0 &&
                    mesh.mesh.max_primitives != 0;
         for (size_t index = 1; index < Maxwell::MaxShaderProgram && eligible; ++index) {

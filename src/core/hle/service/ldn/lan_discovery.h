@@ -124,6 +124,7 @@ protected:
     bool inited{};
     mutable std::mutex packet_mutex;
     std::condition_variable connection_event;
+    std::condition_variable scan_cv;
     std::chrono::nanoseconds connection_timeout{std::chrono::seconds(5)};
     std::array<LanStation, StationCountMax> stations;
     std::array<NodeLatestUpdate, NodeCountMax> node_changes{};

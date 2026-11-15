@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: 2026 CheezyEmu contributors
+* SPDX-FileCopyrightText: 2026 PhoenixEmu contributors
 * SPDX-FileCopyrightText: 2013-2014 Colin Duquesnoy (QDarkStyleSheet, MIT, see ../qdarkstyle/LICENSE.md)
 * SPDX-License-Identifier: GPL-3.0-or-later
 *
@@ -3036,6 +3036,63 @@ QPushButton#HomeAddGamesButton:hover {
 QSlider#HomeTileSizeSlider,
 QSlider#HomeVolumeSlider {
     background: transparent;
+}
+
+QSlider#HomeTileSizeSlider::groove:horizontal,
+QSlider#HomeVolumeSlider::groove:horizontal {
+    height: 6px;
+    background: rgba(255, 255, 255, 28);
+    border: 1px solid rgba(255, 255, 255, 45);
+    border-radius: 3px;
+}
+
+QSlider#HomeTileSizeSlider::sub-page:horizontal,
+QSlider#HomeVolumeSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FF5230, stop:1 #FFC83D);
+    border-radius: 3px;
+}
+
+QSlider#HomeTileSizeSlider::handle:horizontal,
+QSlider#HomeVolumeSlider::handle:horizontal {
+    width: 14px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    border-radius: 7px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFF9EA, stop:1 #FFC83D);
+    border: 1px solid rgba(255, 255, 255, 200);
+}
+
+QSlider#HomeTileSizeSlider::handle:horizontal:hover,
+QSlider#HomeVolumeSlider::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:1 #FFE494);
+    border: 1px solid #FFFFFF;
+}
+
+/* Console Hero Play Button */
+QPushButton#HomeHeroPlayButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF5230, stop:1 #D9381E);
+    border: 1px solid rgba(255, 255, 255, 175);
+    border-radius: 16px;
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 6px 18px;
+    min-height: 20px;
+}
+
+QPushButton#HomeHeroPlayButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF7252, stop:1 #FF5230);
+    border: 1px solid #FFFFFF;
+}
+
+QPushButton#HomeHeroPlayButton:pressed {
+    background-color: #B52B14;
+    border: 1px solid rgba(255, 255, 255, 120);
 }
 
 /* ---------------------------------------------------------------------------------------------

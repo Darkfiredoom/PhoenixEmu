@@ -26,6 +26,7 @@
 #include <QList>
 #include <QListView>
 #include <QMenu>
+#include <QMessageBox>
 #include <QScrollBar>
 #include <QScroller>
 #include <QScrollerProperties>
@@ -33,7 +34,11 @@
 #include <QVariantAnimation>
 #include <qlayoutitem.h>
 
+#include <fmt/format.h>
+
 #include "common/common_types.h"
+#include "common/fs/fs_util.h"
+#include "common/fs/path_util.h"
 #include "common/logging.h"
 #include "core/core.h"
 #include "core/file_sys/nup_writer.h"
@@ -228,21 +233,119 @@ void GameList::ForEachGameItem(const std::function<void(GameListItemPath&)>& vis
     walk(item_model->invisibleRootItem());
 }
 
+namespace {
+
+/// A game or file name reduced to its letters and digits, without the edition suffix, so
+/// "The Legend of Zelda꞉ Ocarina of Time - Nintendo Switch 2 Edition" and the game's own title
+/// compare equal.
+QString PictureKey(QString name) {
+    name = name.toLower();
+    for (const char* const suffix : {"nintendo switch 2 edition", "switch 2 edition"}) {
+        name.remove(QLatin1String(suffix));
+    }
+    QString key;
+    for (const QChar ch : name) {
+        if (ch.isLetterOrNumber()) {
+            key.append(ch);
+        }
+    }
+    return key;
+}
+
+/// The player's own icon pack: pictures named after their games, in <user dir>/icon_pack or in
+/// icon_pack next to the program. Key to file.
+std::vector<std::pair<QString, QString>> ListIconPack() {
+    std::vector<std::pair<QString, QString>> pack;
+    const QString user_dir = QString::fromStdString(Common::FS::PathToUTF8String(
+        Common::FS::GetEdenPath(Common::FS::EdenPath::EdenDir) / "icon_pack"));
+    for (const QString& folder :
+         {user_dir, QString{QCoreApplication::applicationDirPath() + QStringLiteral("/icon_pack")}}) {
+        const QDir dir{folder};
+        for (const QFileInfo& file :
+             dir.entryInfoList({QStringLiteral("*.png"), QStringLiteral("*.jpg"),
+                                QStringLiteral("*.jpeg"), QStringLiteral("*.webp")},
+                               QDir::Files)) {
+            const QString key = PictureKey(file.completeBaseName());
+            if (!key.isEmpty()) {
+                pack.emplace_back(key, file.absoluteFilePath());
+            }
+        }
+    }
+    return pack;
+}
+
+/// The pack's picture for a game as a PNG, or nothing. An exact name wins; otherwise the
+/// closest name that contains the game's or is contained in it ("Splatoon Raiders", "Raiders").
+std::vector<u8> IconPackPicture(const std::vector<std::pair<QString, QString>>& pack,
+                                const std::string& name) {
+    const QString key = PictureKey(QString::fromStdString(name));
+    if (key.isEmpty()) {
+        return {};
+    }
+    const QString* file = nullptr;
+    qsizetype best = 0;
+    for (const auto& [pack_key, path] : pack) {
+        if (pack_key == key) {
+            file = &path;
+            break;
+        }
+        const qsizetype shorter = (std::min)(pack_key.size(), key.size());
+        const qsizetype distance = (std::max)(pack_key.size(), key.size()) - shorter;
+        if (shorter >= 5 && (pack_key.contains(key) || key.contains(pack_key)) &&
+            (file == nullptr || distance < best)) {
+            file = &path;
+            best = distance;
+        }
+    }
+    if (file == nullptr) {
+        return {};
+    }
+    QImage image{*file};
+    if (image.isNull()) {
+        return {};
+    }
+    if (image.width() > 512 || image.height() > 512) {
+        image = image.scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    QByteArray bytes;
+    QBuffer buffer{&bytes};
+    buffer.open(QIODevice::WriteOnly);
+    if (!image.save(&buffer, "PNG")) {
+        return {};
+    }
+    return std::vector<u8>(bytes.begin(), bytes.end());
+}
+
+} // Anonymous namespace
+
 void GameList::StartPictureSearch() {
-    if (picture_search_running || !UISettings::values.auto_game_pictures.GetValue()) {
+    if (picture_search_running) {
         return;
     }
-    std::vector<std::pair<u64, std::string>> wanted;
-    ForEachGameItem([&wanted](GameListItemPath& item) {
+    // The icon pack is the player's own files, so it is used even with the online search off.
+    auto pack = ListIconPack();
+    const bool online = UISettings::values.auto_game_pictures.GetValue();
+    if (pack.empty() && !online) {
+        return;
+    }
+    struct Wanted {
+        u64 program_id;
+        std::string name;
+        bool online;
+    };
+    std::vector<Wanted> wanted;
+    ForEachGameItem([&](GameListItemPath& item) {
         const u64 program_id = item.data(GameListItemPath::ProgramIdRole).toULongLong();
         const QString name = item.data(GameListItemPath::TitleRole).toString().trimmed();
         if (program_id == 0 || name.isEmpty() ||
             item.data(GameListItemPath::HasPictureRole).toBool() ||
-            QtCommon::GamePictures::RecentlyMissing(program_id) ||
-            std::ranges::any_of(wanted, [&](const auto& w) { return w.first == program_id; })) {
+            std::ranges::any_of(wanted, [&](const Wanted& w) { return w.program_id == program_id; })) {
             return;
         }
-        wanted.emplace_back(program_id, name.toStdString());
+        const bool search = online && !QtCommon::GamePictures::RecentlyMissing(program_id);
+        if (search || !pack.empty()) {
+            wanted.push_back({program_id, name.toStdString(), search});
+        }
     });
     if (wanted.empty()) {
         return;
@@ -252,13 +355,41 @@ void GameList::StartPictureSearch() {
     // The worker holds no pointer to the list: results come back through a guarded call on the
     // UI thread, and the cancel flag stops it when the list goes away.
     QPointer<GameList> self{this};
-    (void)QtConcurrent::run([self, wanted = std::move(wanted),
+    (void)QtConcurrent::run([self, wanted = std::move(wanted), pack = std::move(pack),
                              api_key = UISettings::values.steamgriddb_api_key.GetValue(),
                              cancel = picture_cancel] {
+        const auto apply = [&self](u64 program_id, const std::vector<u8>& png) {
+            QtCommon::GamePictures::Save(program_id, png);
+            QMetaObject::invokeMethod(
+                qApp,
+                [self, program_id, png] {
+                    if (self) {
+                        self->ApplyPicture(program_id, png);
+                    }
+                },
+                Qt::QueuedConnection);
+        };
+        // The icon pack first: it is local and quick.
+        std::vector<Wanted> remaining;
+        for (const Wanted& game : wanted) {
+            if (cancel->load()) {
+                break;
+            }
+            const auto png = IconPackPicture(pack, game.name);
+            if (!png.empty()) {
+                LOG_INFO(Frontend, "Game pictures: icon pack has one for {:016X} ({})",
+                         game.program_id, game.name);
+                apply(game.program_id, png);
+            } else if (game.online) {
+                remaining.push_back(game);
+            }
+        }
         // PhoenixEmu's list matches by title ID and needs no key; a player's own SteamGridDB key
         // also searches by name for games the list doesn't have.
-        const auto list = LoadGamePictureList(*cancel);
-        for (const auto& [program_id, name] : wanted) {
+        const auto list = remaining.empty() || cancel->load()
+                              ? decltype(LoadGamePictureList(*cancel)){}
+                              : LoadGamePictureList(*cancel);
+        for (const auto& [program_id, name, search] : remaining) {
             if (cancel->load()) {
                 break;
             }
@@ -275,16 +406,8 @@ void GameList::StartPictureSearch() {
                 found.nothing_found = !list.empty();
             }
             if (!found.png.empty()) {
-                QtCommon::GamePictures::Save(program_id, found.png);
                 LOG_INFO(Frontend, "Game pictures: found one for {:016X} ({})", program_id, name);
-                QMetaObject::invokeMethod(
-                    qApp,
-                    [self, program_id, png = found.png] {
-                        if (self) {
-                            self->ApplyPicture(program_id, png);
-                        }
-                    },
-                    Qt::QueuedConnection);
+                apply(program_id, found.png);
             } else if (found.nothing_found) {
                 QtCommon::GamePictures::MarkMissing(program_id);
                 LOG_INFO(Frontend, "Game pictures: none found for {:016X} ({})", program_id,
@@ -748,6 +871,55 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
     if (has_shader_warm) {
         delete_shader_warm = context_menu.addAction(tr("Delete Shader Precache"));
     }
+    // A shader recipe is what Ocarina of Time ships with: a list of pipelines to build before
+    // play. One is recorded from this player's own pipeline cache, or added from a file.
+    QMenu* const recipe_menu = context_menu.addMenu(tr("Shader Recipe"));
+    recipe_menu->menuAction()->setVisible(program_id != 0);
+    connect(recipe_menu->addAction(tr("Record from My Play and Start Game...")), &QAction::triggered,
+            this, [this, program_id, path] {
+                const QString file = QFileDialog::getSaveFileName(
+                    this, tr("Save Shader Recipe"),
+                    QStringLiteral("%1.nx2recipe").arg(program_id, 16, 16, QLatin1Char('0')).toUpper(),
+                    tr("Shader recipes (*.nx2recipe)"));
+                if (file.isEmpty()) {
+                    return;
+                }
+                QMessageBox::information(
+                    this, tr("Shader Recipe"),
+                    tr("The game starts now and the recipe is written while it loads, from the "
+                       "shaders PhoenixEmu saved while you played it before. The more of the game "
+                       "you have played, the more the recipe covers.\n\nShare the file: anyone "
+                       "with the same game can add it with Shader Recipe > Add a Recipe File."));
+                // Read by the pipeline cache as the game loads; cleared when the game stops.
+                qputenv("PHOENIXEMU_MAKE_RECIPE", QDir::toNativeSeparators(file).toUtf8());
+                qApp->setProperty("phoenix_recipe_requested", true);
+                emit BootGame(QString::fromStdString(path), StartGameType::Normal);
+            });
+    connect(recipe_menu->addAction(tr("Add a Recipe File...")), &QAction::triggered, this,
+            [this, program_id] {
+                const QString file = QFileDialog::getOpenFileName(
+                    this, tr("Add a Shader Recipe"), {}, tr("Shader recipes (*.nx2recipe)"));
+                if (file.isEmpty()) {
+                    return;
+                }
+                const auto folder = Common::FS::GetEdenPath(Common::FS::EdenPath::ShaderDir) /
+                                    fmt::format("{:016x}", program_id);
+                std::error_code ec;
+                std::filesystem::create_directories(folder, ec);
+                const QString target =
+                    QDir(QString::fromStdString(Common::FS::PathToUTF8String(folder)))
+                        .filePath(QFileInfo(file).fileName());
+                QFile::remove(target);
+                if (QFile::copy(file, target)) {
+                    QMessageBox::information(
+                        this, tr("Shader Recipe"),
+                        tr("Added. Its shaders are built the next time the game loads (with "
+                           "the shader precache on)."));
+                } else {
+                    QMessageBox::warning(this, tr("Shader Recipe"),
+                                         tr("The file could not be copied."));
+                }
+            });
     QAction* ryujinx = context_menu.addAction(tr("Link to Ryujinx"));
     context_menu.addSeparator();
     QMenu* remove_menu = context_menu.addMenu(tr("Remove"));

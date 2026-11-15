@@ -2268,13 +2268,21 @@ bool TextureCacheRuntime::TemporalUpscale(Framebuffer* dst_framebuffer, ImageVie
         return !whole_input ||
                (input_color.size.width == view.size.width && input_color.size.height == view.size.height);
     };
+    const auto valid_motion = [](PixelFormat fmt) {
+        return fmt == PixelFormat::R16G16_FLOAT || fmt == PixelFormat::R16G16_SNORM ||
+               fmt == PixelFormat::R16G16_UNORM || fmt == PixelFormat::R32G32_FLOAT;
+    };
+    const auto valid_depth = [](PixelFormat fmt) {
+        return fmt == PixelFormat::D32_FLOAT || fmt == PixelFormat::D24_UNORM_S8_UINT ||
+               fmt == PixelFormat::D16_UNORM || fmt == PixelFormat::D32_FLOAT_S8_UINT;
+    };
     if (use_history && (!plain(motion_vectors) || !fits(motion_vectors, render_size) ||
-                        motion_vectors.format != PixelFormat::R16G16_FLOAT ||
+                        !valid_motion(motion_vectors.format) ||
                         !same_size(motion_vectors))) {
         return false;
     }
     if (use_history && depth && (!plain(*depth) || !fits(*depth, render_size) ||
-                                depth->format != PixelFormat::D32_FLOAT || !same_size(*depth))) {
+                                !valid_depth(depth->format) || !same_size(*depth))) {
         return false;
     }
     if (use_history && depth && UpscaleWithFsr3(dst_framebuffer, input_color, motion_vectors, *depth, render_size,

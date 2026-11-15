@@ -53,6 +53,14 @@ if (CMAKE_OSX_ARCHITECTURES)
     return()
 endif()
 
+if (MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(ARCHITECTURE "x86_64")
+    set(ARCHITECTURE_x86_64 1)
+    add_definitions(-DARCHITECTURE_x86_64=1)
+    message(STATUS "[DetectArchitecture] Target architecture: x86_64")
+    return()
+endif()
+
 include(CheckSymbolExists)
 function(detect_architecture symbol arch)
     # The output variable needs to be unset between invocations otherwise

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
@@ -70,6 +70,12 @@ constexpr std::array switches{
                              "Keeps Ocarina of Time's HUD still in generated frames instead of "
                              "smearing it with the scene."),
            true, "1", "0"},
+    Switch{"EDEN_NX2_HUD_MASK_DEBUG",
+           QT_TRANSLATE_NOOP("Nx2SwitchesDialog", "Live HUD mask debug overlay"),
+           QT_TRANSLATE_NOOP("Nx2SwitchesDialog",
+                             "Visualizes detected static UI and HUD elements in generated frames "
+                             "with a magenta tint to verify HUD boundary detection."),
+           false, "1", "0"},
     Switch{"EDEN_NX2_OOT_JITTER",
            QT_TRANSLATE_NOOP("Nx2SwitchesDialog", "FSR camera jitter (sharper FSR, test)"),
            QT_TRANSLATE_NOOP("Nx2SwitchesDialog",

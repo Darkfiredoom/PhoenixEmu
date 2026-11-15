@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -17,8 +17,9 @@ void main() {
     if (any(greaterThanEqual(pixel, imageSize(hud_mask)))) {
         return;
     }
-    vec4 difference = abs(texelFetch(after_hud, pixel, 0) - texelFetch(before_hud, pixel, 0));
-    float changed = max(max(difference.r, difference.g), max(difference.b, difference.a));
-    // Any change: a HUD element's soft edge or shadow changes the scene only slightly.
-    imageStore(hud_mask, pixel, vec4(changed > 0.0 ? 1.0 : 0.0));
+    vec3 difference = abs(texelFetch(after_hud, pixel, 0).rgb - texelFetch(before_hud, pixel, 0).rgb);
+    float changed = max(max(difference.r, difference.g), difference.b);
+    // Any real change is HUD. Filter out tiny floating-point and conversion noise (< 0.015)
+    // so game scene pixels are not falsely masked as HUD in generated frames.
+    imageStore(hud_mask, pixel, vec4(changed > 0.015 ? 1.0 : 0.0));
 }

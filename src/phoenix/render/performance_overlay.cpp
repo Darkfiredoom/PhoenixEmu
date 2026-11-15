@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
@@ -23,6 +23,7 @@
 #include "core/perf_stats.h"
 #include "main_window.h"
 #include "performance_overlay.h"
+#include "phoenix/util/phoenix_theme.h"
 #include "qt_common/config/uisettings.h"
 #include "qt_common/qt_common.h"
 #include "video_core/gpu.h"
@@ -301,12 +302,19 @@ void PerformanceOverlay::paintEvent(QPaintEvent*) {
         shape.addRoundedRect(box, 5.0, 5.0);
     }
     painter.fillPath(shape, QColor{9, 9, 11, opacity * 255 / 100});
-    // The yellow edge, cut by the box's corners.
+    // The accent edge and glass sheen, cut by the box's corners.
+    const QColor accent = PhoenixTheme::Recolor(PhoenixTheme::DefaultAccent);
     painter.save();
     painter.setClipPath(shape);
-    painter.fillRect(QRect{0, 0, Edge, height()}, Ember);
+    painter.fillRect(QRect{0, 0, Edge, height()}, accent);
+    QLinearGradient sheen{box.topLeft(), QPointF(box.left(), box.top() + box.height() * 0.45)};
+    sheen.setColorAt(0.0, QColor(255, 255, 255, 35));
+    sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+    painter.fillRect(rect(), sheen);
     painter.restore();
-    painter.setPen(QPen{QColor{0xff, 0xd2, 0x3f, 70}, 1.0});
+    QColor border_col = accent;
+    border_col.setAlpha(90);
+    painter.setPen(QPen{border_col, 1.0});
     painter.drawPath(shape);
 
     const QFontMetrics big{m_big};
@@ -376,7 +384,7 @@ void PerformanceOverlay::paintEvent(QPaintEvent*) {
                 const double sample = m_history[i];
                 const qreal bar = std::max<qreal>(1.0, plot.height() * sample / top);
                 const QColor colour =
-                    sample < median * 0.6 ? Bad : sample < median * 0.8 ? Slow : Ember;
+                    sample < median * 0.6 ? Bad : sample < median * 0.8 ? Slow : accent;
                 painter.fillRect(QRectF{plot.left() + step * static_cast<qreal>(first + i),
                                         plot.bottom() - bar, std::max<qreal>(step - 0.25, 0.5),
                                         bar},
@@ -391,12 +399,12 @@ void PerformanceOverlay::paintEvent(QPaintEvent*) {
                 // Two lines of the same size, centred together.
                 const int block = value.height() * 2 + 2;
                 const int first = (h - block) / 2 + value.ascent();
-                painter.setPen(Ember);
+                painter.setPen(accent);
                 painter.drawText(cell.x, first, m_upscale_text);
                 painter.setPen(Text);
                 painter.drawText(cell.x, first + value.height() + 2, m_frame_gen_text);
             } else {
-                painter.setPen(Ember);
+                painter.setPen(accent);
                 painter.drawText(QRect{cell.x, 0, cell.width, h}, Qt::AlignLeft | Qt::AlignVCenter,
                                  m_upscale_text.isEmpty() ? m_frame_gen_text : m_upscale_text);
             }

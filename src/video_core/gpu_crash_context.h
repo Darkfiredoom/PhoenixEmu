@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // What PhoenixEmu's own GPU work was doing, written to the log when the GPU crashes (device loss):

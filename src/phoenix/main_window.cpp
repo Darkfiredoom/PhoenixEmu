@@ -18,6 +18,7 @@
 #include "common/settings_enums.h"
 #include "frontend_common/settings_generator.h"
 #include "render/performance_overlay.h"
+#include "render/quick_menu_overlay.h"
 #ifdef HAS_RESHADE
 #include "configuration/configure_post_processing.h"
 #include "video_core/post_processing/fx_preset.h"
@@ -37,6 +38,7 @@
 #include "about_dialog.h"
 #include "data_dialog.h"
 #include "nx2_switches_dialog.h"
+#include "pipeline_visualizer_dialog.h"
 #include "deps_dialog.h"
 #include "install_dialog.h"
 
@@ -51,6 +53,7 @@
 #include "phoenix/util/menu_sounds.h"
 #include "phoenix/util/fit_window.h"
 #include "phoenix/game/game_list.h"
+#include "phoenix/customize_dialog.h"
 #include "phoenix/nup_dialogs.h"
 #include "phoenix/recommended_settings_dialog.h"
 #include "phoenix/shader_warm_dialog.h"
@@ -1847,6 +1850,13 @@ void MainWindow::FillCustomizeMenu(QMenu* menu) {
         return QIcon{pixmap};
     };
 
+    // Everything below in one window, with bigger swatches.
+    menu->addAction(tr("Appearance..."), [this] {
+        CustomizeDialog dialog{[this] { ApplyCustomization(); }, this};
+        dialog.exec();
+    });
+    menu->addSeparator();
+
     // Theme: PhoenixEmu's, or the classic ones (build 11's default was Dark Colorful).
     QMenu* const theme_menu = menu->addMenu(tr("Theme"));
     auto* const themes = new QActionGroup(theme_menu);
@@ -1872,10 +1882,7 @@ void MainWindow::FillCustomizeMenu(QMenu* menu) {
     menu->addSeparator();
 
     // A colour: presets, and Custom... (a colour wheel).
-    struct Swatch {
-        QString name;
-        QColor color;
-    };
+    using Swatch = CustomizeDialog::Swatch;
     const auto colour_menu = [&](const QString& title, Setting<std::string>& setting,
                                  const QColor& theme_default, const std::vector<Swatch>& presets) {
         QMenu* const sub = menu->addMenu(title);
@@ -1917,29 +1924,9 @@ void MainWindow::FillCustomizeMenu(QMenu* menu) {
         group->addAction(custom);
     };
     colour_menu(tr("Accent Colour"), UISettings::values.theme_accent, PhoenixTheme::DefaultAccent,
-                {
-                    {tr("Flame (default)"), PhoenixTheme::DefaultAccent},
-                    {tr("Gold"), PhoenixTheme::BaseAccent},
-                    {tr("Tangerine"), QColor(0xFF, 0x8A, 0x3D)},
-                    {tr("Strawberry"), QColor(0xFF, 0x4F, 0x6D)},
-                    {tr("Bubblegum"), QColor(0xFF, 0x6F, 0xCF)},
-                    {tr("Grape"), QColor(0xA9, 0x7C, 0xFF)},
-                    {tr("Ocean"), QColor(0x3D, 0xA5, 0xFF)},
-                    {tr("Mint"), QColor(0x3D, 0xE8, 0xB0)},
-                    {tr("Lime"), QColor(0x9B, 0xE8, 0x3D)},
-                    {tr("Snow"), QColor(0xE8, 0xE8, 0xE8)},
-                });
+                CustomizeDialog::AccentPresets());
     colour_menu(tr("Background Colour"), UISettings::values.theme_background,
-                PhoenixTheme::DefaultBackground,
-                {
-                    {tr("Ember Red (default)"), PhoenixTheme::DefaultBackground},
-                    {tr("Warm Charcoal"), PhoenixTheme::BaseBackground},
-                    {tr("Cool Slate"), QColor(0x1B, 0x20, 0x26)},
-                    {tr("Deep Blue"), QColor(0x12, 0x1A, 0x2A)},
-                    {tr("Forest"), QColor(0x14, 0x20, 0x1A)},
-                    {tr("Plum"), QColor(0x22, 0x14, 0x2A)},
-                    {tr("Midnight Black"), QColor(0x16, 0x16, 0x16)},
-                });
+                PhoenixTheme::DefaultBackground, CustomizeDialog::BackgroundPresets());
 
     // Button shape.
     QMenu* const shape_menu = menu->addMenu(tr("Button Shape"));
@@ -1998,6 +1985,12 @@ void MainWindow::ConnectMenuEvents() {
     connect_menu(ui->action_Restart, &MainWindow::OnRestartGame);
     connect_menu(ui->action_Configure, &MainWindow::OnConfigure);
     connect_menu(ui->action_Configure_Current_Game, &MainWindow::OnConfigurePerGame);
+    {
+        auto* const action_quick_menu = new QAction(tr("Quick Settings Menu (F10)"), this);
+        action_quick_menu->setShortcut(QKeySequence(Qt::Key_F10));
+        ui->menu_Emulation->addAction(action_quick_menu);
+        connect_menu(action_quick_menu, &MainWindow::OnToggleQuickMenu);
+    }
 
     // View
     connect_menu(ui->action_Fullscreen, &MainWindow::ToggleFullscreen);
@@ -2115,6 +2108,10 @@ void MainWindow::ConnectMenuEvents() {
         Nx2SwitchesDialog dialog(this);
         dialog.exec();
     });
+    ui->menu_Tools->addAction(tr("Live Pipeline Visualizer..."), this, [this] {
+        PipelineVisualizerDialog dialog(this);
+        dialog.exec();
+    });
 
     // Help
     connect_menu(ui->action_Root_Data_Folder, &MainWindow::OnOpenRootDataFolder);
@@ -2128,6 +2125,12 @@ void MainWindow::ConnectMenuEvents() {
     connect_menu(ui->action_Firmware_From_ZIP, &MainWindow::OnInstallFirmwareFromZIP);
     connect_menu(ui->action_Install_Keys, &MainWindow::OnInstallDecryptionKeys);
     connect_menu(ui->action_About, &MainWindow::OnAbout);
+    // The PhoenixEmu Architecture & Engine Guide, in Help above "About".
+    {
+        auto* const guide = new QAction(tr("Architecture & Engine Guide..."), ui->menu_Help);
+        ui->menu_Help->insertAction(ui->action_About, guide);
+        connect(guide, &QAction::triggered, this, &MainWindow::OnEngineGuide);
+    }
     // The PhoenixEmu Discord server, in Help above "About".
     {
         auto* const discord = new QAction(tr("Join the PhoenixEmu Discord..."), ui->menu_Help);
@@ -2866,6 +2869,11 @@ bool MainWindow::OnShutdownBegin() {
         perf_overlay->deleteLater();
         perf_overlay = nullptr;
     }
+    if (quick_menu_overlay) {
+        quick_menu_overlay->hide();
+        quick_menu_overlay->deleteLater();
+        quick_menu_overlay = nullptr;
+    }
 
     QtCommon::system->SetShuttingDown(true);
     status_bar_update_timer.stop();
@@ -3026,6 +3034,11 @@ void MainWindow::TerminateEmulationThread() {
 }
 
 void MainWindow::OnEmulationStopped() {
+    // A shader recipe asked for from the game list is for that one launch.
+    if (qApp->property("phoenix_recipe_requested").toBool()) {
+        qunsetenv("PHOENIXEMU_MAKE_RECIPE");
+        qApp->setProperty("phoenix_recipe_requested", false);
+    }
     if (!emulation_running) {
         return;
     }
@@ -4894,6 +4907,52 @@ void MainWindow::OnInstallDecryptionKeys() {
     OnCheckFirmwareDecryption();
 }
 
+void MainWindow::OnEngineGuide() {
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("PhoenixEmu Architecture & Engine Guide"));
+    dialog.resize(720, 520);
+
+    auto* layout = new QVBoxLayout(&dialog);
+    auto* browser = new QTextBrowser(&dialog);
+    browser->setOpenExternalLinks(true);
+    browser->setHtml(tr(
+        "<h2>PhoenixEmu Architecture & Engine Guide</h2>"
+        "<p>Welcome to <b>PhoenixEmu</b>. This guide details how the emulator processes guest code, graphics, and performance features.</p>"
+        "<hr/>"
+        "<h3>1. CPU Emulation & Dynamic Recompiler (JIT)</h3>"
+        "<p>PhoenixEmu utilizes the <b>Dynarmic</b> JIT compiler to translate 64-bit ARMv8 guest code into host x86_64 machine code in real-time. "
+        "Guest virtual memory is mapped via chunked host page allocations. When a game allocates 2 GiB or more of backing memory, PhoenixEmu uses a staggered commit pipeline with exponential-backoff retries, allowing Windows to safely expand <code>pagefile.sys</code> without memory exhaustion crashes (Error 1455).</p>"
+        "<h3>2. GPU Translation & SPIR-V Pipeline</h3>"
+        "<p>The guest Tegra/Maxwell GPU command stream and shaders are translated directly into standard Vulkan SPIR-V intermediate representation: "
+        "<ul>"
+        "<li><b>Asynchronous Shader Compilation</b>: Prevents micro-stuttering by compiling pipelines in background threads while continuing execution.</li>"
+        "<li><b>Pipeline Binary Cache</b>: Persists compiled driver pipelines to disk to ensure lightning-fast subsequent boots.</li>"
+        "</ul></p>"
+        "<h3>3. AMD RDNA Micro-Tuning & Memory Architecture</h3>"
+        "<p>Modern AMD RDNA GPUs benefit from specialized architectural alignment: "
+        "<ul>"
+        "<li><b>Wave32 Subgroups</b>: Compute pipelines enforce 32-lane subgroups (<code>ForceComputeWave32</code>), matching guest GPU warps 1:1 for maximum hardware occupancy.</li>"
+        "<li><b>Smart Access Memory (SAM) / ReBAR</b>: Direct PCIe BAR streaming routes host memory buffers straight to high-speed VRAM.</li>"
+        "<li><b>ASTC-to-BC3 Recompression</b>: Automatically recompresses Switch ASTC textures to BC3 format on low-VRAM GPUs, reducing texture footprint by up to 75%.</li>"
+        "</ul></p>"
+        "<h3>4. FSR 3.1 / FSR 4 & Frame Generation</h3>"
+        "<p>PhoenixEmu features universal fidelity upscaling and temporal frame generation: "
+        "<ul>"
+        "<li><b>Optical Camera Motion</b>: Calculates camera motion vectors from projection matrices to guide temporal reconstruction.</li>"
+        "<li><b>Reactive HUD Mask</b>: Detects static UI and HUD elements, preserving pin-sharp UI clarity while generating smooth 60–120 FPS scene frames.</li>"
+        "</ul></p>"
+        "<h3>5. Mesh Shader Fallback & Local Wireless (LDN)</h3>"
+        "<p>Older GPUs without native <code>VK_EXT_mesh_shader</code> support automatically execute mesh programs via an optimized compute emulation stage. Meanwhile, LDN local wireless networking uses instant condition-variable event dispatch to eliminate lobby scan delays.</p>"
+    ));
+
+    auto* buttonBox = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    layout->addWidget(browser);
+    layout->addWidget(buttonBox);
+    dialog.exec();
+}
+
 void MainWindow::OnAbout() {
     AboutDialog aboutDialog(this);
     aboutDialog.exec();
@@ -5029,6 +5088,16 @@ void MainWindow::OnToggleStatusBar() {
 void MainWindow::OnTogglePerfOverlay() {
     if (perf_overlay)
         perf_overlay->setVisible(ui->action_Show_Performance_Overlay->isChecked());
+}
+
+void MainWindow::OnToggleQuickMenu() {
+    if (!emulation_running) {
+        return;
+    }
+    if (!quick_menu_overlay) {
+        quick_menu_overlay = new QuickMenuOverlay(this);
+    }
+    quick_menu_overlay->Toggle();
 }
 
 #ifdef HAS_RESHADE
@@ -6053,6 +6122,7 @@ void MainWindow::UpdateFilterText() {
     const auto filter = Settings::values.scaling_filter.GetValue();
     const auto filter_text = ConfigurationShared::scaling_filter_texts_map.find(filter)->second;
     filter_status_button->setText(filter_text.toUpper());
+    UpdateUpscaleButton();
 }
 
 void MainWindow::UpdateAAText() {
@@ -6106,8 +6176,10 @@ void MainWindow::UpdateUpscaleButton() {
         upscale_status_button->setChecked(enabled);
         upscale_status_button->setText(enabled ? tr("FSR") : tr("NO FSR"));
         upscale_status_button->setToolTip(
-            enabled ? tr("AMD FSR is on: it replaces Ocarina of Time's upscaler (Windows). Whether "
-                         "it runs shows here once a game starts. Click to turn it off.")
+            enabled ? tr("AMD FSR is on: it replaces the upscaler of games that have one "
+                         "(Windows). For every other game, pick FSR on the filter button next "
+                         "to this one. Whether it runs shows here once a game starts. Click to "
+                         "turn it off.")
                     : tr("AMD FSR is off. Click to turn it on."));
         return;
     }
@@ -6121,11 +6193,25 @@ void MainWindow::UpdateUpscaleButton() {
                 .arg(upscale_name, upscale_sizes));
         return;
     }
+    // A game without an upscaler of its own still gets FSR 1 from the scaling filter.
+    const auto filter = Settings::values.scaling_filter.GetValue();
+    if (filter == Settings::ScalingFilter::Fsr || filter == Settings::ScalingFilter::Fsr3) {
+        const QString name = filter == Settings::ScalingFilter::Fsr ? tr("FSR 1") : tr("FSR 3");
+        upscale_status_button->setChecked(true);
+        upscale_status_button->setText(name);
+        upscale_status_button->setToolTip(
+            tr("%1 is scaling the picture to the window (the filter button's choice). %2")
+                .arg(name, upscale_idle_reason));
+        return;
+    }
     upscale_status_button->setChecked(false);
     upscale_status_button->setText(upscale_idle_tag.isEmpty()
                                        ? tr("FSR (IDLE)")
                                        : tr("FSR (%1)").arg(upscale_idle_tag));
-    upscale_status_button->setToolTip(tr("AMD FSR is not upscaling. %1").arg(upscale_idle_reason));
+    upscale_status_button->setToolTip(
+        tr("AMD FSR is not upscaling. %1 For FSR in this game, pick FSR on the filter button "
+           "next to this one.")
+            .arg(upscale_idle_reason));
 }
 
 void MainWindow::UpdateFrameGenButton() {

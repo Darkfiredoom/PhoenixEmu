@@ -681,6 +681,18 @@ void TextureCache<P>::ApplyThresholdOverrides(bool log) {
         }
     }
     expected_memory = (std::min)(expected_memory, critical_memory);
+    if (Settings::values.vram_usage_mode.GetValue() == Settings::VramUsageMode::Conservative ||
+        (requires { runtime.GetDeviceLocalMemory(); } && runtime.GetDeviceLocalMemory() <= 4_GiB)) {
+        // Conservative VRAM mode or low VRAM GPUs (<= 4 GB, e.g. 2 GB cards): maintain extra headroom for staging,
+        // driver heaps, and swapchain allocations to prevent out-of-memory crashes on game load.
+        if (critical_memory > 768_MiB) {
+            critical_memory = (std::min)(critical_memory, critical_memory - 256_MiB);
+        }
+        if (expected_memory > 512_MiB) {
+            expected_memory = (std::min)(expected_memory, critical_memory - 256_MiB);
+        }
+    }
+    expected_memory = (std::min)(expected_memory, critical_memory);
     if (log) {
         LOG_INFO(HW_GPU, "Texture cache thresholds: expected {} MiB, critical {} MiB, minimum {} MiB",
                  expected_memory >> 20, critical_memory >> 20, minimum_memory >> 20);

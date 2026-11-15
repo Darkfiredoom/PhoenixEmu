@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+# SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Refreshes dist/game_pictures.json, the title ID -> picture list PhoenixEmu reads so players get

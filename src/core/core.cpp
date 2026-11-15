@@ -514,6 +514,7 @@ struct System::Impl {
             ShutdownMainProcess();
             return init_result;
         }
+        VideoCommon::StutterTrace::BootMarker("core_loaded");
         // Waiting for GPU before initializing CPU
         cpu_manager.Initialize();
 

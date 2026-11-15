@@ -194,6 +194,17 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
     m_addButton->setCursor(Qt::PointingHandCursor);
     m_addButton->setToolTip(tr("Add a folder with games"));
     connect(m_addButton, &QPushButton::clicked, this, &GameCarousel::AddDirectoryRequested);
+    // Console hero play button: launches the picked game directly
+    m_playButton = new QPushButton(tr("▶  Play Game"), viewport());
+    m_playButton->setObjectName(QStringLiteral("HomeHeroPlayButton"));
+    m_playButton->setCursor(Qt::PointingHandCursor);
+    m_playButton->setToolTip(tr("Launch the selected game"));
+    m_playButton->setVisible(false);
+    connect(m_playButton, &QPushButton::clicked, this, [this] {
+        if (currentIndex().isValid()) {
+            emit activated(currentIndex());
+        }
+    });
     // The tiles' size: a slider in the bottom-right corner, remembered.
     m_sizeSlider = new QSlider(Qt::Horizontal, viewport());
     m_sizeSlider->setObjectName(QStringLiteral("HomeTileSizeSlider"));
@@ -294,6 +305,18 @@ void GameCarousel::PlaceAddButton() {
     const QPoint place{viewport()->width() - 40 - m_addButton->width(), clock_bottom};
     if (m_addButton->pos() != place) {
         m_addButton->move(place);
+    }
+    if (m_playButton != nullptr) {
+        const bool has_game = currentIndex().isValid();
+        m_playButton->setVisible(has_game);
+        if (has_game) {
+            m_playButton->adjustSize();
+            const int play_y = viewport()->height() - 36 - (m_playButton->height() - 20) / 2;
+            const QPoint play_place{40, play_y};
+            if (m_playButton->pos() != play_place) {
+                m_playButton->move(play_place);
+            }
+        }
     }
     if (m_sizeSlider != nullptr) {
         const QPoint slider_place{viewport()->width() - 40 - m_sizeSlider->width(),
@@ -404,6 +427,36 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         painter.drawText(QPoint(area.width() - left - big_metrics.horizontalAdvance(time),
                                 top + big_metrics.ascent()),
                          time);
+
+        if (currentIndex().isValid() && m_playButton != nullptr && m_playButton->isVisible()) {
+            const QModelIndex current = currentIndex();
+            const u64 pid = current.data(GameListItemPath::ProgramIdRole).toULongLong();
+            const int hero_y = m_playButton->y() + m_playButton->height() / 2;
+            const int text_x = m_playButton->x() + m_playButton->width() + 16;
+
+            QFont meta_font = font();
+            meta_font.setBold(true);
+            meta_font.setPixelSize(11);
+            painter.setFont(meta_font);
+            const QFontMetrics meta_metrics{meta_font};
+
+            const QString badge = QStringLiteral("SWITCH 2 READY");
+            const int badge_w = meta_metrics.horizontalAdvance(badge) + 14;
+            const int badge_h = 22;
+            const QRect badge_rect{text_x, hero_y - badge_h / 2, badge_w, badge_h};
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(PhoenixTheme::Recolor(QColor(0xFF, 0x52, 0x30, 50)));
+            painter.drawRoundedRect(badge_rect, 5, 5);
+            painter.setPen(PhoenixTheme::Recolor(QColor(0xFF, 0x8A, 0x3D)));
+            painter.drawRoundedRect(badge_rect, 5, 5);
+            painter.drawText(badge_rect, Qt::AlignCenter, badge);
+
+            if (pid != 0) {
+                const QString id_str = QStringLiteral("0x%1").arg(pid, 16, 16, QLatin1Char('0')).toUpper();
+                painter.setPen(PhoenixTheme::Recolor(QColor(0xE8, 0xD9, 0xB5, 175)));
+                painter.drawText(QPoint(text_x + badge_w + 12, hero_y + meta_metrics.ascent() / 2), id_str);
+            }
+        }
     }
     QListView::paintEvent(event);
 }
@@ -438,6 +491,7 @@ void GameCarousel::SetModel(GameListModel* model) {
             [this](const QModelIndex& current) {
                 m_liftAnimation->stop();
                 m_liftAnimation->start();
+                PlaceAddButton();
                 // The backdrop takes the picked game's colours, cross-fading from the last.
                 m_ambientPrevious = m_ambient;
                 m_ambientSource = current.data(GameListItemPath::LargePictureRole).value<QPixmap>();

@@ -88,9 +88,9 @@ public:
         setMinimumHeight(88);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setAttribute(Qt::WA_TranslucentBackground);
-        // 60 frames a second; the fill glides to each new value instead of jumping.
-        timer.setInterval(16);
-        timer.setTimerType(Qt::PreciseTimer);
+        // 30 frames a second keeps the fill gliding smoothly while freeing CPU for shader compilation and loading.
+        timer.setInterval(33);
+        timer.setTimerType(Qt::CoarseTimer);
         clock.start();
         connect(&timer, &QTimer::timeout, this, [this] {
             const qreal dt = std::min(0.05, clock.restart() / 1000.0);
@@ -440,6 +440,12 @@ void LoadingScreen::OnLoadProgress(VideoCore::LoadCallbackStage stage, std::size
     // Reset the progress bar ranges if compilation is done
     if (stage == VideoCore::LoadCallbackStage::Complete) {
         ui->progress_bar->setRange(0, 0);
+    }
+
+    // Throttle high-frequency UI updates during heavy shader loading to save CPU cycles
+    const bool is_ending = stage == VideoCore::LoadCallbackStage::Complete || value >= total;
+    if (!is_ending && stage == previous_stage && now - previous_time < milliseconds{33}) {
+        return;
     }
 
     QString estimate;

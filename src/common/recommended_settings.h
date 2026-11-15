@@ -117,9 +117,19 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     entry(config.oot_fsr_preset, large_card    ? OotFsrPreset::NativeAa
                                  : medium_card ? OotFsrPreset::Quality
                                                : OotFsrPreset::Performance);
-    // Docked output: 4K needs the video memory for 4K images.
-    entry(config.oot_docked_output,
-          large_card ? OotDockedOutput::Output4k : OotDockedOutput::Output1440p);
+    // Handheld / APU preset tuning (Steam Deck, ROG Ally, integrated Radeon graphics)
+    if (host.integrated) {
+        entry(config.use_docked_mode, ConsoleMode::Handheld);
+        entry(config.resolution_setup, ResolutionSetup::Res1X);
+        entry(config.vram_usage_mode, VramUsageMode::Conservative);
+        entry(config.astc_recompression, AstcRecompression::Bc3);
+        entry(config.oot_fsr_preset, OotFsrPreset::Performance);
+        entry(config.oot_docked_output, OotDockedOutput::Output1440p);
+    } else {
+        // Docked output: 4K needs the video memory for 4K images.
+        entry(config.oot_docked_output,
+              large_card ? OotDockedOutput::Output4k : OotDockedOutput::Output1440p);
+    }
 }
 
 /// The table for the default PC (a capable desktop with an AMD card).

@@ -57,6 +57,19 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
     painter->setPen(borderPen);
     painter->drawRoundedRect(cardRect, cardCornerRadius, cardCornerRadius);
 
+    if ((option.state & QStyle::State_Selected) || (option.state & QStyle::State_MouseOver)) {
+        QLinearGradient cardSheen{cardRect.topLeft(),
+                                  QPointF(cardRect.left(), cardRect.top() + cardRect.height() * 0.45)};
+        cardSheen.setColorAt(0.0, QColor(255, 255, 255, (option.state & QStyle::State_Selected) ? 45 : 25));
+        cardSheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+        painter->save();
+        QPainterPath cardClip;
+        cardClip.addRoundedRect(cardRect, cardCornerRadius, cardCornerRadius);
+        painter->setClipPath(cardClip);
+        painter->fillRect(cardRect, cardSheen);
+        painter->restore();
+    }
+
     const u32 icon_size = UISettings::values.game_icon_size.GetValue();
     QPixmap icon_pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
 
@@ -187,6 +200,13 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         painter->setPen(PhoenixTheme::Recolor(QColor(0x3A, 0x26, 0x00)));
         painter->drawText(tile_rect, Qt::AlignCenter, title.left(2).toUpper());
     }
+    // Glassmorphic specular sheen across the upper area
+    QLinearGradient sheen{tile_rect.topLeft(),
+                          QPointF(tile_rect.left(), tile_rect.top() + tile_rect.height() * 0.42)};
+    sheen.setColorAt(0.0, QColor(255, 255, 255, selected ? 65 : (hovered ? 35 : 18)));
+    sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+    painter->fillRect(tile_rect, sheen);
+
     if (!selected) {
         // The others step back a little.
         painter->fillRect(tile_rect, QColor(10, 8, 4, hovered ? 25 : 80));
@@ -197,12 +217,17 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
     painter->setBrush(Qt::NoBrush);
     if (selected) {
         painter->setPen(QPen(PhoenixTheme::Recolor(EmberBase), std::max(3, tile / 70)));
+        painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
+        // Inner luminous glass rim
+        painter->setPen(QPen(QColor(255, 255, 255, 110), 1));
+        painter->drawRoundedRect(QRectF(tile_rect).adjusted(1.5, 1.5, -1.5, -1.5), radius - 1.0, radius - 1.0);
     } else if (hovered) {
         painter->setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA, 170)), 2));
+        painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
     } else {
         painter->setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xFF, 0xFF, 28)), 1));
+        painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
     }
-    painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
 
     // The selected game's name, in a little pill under it.
     if (selected && UISettings::values.show_game_name.GetValue()) {
@@ -214,11 +239,23 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         const int max_width = cell.width() * 2;
         const QString shown = metrics.elidedText(title, Qt::ElideRight, max_width);
         const int text_width = metrics.horizontalAdvance(shown);
-        const QRect pill{tile_rect.center().x() - text_width / 2 - 14, tile_rect.bottom() + 18,
-                         text_width + 28, metrics.height() + 10};
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(PhoenixTheme::Recolor(QColor(0x2A, 0x22, 0x14, 230)));
+        const QRect pill{tile_rect.center().x() - text_width / 2 - 16, tile_rect.bottom() + 18,
+                         text_width + 32, metrics.height() + 12};
+        painter->setPen(QPen(PhoenixTheme::Recolor(EmberBase).darker(150), 1));
+        painter->setBrush(PhoenixTheme::Recolor(QColor(0x20, 0x16, 0x10, 235)));
         painter->drawRoundedRect(QRectF(pill), pill.height() / 2.0, pill.height() / 2.0);
+
+        // Glass highlight on upper half of the pill
+        painter->save();
+        QPainterPath pill_clip;
+        pill_clip.addRoundedRect(QRectF(pill), pill.height() / 2.0, pill.height() / 2.0);
+        painter->setClipPath(pill_clip);
+        QLinearGradient pill_sheen{pill.topLeft(), QPointF(pill.left(), pill.center().y())};
+        pill_sheen.setColorAt(0, QColor(255, 255, 255, 35));
+        pill_sheen.setColorAt(1, QColor(255, 255, 255, 0));
+        painter->fillRect(pill, pill_sheen);
+        painter->restore();
+
         painter->setPen(PhoenixTheme::Recolor(CreamBase));
         painter->drawText(pill, Qt::AlignCenter, shown);
     }

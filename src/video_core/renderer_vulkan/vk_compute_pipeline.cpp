@@ -39,8 +39,14 @@
 namespace Vulkan {
 
 namespace {
-// Experiment: EDEN_NX2_COMPUTE_WAVE32=1 runs every compute shader at the guest warp size.
-bool ForceComputeWave32() {
+// AMD RDNA natively benefits from Wave32 compute to match the guest's 32-thread warp size.
+bool ForceComputeWave32(const Device& device) {
+    const auto driver_id = device.GetDriverID();
+    if (driver_id == VK_DRIVER_ID_AMD_PROPRIETARY ||
+        driver_id == VK_DRIVER_ID_AMD_OPEN_SOURCE ||
+        driver_id == VK_DRIVER_ID_MESA_RADV) {
+        return true;
+    }
     static const bool forced = [] {
         const char* value = std::getenv("EDEN_NX2_COMPUTE_WAVE32");
         return value != nullptr && value[0] == '1';
@@ -274,7 +280,7 @@ ComputePipeline::ComputePipeline(const Device& device_, Scheduler& scheduler, vk
         const bool uses_warp_ops = info.uses_subgroup_vote || info.uses_subgroup_invocation_id ||
                                    info.uses_subgroup_shuffles || info.uses_subgroup_mask ||
                                    info.uses_quad_shuffles || info.uses_fswzadd ||
-                                   info.uses_cooperative_matrix || ForceComputeWave32();
+                                   info.uses_cooperative_matrix || ForceComputeWave32(device);
         VkPipelineCreateFlags flags{};
         if (device.IsKhrPipelineExecutablePropertiesEnabled() && Settings::values.renderer_debug.GetValue()) {
             flags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;

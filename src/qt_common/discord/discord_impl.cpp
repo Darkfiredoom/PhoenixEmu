@@ -64,6 +64,15 @@ DiscordImpl::DiscordImpl(Core::System& system_) : system{system_} {
         return;
     }
     DiscordEventHandlers handlers{};
+    handlers.ready = [](const DiscordUser* user) {
+        LOG_INFO(Frontend, "Discord presence connected: {}", user->username);
+    };
+    handlers.errored = [](int error_code, const char* message) {
+        LOG_ERROR(Frontend, "Discord presence error ({}): {}", error_code, message);
+    };
+    handlers.disconnected = [](int error_code, const char* message) {
+        LOG_INFO(Frontend, "Discord presence disconnected ({}): {}", error_code, message);
+    };
     Discord_Initialize(app_id.c_str(), &handlers, 1, nullptr);
     initialized = true;
 }
@@ -111,6 +120,7 @@ std::string DiscordImpl::GetGameString(const std::string& title) {
 }
 
 void DiscordImpl::UpdateGameStatus(std::string_view game_url, bool has_boxart) {
+    Discord_RunCallbacks();
     // "Playing PhoenixEmu" / "The Legend of Zelda: Ocarina of Time" / "elapsed 12:34".
     const std::string art = std::string{has_boxart ? game_url : LogoUrl};
     const std::string title = game_title;
@@ -130,6 +140,7 @@ void DiscordImpl::Update() {
     if (!initialized) {
         return;
     }
+    Discord_RunCallbacks();
     if (lookup.joinable()) {
         lookup.join();
     }
@@ -182,8 +193,11 @@ void DiscordImpl::Update() {
     DiscordRichPresence presence{};
     presence.largeImageKey = LogoUrl;
     presence.largeImageText = LogoText;
-    presence.status_display_type = DiscordStatusDisplayType_Name;
-    presence.details = "Picking a game";
+    presence.smallImageKey = LogoUrl;
+    presence.smallImageText = LogoText;
+    presence.details = "PhoenixEmu";
+    presence.state = "Picking a game";
+    presence.status_display_type = DiscordStatusDisplayType_Details;
     presence.startTimestamp = Now();
     Discord_UpdatePresence(&presence);
 }

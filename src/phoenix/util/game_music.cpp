@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "phoenix/util/game_music.h"

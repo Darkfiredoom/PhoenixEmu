@@ -191,7 +191,18 @@ LONG CALLBACK ReservedPageHandler(PEXCEPTION_POINTERS info) {
     u8* const end = (std::min)(granule + Granule, region_begin + region.RegionSize);
     if (VirtualAlloc(begin, static_cast<size_t>(end - begin), MEM_COMMIT, PAGE_READWRITE) ==
         nullptr) {
-        return EXCEPTION_CONTINUE_SEARCH;
+        const DWORD err = GetLastError();
+        if (err == ERROR_COMMITMENT_LIMIT || err == ERROR_NOT_ENOUGH_MEMORY) {
+            for (int attempt = 0; attempt < 30; ++attempt) {
+                Sleep(100);
+                if (VirtualAlloc(begin, static_cast<size_t>(end - begin), MEM_COMMIT, PAGE_READWRITE) != nullptr) {
+                    break;
+                }
+            }
+        }
+        if (VirtualAlloc(begin, static_cast<size_t>(end - begin), MEM_COMMIT, PAGE_READWRITE) == nullptr) {
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
     }
     if (g_net_commits.fetch_add(1, std::memory_order_relaxed) == 0) {
         g_first_net_offset.store(in_backing ? static_cast<u64>(address - views.backing_base)
@@ -308,52 +319,63 @@ public:
     }
 
     /// EDEN_NX2_SEC_RESERVE: commits [offset, end) of the section through the backing view.
-    bool CommitBacking(size_t offset, size_t end) {
+    /// Returns the byte offset reached up to which memory was successfully committed.
+    size_t CommitBacking(size_t offset, size_t end) {
         end = (std::min)(end, backing_size);
         if (offset >= end) {
-            return true;
+            return end;
         }
-        if (VirtualAlloc(backing_base + offset, end - offset, MEM_COMMIT, PAGE_READWRITE) !=
-            nullptr) {
-            return true;
-        }
-        DWORD error = GetLastError();
-        // Error 1455: RAM plus page file are all promised. With a system managed page file
-        // Windows grows it and the same request succeeds a moment later, so wait for that
-        // instead of ending the game (a 16 GB PC with a 6.6 GB page file crashed 80 s into
-        // Ocarina of Time here).
-        if (error == ERROR_COMMITMENT_LIMIT || error == ERROR_NOT_ENOUGH_MEMORY) {
-            static std::atomic<bool> told{};
-            if (!told.exchange(true)) {
-                MEMORYSTATUSEX status{};
-                status.dwLength = sizeof(status);
-                GlobalMemoryStatusEx(&status);
-                LOG_CRITICAL(HW_Memory,
-                             "Windows is out of memory for the game: {} MiB left of a {} MiB "
-                             "limit (RAM {} MiB plus the page file). Waiting for Windows to grow "
-                             "the page file. If the game ends here: set the page file to "
-                             "\"System managed size\" (or at least 24 GB), close other programs, "
-                             "and turn frame generation off (it takes about 1.5 GB).",
-                             status.ullAvailPageFile >> 20, status.ullTotalPageFile >> 20,
-                             status.ullTotalPhys >> 20);
-            }
-            for (int attempt = 0; attempt < 40; ++attempt) {
-                Sleep(100);
-                if (VirtualAlloc(backing_base + offset, end - offset, MEM_COMMIT,
-                                 PAGE_READWRITE) != nullptr) {
-                    return true;
-                }
-                error = GetLastError();
-                if (error != ERROR_COMMITMENT_LIMIT && error != ERROR_NOT_ENOUGH_MEMORY) {
+        // Commit in 4 MiB chunks to prevent large allocations (e.g. 2 GiB heap at load) from failing
+        // all-or-nothing when system commit limit is tight. Smaller chunks allow Windows to commit
+        // incrementally and expand the paging file as needed.
+        constexpr size_t ChunkSize = 4 * 1024 * 1024;
+        size_t cur = offset;
+        while (cur < end) {
+            const size_t cur_len = (std::min)(ChunkSize, end - cur);
+            if (VirtualAlloc(backing_base + cur, cur_len, MEM_COMMIT, PAGE_READWRITE) == nullptr) {
+                DWORD error = GetLastError();
+                if (error == ERROR_COMMITMENT_LIMIT || error == ERROR_NOT_ENOUGH_MEMORY) {
+                    static std::atomic<bool> told{};
+                    if (!told.exchange(true)) {
+                        MEMORYSTATUSEX status{};
+                        status.dwLength = sizeof(status);
+                        GlobalMemoryStatusEx(&status);
+                        LOG_CRITICAL(HW_Memory,
+                                     "Windows is out of memory for the game: {} MiB left of a {} MiB "
+                                     "limit (RAM {} MiB plus the page file). Waiting for Windows to grow "
+                                     "the page file. If the game ends here: set the page file to "
+                                     "\"System managed size\" (or at least 24 GB), close other programs, "
+                                     "and turn frame generation off (it takes about 1.5 GB).",
+                                     status.ullAvailPageFile >> 20, status.ullTotalPageFile >> 20,
+                                     status.ullTotalPhys >> 20);
+                    }
+                    bool retry_ok = false;
+                    for (int attempt = 0; attempt < 50; ++attempt) {
+                        Sleep(100);
+                        if (VirtualAlloc(backing_base + cur, cur_len, MEM_COMMIT,
+                                         PAGE_READWRITE) != nullptr) {
+                            retry_ok = true;
+                            break;
+                        }
+                    }
+                    if (!retry_ok) {
+                        LOG_WARNING(HW_Memory,
+                                    "EDEN_NX2_SEC_RESERVE: committing chunk {:#x} bytes at {:#x} "
+                                    "failed, error {}. Committed {:#x}/{:#x} bytes.",
+                                    cur_len, cur, error, cur - offset, end - offset);
+                        break;
+                    }
+                } else {
+                    LOG_CRITICAL(HW_Memory,
+                                 "EDEN_NX2_SEC_RESERVE: committing {:#x} bytes at {:#x} "
+                                 "failed, error {}",
+                                 cur_len, cur, error);
                     break;
                 }
             }
+            cur += cur_len;
         }
-        LOG_CRITICAL(HW_Memory,
-                     "EDEN_NX2_SEC_RESERVE: committing {:#x} bytes of guest memory at {:#x} "
-                     "failed, error {}",
-                     end - offset, offset, error);
-        return false;
+        return cur;
     }
 
     void* Allocate(size_t size) {
@@ -1469,16 +1491,18 @@ void HostMemory::Commit(size_t physical_offset, size_t length) {
                (granules[run_end].load(std::memory_order_acquire) & GranuleCommitted) == 0) {
             ++run_end;
         }
-        if (impl->CommitBacking(index << GranuleShift, run_end << GranuleShift)) {
-            u64 newly = 0;
-            for (size_t granule = index; granule < run_end; ++granule) {
-                if ((granules[granule].fetch_or(GranuleCommitted, std::memory_order_release) &
-                     GranuleCommitted) == 0) {
-                    ++newly;
-                }
+        const size_t committed_bytes_offset =
+            impl->CommitBacking(index << GranuleShift, run_end << GranuleShift);
+        const size_t committed_granule_end =
+            (std::min)(run_end, committed_bytes_offset >> GranuleShift);
+        u64 newly = 0;
+        for (size_t granule = index; granule < committed_granule_end; ++granule) {
+            if ((granules[granule].fetch_or(GranuleCommitted, std::memory_order_release) &
+                 GranuleCommitted) == 0) {
+                ++newly;
             }
-            g_committed_bytes.fetch_add(newly << GranuleShift, std::memory_order_relaxed);
         }
+        g_committed_bytes.fetch_add(newly << GranuleShift, std::memory_order_relaxed);
         index = run_end;
     }
 #else

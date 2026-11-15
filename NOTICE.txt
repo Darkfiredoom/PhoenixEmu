@@ -1,5 +1,5 @@
 PhoenixEmu
-Copyright (C) 2026 CheezerWheezer and the CheezyEmu contributors
+Copyright (C) 2026 Darkfiredoom and the PhoenixEmu contributors
 
 PhoenixEmu is free software: you can redistribute it and/or modify it under the terms of the
 GNU General Public License as published by the Free Software Foundation, either version 3 of the

@@ -67,7 +67,7 @@ Windows and `phoenixemu` on other desktop platforms.
 
 ## Credits and license
 
-Copyright © 2026 CheezerWheezer and the CheezyEmu contributors. PhoenixEmu is free software
+Copyright © 2026 Darkfiredoom and the PhoenixEmu contributors. PhoenixEmu is free software
 under the GNU General Public License v3 or later ([LICENSE.txt](LICENSE.txt), [NOTICE.txt](NOTICE.txt)).
 
 PhoenixEmu is built on the work of many projects and their contributors, and keeps their copyright

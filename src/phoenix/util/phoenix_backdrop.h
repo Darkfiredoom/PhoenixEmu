@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 CheezyEmu contributors
+// SPDX-FileCopyrightText: 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
@@ -103,20 +103,36 @@ public:
             }
         }
         for (Mote& mote : motes) {
-            // Lazy, wandering drift: each mote's heading turns slowly on its own.
-            mote.heading += std::sin(time * mote.turn + mote.seed) * 0.6 * dt;
-            const QPointF velocity{std::cos(mote.heading), std::sin(mote.heading) * 0.6 + 0.15};
-            mote.pos += velocity * mote.speed * dt;
-            // Wrap around to the other side, so the room never empties.
-            if (mote.pos.x() < area.left() - 10) {
-                mote.pos.setX(area.right() + 8);
-            } else if (mote.pos.x() > area.right() + 10) {
-                mote.pos.setX(area.left() - 8);
-            }
-            if (mote.pos.y() < area.top() - 10) {
-                mote.pos.setY(area.bottom() + 8);
-            } else if (mote.pos.y() > area.bottom() + 10) {
-                mote.pos.setY(area.top() - 8);
+            if (mote.is_ember) {
+                // Rising incandescent ember: buoyant upward drift with gentle side-to-side harmonic sway
+                const qreal sway = std::sin(time * mote.pulse_rate + mote.seed);
+                mote.pos.rx() += sway * (mote.speed * 0.75) * dt;
+                mote.pos.ry() -= (mote.speed * 1.25 + 5.0) * dt;
+                // If it rises above top, wrap to bottom with new random x
+                if (mote.pos.y() < area.top() - 12) {
+                    mote.pos.setY(area.bottom() + 10);
+                    mote.pos.setX(area.left() + random->generateDouble() * area.width());
+                } else if (mote.pos.x() < area.left() - 10) {
+                    mote.pos.setX(area.right() + 8);
+                } else if (mote.pos.x() > area.right() + 10) {
+                    mote.pos.setX(area.left() - 8);
+                }
+            } else {
+                // Lazy, wandering drift: each mote's heading turns slowly on its own.
+                mote.heading += std::sin(time * mote.turn + mote.seed) * 0.6 * dt;
+                const QPointF velocity{std::cos(mote.heading), std::sin(mote.heading) * 0.6 + 0.15};
+                mote.pos += velocity * mote.speed * dt;
+                // Wrap around to the other side, so the room never empties.
+                if (mote.pos.x() < area.left() - 10) {
+                    mote.pos.setX(area.right() + 8);
+                } else if (mote.pos.x() > area.right() + 10) {
+                    mote.pos.setX(area.left() - 8);
+                }
+                if (mote.pos.y() < area.top() - 10) {
+                    mote.pos.setY(area.bottom() + 8);
+                } else if (mote.pos.y() > area.bottom() + 10) {
+                    mote.pos.setY(area.top() - 8);
+                }
             }
         }
     }
@@ -177,6 +193,19 @@ public:
         p.drawPixmap(area.topLeft(), still);
 
         p.setCompositionMode(QPainter::CompositionMode_Screen);
+        // Dynamic subtle radiant warmth that breathes softly from the source corner
+        const qreal reach = std::hypot(area.width(), area.height()) * 1.15;
+        const qreal breath = 0.5 + 0.5 * std::sin(time * 0.65);
+        if (breath > 0.01) {
+            p.setOpacity(0.06 * breath);
+            QRadialGradient warm_pulse{Source(QRectF(area)), reach * 0.85};
+            warm_pulse.setColorAt(0, PhoenixTheme::Recolor(PhoenixTheme::DefaultAccent));
+            warm_pulse.setColorAt(1, Qt::transparent);
+            p.setBrush(warm_pulse);
+            p.drawRect(area);
+            p.setOpacity(1.0);
+        }
+
         PaintSun(p, area);
         PaintMotes(p, area);
         p.restore();
@@ -196,6 +225,8 @@ private:
         qreal seed = 0;
         qreal speed = 0;
         qreal size = 0;
+        bool is_ember = false;
+        qreal pulse_rate = 1.0;
     };
 
     static void Spawn(Mote& mote, const QRectF& area, QRandomGenerator* random) {
@@ -206,6 +237,8 @@ private:
         mote.seed = uniform() * 100;
         mote.speed = 3 + uniform() * 9;
         mote.size = 0.9 + uniform() * 1.8;
+        mote.is_ember = uniform() < 0.38;
+        mote.pulse_rate = 1.2 + uniform() * 2.8;
     }
 
     static QPointF Source(const QRectF& area) {
@@ -344,19 +377,61 @@ private:
         const auto beams = Beams();
         p.setPen(Qt::NoPen);
         for (const Mote& mote : motes) {
-            // Motes catch the light: bright inside a beam, barely there in the shade.
-            const QPointF d = mote.pos - source;
-            const qreal light =
-                std::min(1.0, 1.5 * LightAt(beams, std::atan2(d.y(), d.x()),
-                                            std::hypot(d.x(), d.y()) / reach));
-            const qreal twinkle = 0.8 + 0.2 * std::sin(time * 2.3 + mote.seed);
-            const qreal alpha = (30 + 225 * light) * twinkle / 255.0;
-            const qreal r = mote.size * (1.0 + 1.6 * light) * 2.4;
-            p.setOpacity(std::min(1.0, alpha));
-            p.drawPixmap(QRectF(mote.pos.x() - r, mote.pos.y() - r, r * 2, r * 2), MoteSprite(),
-                         QRectF(0, 0, 64, 64));
+            if (mote.is_ember) {
+                // Rising ember: self-luminous, pulsing with thermal spark intensity
+                const qreal pulse = 0.55 + 0.45 * std::sin(time * mote.pulse_rate + mote.seed);
+                const qreal alpha = std::clamp(pulse * 0.95, 0.15, 1.0);
+                const qreal r = mote.size * (1.2 + 0.8 * pulse) * 2.2;
+                p.setOpacity(alpha);
+                p.drawPixmap(QRectF(mote.pos.x() - r, mote.pos.y() - r, r * 2, r * 2), EmberSprite(),
+                             QRectF(0, 0, 64, 64));
+            } else {
+                // Motes catch the light: bright inside a beam, barely there in the shade.
+                const QPointF d = mote.pos - source;
+                const qreal light =
+                    std::min(1.0, 1.5 * LightAt(beams, std::atan2(d.y(), d.x()),
+                                                std::hypot(d.x(), d.y()) / reach));
+                const qreal twinkle = 0.8 + 0.2 * std::sin(time * 2.3 + mote.seed);
+                const qreal alpha = (30 + 225 * light) * twinkle / 255.0;
+                const qreal r = mote.size * (1.0 + 1.6 * light) * 2.4;
+                p.setOpacity(std::min(1.0, alpha));
+                p.drawPixmap(QRectF(mote.pos.x() - r, mote.pos.y() - r, r * 2, r * 2), MoteSprite(),
+                             QRectF(0, 0, 64, 64));
+            }
         }
         p.setOpacity(1.0);
+    }
+
+    /// An ember's fiery glowing particle sprite with an intense bright core and chromatic corona.
+    static const QPixmap& EmberSprite() {
+        static QPixmap sprite;
+        static u32 sprite_generation = ~0U;
+        if (sprite_generation == PhoenixTheme::Generation()) {
+            return sprite;
+        }
+        sprite_generation = PhoenixTheme::Generation();
+        sprite = [] {
+            QPixmap pixmap(64, 64);
+            pixmap.fill(Qt::transparent);
+            QPainter painter{&pixmap};
+            painter.setRenderHint(QPainter::Antialiasing);
+            QRadialGradient glow{QPointF(32, 32), 32};
+            const QColor core = PhoenixTheme::Recolor(QColor(0xFF, 0xFD, 0xF0, 255));
+            const QColor mid = PhoenixTheme::Recolor(PhoenixTheme::DefaultAccent);
+            QColor mid_alpha = mid;
+            mid_alpha.setAlpha(180);
+            QColor edge = mid.darker(150);
+            edge.setAlpha(0);
+            glow.setColorAt(0, core);
+            glow.setColorAt(0.22, mid_alpha);
+            glow.setColorAt(0.65, QColor(mid.red(), mid.green(), mid.blue(), 45));
+            glow.setColorAt(1, edge);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(glow);
+            painter.drawEllipse(QPointF(32, 32), 32, 32);
+            return pixmap;
+        }();
+        return sprite;
     }
 
     /// A mote's soft glow, drawn once.

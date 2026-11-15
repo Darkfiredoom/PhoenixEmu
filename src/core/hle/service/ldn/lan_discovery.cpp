@@ -122,8 +122,16 @@ Result LANDiscovery::Scan(std::span<NetworkInfo> out_networks, s16& out_count,
         SendBroadcast(Network::LDNPacketType::Scan);
     }
 
-    LOG_INFO(Service_LDN, "Waiting for scan replies");
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    LOG_DEBUG(Service_LDN, "Waiting for scan replies");
+    {
+        std::unique_lock lock{packet_mutex};
+        if (scan_cv.wait_for(lock, std::chrono::milliseconds(350),
+                             [&] { return !scan_results.empty(); })) {
+            lock.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            lock.lock();
+        }
+    }
 
     std::scoped_lock lock{packet_mutex};
     for (const auto& [key, info] : scan_results) {
@@ -531,6 +539,7 @@ void LANDiscovery::ReceivePacket(const Network::LDNPacket& packet) {
         NetworkInfo info{};
         std::memcpy(&info, packet.data.data(), sizeof(NetworkInfo));
         scan_results.insert({info.common.bssid, info});
+        scan_cv.notify_all();
 
         break;
     }

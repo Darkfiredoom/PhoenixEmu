@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
+# SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Builds dist/game_pictures.json: a SteamGridDB picture link for every Switch 2 title ID.
 

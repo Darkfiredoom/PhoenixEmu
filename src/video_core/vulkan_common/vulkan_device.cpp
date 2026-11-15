@@ -2005,7 +2005,9 @@ void Device::SetupFamilies(VkSurfaceKHR surface) {
 #ifdef _WIN32
     // AMD's frame generation swapchain presents from its own threads, so it gets a queue of its
     // own: a compute family that can present (AMD), else a second graphics queue (NVIDIA, Intel).
-    if (surface && Settings::values.frame_gen.GetValue() &&
+    const bool is_amd = properties.properties.vendorID == 0x1002;
+    if (surface && (Settings::values.frame_gen.GetValue() ||
+                    Settings::values.amd_fsr4.GetValue() || is_amd) &&
         Settings::FrameGenTypeInUse() == Settings::FrameGenType::AmdFsr) {
         const u32 families = static_cast<u32>(queue_family_properties.size());
         for (u32 index = 0; index < families && !frame_gen_present; ++index) {

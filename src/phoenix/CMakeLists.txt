@@ -182,6 +182,10 @@ add_executable(phoenix
     nx2_switches.h
     nx2_switches_dialog.h
     nx2_switches_dialog.cpp
+    customize_dialog.h
+    customize_dialog.cpp
+    pipeline_visualizer_dialog.h
+    pipeline_visualizer_dialog.cpp
 
     multiplayer/chat_room.cpp
     multiplayer/chat_room.h
@@ -261,6 +265,7 @@ add_executable(phoenix
     configuration/addon/mod_select_dialog.h configuration/addon/mod_select_dialog.cpp configuration/addon/mod_select_dialog.ui
 
     render/performance_overlay.h render/performance_overlay.cpp
+    render/quick_menu_overlay.h render/quick_menu_overlay.cpp
     updater/update_dialog.h updater/update_dialog.cpp updater/update_dialog.ui
     game/common.h
     game/carousel.h game/carousel.cpp

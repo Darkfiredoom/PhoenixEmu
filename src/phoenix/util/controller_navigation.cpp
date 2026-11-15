@@ -5,6 +5,7 @@
 #include "hid_core/frontend/emulated_controller.h"
 #include "hid_core/hid_core.h"
 #include "phoenix/util/controller_navigation.h"
+#include "phoenix/util/menu_sounds.h"
 
 ControllerNavigation::ControllerNavigation(Core::HID::HIDCore& hid_core, QWidget* parent) {
     player1_controller = hid_core.GetEmulatedController(Core::HID::NpadIdType::Player1);
@@ -33,6 +34,7 @@ void ControllerNavigation::UnloadController() {
 void ControllerNavigation::TriggerButton(Settings::NativeButton::Values native_button,
                                          Qt::Key key) {
     if (button_values[native_button].value && !button_values[native_button].locked) {
+        MenuSounds::Click();
         emit TriggerKeyboardEvent(key);
     }
 }
@@ -76,6 +78,10 @@ void ControllerNavigation::ControllerUpdateButton() {
         TriggerButton(Settings::NativeButton::DLeft, Qt::Key_Left);
         TriggerButton(Settings::NativeButton::DRight, Qt::Key_Right);
         TriggerButton(Settings::NativeButton::DUp, Qt::Key_Up);
+        TriggerButton(Settings::NativeButton::Home, Qt::Key_F10);
+        TriggerButton(Settings::NativeButton::L, Qt::Key_PageUp);
+        TriggerButton(Settings::NativeButton::R, Qt::Key_PageDown);
+        TriggerButton(Settings::NativeButton::Plus, Qt::Key_F11);
         break;
     case Core::HID::NpadStyleIndex::JoyconLeft:
         TriggerButton(Settings::NativeButton::DDown, Qt::Key_Enter);

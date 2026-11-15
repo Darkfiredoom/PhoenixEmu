@@ -57,9 +57,30 @@ std::optional<Common::Net::Release> SelectUpdate(std::span<const Common::Net::Re
     return selected ? std::make_optional(*selected) : std::nullopt;
 }
 
+std::string_view Platform() {
+    if (!std::string_view{Common::g_build_release_platform}.empty()) {
+        return Common::g_build_release_platform;
+    }
+#ifdef _WIN32
+    return "windows-x86_64";
+#elif defined(__linux__)
+    return "linux-x86_64";
+#else
+    return "";
+#endif
+}
+
+std::string_view BuildTag() {
+    if (!std::string_view{Common::g_build_release_tag}.empty()) {
+        return Common::g_build_release_tag;
+    }
+    return "build-0";
+}
+
 CheckResult Check() {
-    if (!ParseBuildNumber(Common::g_build_release_tag) ||
-        std::string_view{Common::g_build_release_platform}.empty()) {
+    const auto platform = Platform();
+    const auto build_tag = BuildTag();
+    if (platform.empty()) {
         return {};
     }
 
@@ -70,8 +91,7 @@ CheckResult Check() {
         return {.failure = failure, .status = list.status};
     }
 
-    auto update = SelectUpdate(list.releases, Common::g_build_release_tag,
-                               Common::g_build_release_platform,
+    auto update = SelectUpdate(list.releases, build_tag, platform,
                                Common::Net::CurrentLinuxPackage());
     if (update) {
         LOG_INFO(Frontend, "Received update {}", update->title);

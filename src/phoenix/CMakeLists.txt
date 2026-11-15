@@ -267,6 +267,8 @@ add_executable(phoenix
     render/performance_overlay.h render/performance_overlay.cpp
     render/quick_menu_overlay.h render/quick_menu_overlay.cpp
     updater/update_dialog.h updater/update_dialog.cpp updater/update_dialog.ui
+    save_sync_dialog.h save_sync_dialog.cpp
+    shader_recipe_dialog.h shader_recipe_dialog.cpp
     game/common.h
     game/carousel.h game/carousel.cpp
 )

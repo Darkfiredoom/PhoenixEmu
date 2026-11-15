@@ -37,6 +37,8 @@
 
 #include "about_dialog.h"
 #include "data_dialog.h"
+#include "save_sync_dialog.h"
+#include "shader_recipe_dialog.h"
 #include "nx2_switches_dialog.h"
 #include "pipeline_visualizer_dialog.h"
 #include "deps_dialog.h"
@@ -1263,9 +1265,31 @@ void MainWindow::InitializeWidgets() {
     upscale_status_button->setFocusPolicy(Qt::NoFocus);
     upscale_status_button->setCheckable(true);
     connect(upscale_status_button, &QPushButton::clicked, this, [this] {
-        Settings::values.amd_fsr4.SetValue(!Settings::values.amd_fsr4.GetValue());
+        // One switch for every game: a game with an upscaler of its own gets AMD FSR in its
+        // place, any other gets FSR 1 as the scaling filter.
+        using Settings::ScalingFilter;
+        static ScalingFilter filter_before = ScalingFilter::ScaleForce;
+        const ScalingFilter filter = Settings::values.scaling_filter.GetValue();
+        const bool spatial = filter == ScalingFilter::Fsr || filter == ScalingFilter::Fsr3;
+        const bool temporal = Settings::values.amd_fsr4.GetValue();
+        const auto set_spatial = [&](bool on) {
+            if (on && !spatial) {
+                filter_before = filter;
+                Settings::values.scaling_filter.SetValue(ScalingFilter::Fsr);
+            } else if (!on && spatial) {
+                Settings::values.scaling_filter.SetValue(filter_before);
+            }
+        };
+        if (emulation_running && temporal && !upscale_running && !spatial) {
+            // On, but this game has nothing for AMD FSR to replace.
+            set_spatial(true);
+        } else {
+            const bool on = !(temporal || spatial);
+            Settings::values.amd_fsr4.SetValue(on);
+            set_spatial(on);
+        }
         OnSaveConfig();
-        UpdateUpscaleButton();
+        UpdateFilterText();
     });
     UpdateUpscaleButton();
     statusBar()->insertPermanentWidget(0, upscale_status_button);
@@ -1991,6 +2015,12 @@ void MainWindow::ConnectMenuEvents() {
         ui->menu_Emulation->addAction(action_quick_menu);
         connect_menu(action_quick_menu, &MainWindow::OnToggleQuickMenu);
     }
+    {
+        auto* const action_quick_sleep = new QAction(tr("Quick Sleep & Resume (Switch Mode)"), this);
+        action_quick_sleep->setShortcuts({QKeySequence(Qt::Key_Pause), QKeySequence(Qt::Key_F9)});
+        ui->menu_Emulation->addAction(action_quick_sleep);
+        connect_menu(action_quick_sleep, &MainWindow::OnQuickSleepResume);
+    }
 
     // View
     connect_menu(ui->action_Fullscreen, &MainWindow::ToggleFullscreen);
@@ -2112,6 +2142,8 @@ void MainWindow::ConnectMenuEvents() {
         PipelineVisualizerDialog dialog(this);
         dialog.exec();
     });
+    ui->menu_Tools->addAction(tr("Cloud && LAN Save Sync..."), this, &MainWindow::OnSaveSyncDialog);
+    ui->menu_Tools->addAction(tr("Shader Recipe && Precache Manager..."), this, &MainWindow::OnShaderRecipeDialog);
 
     // Help
     connect_menu(ui->action_Root_Data_Folder, &MainWindow::OnOpenRootDataFolder);
@@ -2138,6 +2170,12 @@ void MainWindow::ConnectMenuEvents() {
         connect(discord, &QAction::triggered, this, [] {
             QDesktopServices::openUrl(QUrl(QStringLiteral("https://discord.gg/mPsZHYeetr")));
         });
+    }
+    // Check for Updates action
+    {
+        auto* const check_update = new QAction(tr("Check for Updates..."), ui->menu_Help);
+        ui->menu_Help->insertAction(ui->action_About, check_update);
+        connect(check_update, &QAction::triggered, this, &MainWindow::OnManualCheckForUpdates);
     }
     connect_menu(ui->action_Eden_Dependencies, &MainWindow::OnEdenDependencies);
     connect_menu(ui->action_Apply_Recommended_Settings, &MainWindow::OnApplyRecommendedSettings);
@@ -3034,6 +3072,14 @@ void MainWindow::TerminateEmulationThread() {
 }
 
 void MainWindow::OnEmulationStopped() {
+    if (const QVariant before = qApp->property("phoenix_fsr_filter_before"); before.isValid()) {
+        if (Settings::values.scaling_filter.GetValue() == Settings::ScalingFilter::Fsr) {
+            Settings::values.scaling_filter.SetValue(
+                static_cast<Settings::ScalingFilter>(before.toUInt()));
+            UpdateFilterText();
+        }
+        qApp->setProperty("phoenix_fsr_filter_before", QVariant{});
+    }
     // A shader recipe asked for from the game list is for that one launch.
     if (qApp->property("phoenix_recipe_requested").toBool()) {
         qunsetenv("PHOENIXEMU_MAKE_RECIPE");
@@ -3064,6 +3110,8 @@ void MainWindow::OnEmulationStopped() {
 
     discord_rpc->Update();
     Common::FeralGamemode::Stop();
+    SaveSyncDialog::PerformBackgroundSync();
+    is_quick_sleeping = false;
 
     // The emulation is stopped, so closing the window or not does not matter anymore
     disconnect(render_window, &GRenderWindow::Closed, this, &MainWindow::OnStopGame);
@@ -5073,6 +5121,78 @@ void MainWindow::OnDataDialog() {
     OnGameListRefresh();
 }
 
+void MainWindow::OnSaveSyncDialog() {
+    SaveSyncDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::OnShaderRecipeDialog() {
+    ShaderRecipeDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::OnQuickSleepResume() {
+    if (!emulation_running) {
+        return;
+    }
+
+    if (!is_quick_sleeping) {
+        is_quick_sleeping = true;
+        pre_sleep_volume = Settings::values.volume.GetValue();
+        Settings::values.volume.SetValue(0);
+        QtCommon::emu_thread->SetRunning(false);
+        play_time_manager->Stop();
+        AllowOSSleep();
+        Common::FeralGamemode::Stop();
+        statusBar()->showMessage(tr("[QUICK SLEEP] Emulation suspended • Press F9, Pause, or Guide to resume"), 0);
+        setWindowTitle(tr("PhoenixEmu [QUICK SLEEP / SUSPENDED]"));
+    } else {
+        is_quick_sleeping = false;
+        Settings::values.volume.SetValue(pre_sleep_volume);
+        PreventOSSleep();
+        QtCommon::emu_thread->SetRunning(true);
+        play_time_manager->Start();
+        Common::FeralGamemode::Start();
+        MenuSounds::Click();
+        statusBar()->showMessage(tr("Resumed from Quick Sleep"), 3000);
+        UpdateWindowTitle();
+    }
+    UpdateMenuState();
+}
+
+void MainWindow::OnManualCheckForUpdates() {
+#ifdef ENABLE_UPDATE_CHECKER
+    statusBar()->showMessage(tr("Checking for updates from GitHub..."), 5000);
+    auto* watcher = new QFutureWatcher<UpdateChecker::CheckResult>(this);
+    connect(watcher, &QFutureWatcher<UpdateChecker::CheckResult>::finished, this, [this, watcher] {
+        const auto result = watcher->result();
+        watcher->deleteLater();
+        if (result.failure == UpdateChecker::Failure::RateLimited) {
+            QMessageBox::warning(this, tr("PhoenixEmu Update"),
+                                 tr("GitHub rate limit reached. Please try again later."));
+            return;
+        }
+        if (result.failure == UpdateChecker::Failure::Http ||
+            result.failure == UpdateChecker::Failure::Network) {
+            QMessageBox::warning(this, tr("PhoenixEmu Update"),
+                                 tr("Could not connect to GitHub to check for updates.\nPlease check your connection."));
+            return;
+        }
+        if (!result.update) {
+            QMessageBox::information(this, tr("PhoenixEmu Update"),
+                                     tr("You are using the latest version of PhoenixEmu!"));
+            return;
+        }
+        UpdateDialog dialog(*result.update, this);
+        dialog.exec();
+    });
+    watcher->setFuture(QtConcurrent::run([]() { return UpdateChecker::Check(); }));
+#else
+    QMessageBox::information(this, tr("PhoenixEmu Update"),
+                             tr("Update checker is disabled in this build."));
+#endif
+}
+
 void MainWindow::OnToggleFilterBar() {
     game_list->SetFilterVisible(ui->action_Show_Filter_Bar->isChecked());
     if (ui->action_Show_Filter_Bar->isChecked())
@@ -5872,24 +5992,14 @@ void MainWindow::OnApplicationChanged(u64 program_id) {
 
 void MainWindow::UpdateWindowTitle(std::string_view title_name, std::string_view title_version,
                                    std::string_view gpu_vendor) {
-    static const std::string build_id = std::string{Common::g_build_id};
-    static const std::string phoenix_title =
-        fmt::format("{} | {} | {}", std::string{Common::g_build_name},
-                    std::string{Common::g_build_version}, std::string{Common::g_compiler_id});
-
-    const auto override_title =
-        fmt::format(fmt::runtime(std::string(Common::g_title_bar_format_idle)), build_id);
-    const auto window_title = override_title.empty() ? phoenix_title : override_title;
-
     if (title_name.empty()) {
-        setWindowTitle(QString::fromStdString(window_title));
+        setWindowTitle(QStringLiteral("PhoenixEmu"));
     } else {
-        const auto run_title = [window_title, title_name, title_version, gpu_vendor]() {
+        const auto run_title = [title_name, title_version]() {
             if (title_version.empty()) {
-                return fmt::format("{} | {} | {}", window_title, title_name, gpu_vendor);
+                return fmt::format("PhoenixEmu | {}", title_name);
             }
-            return fmt::format("{} | {} | {} | {}", window_title, title_name, title_version,
-                               gpu_vendor);
+            return fmt::format("PhoenixEmu | {} | {}", title_name, title_version);
         }();
         setWindowTitle(QString::fromStdString(run_title));
     }
@@ -6052,6 +6162,18 @@ void MainWindow::UpdateStatusBar() {
                              0, 'f', 1);
     upscale_idle_tag = QString::fromStdString(upscaler.idle_tag);
     upscale_idle_reason = QString::fromStdString(upscaler.idle_reason);
+    // FSR on in a game AMD FSR has nothing to replace in: FSR 1 scales it for this session
+    // (the filter from before comes back when the game stops).
+    if (Settings::values.amd_fsr4.GetValue() && !upscale_running &&
+        upscale_idle_tag == QStringLiteral("OOT ONLY") &&
+        !qApp->property("phoenix_fsr_filter_before").isValid()) {
+        const auto filter = Settings::values.scaling_filter.GetValue();
+        if (filter != Settings::ScalingFilter::Fsr && filter != Settings::ScalingFilter::Fsr3) {
+            qApp->setProperty("phoenix_fsr_filter_before", static_cast<uint>(filter));
+            Settings::values.scaling_filter.SetValue(Settings::ScalingFilter::Fsr);
+            UpdateFilterText();
+        }
+    }
     UpdateUpscaleButton();
 
     // After the texts above are current: the performance bar shows them.
@@ -6171,15 +6293,17 @@ void MainWindow::UpdateUpscaleButton() {
     if (!upscale_status_button) {
         return;
     }
-    const bool enabled = Settings::values.amd_fsr4.GetValue();
+    const auto filter = Settings::values.scaling_filter.GetValue();
+    const bool spatial =
+        filter == Settings::ScalingFilter::Fsr || filter == Settings::ScalingFilter::Fsr3;
+    const bool enabled = Settings::values.amd_fsr4.GetValue() || spatial;
     if (!emulation_running) {
         upscale_status_button->setChecked(enabled);
         upscale_status_button->setText(enabled ? tr("FSR") : tr("NO FSR"));
         upscale_status_button->setToolTip(
-            enabled ? tr("AMD FSR is on: it replaces the upscaler of games that have one "
-                         "(Windows). For every other game, pick FSR on the filter button next "
-                         "to this one. Whether it runs shows here once a game starts. Click to "
-                         "turn it off.")
+            enabled ? tr("FSR is on: AMD FSR replaces the upscaler of games that have one "
+                         "(Windows), and every other game is scaled with FSR 1. What runs "
+                         "shows here once a game starts. Click to turn it off.")
                     : tr("AMD FSR is off. Click to turn it on."));
         return;
     }
@@ -6194,8 +6318,7 @@ void MainWindow::UpdateUpscaleButton() {
         return;
     }
     // A game without an upscaler of its own still gets FSR 1 from the scaling filter.
-    const auto filter = Settings::values.scaling_filter.GetValue();
-    if (filter == Settings::ScalingFilter::Fsr || filter == Settings::ScalingFilter::Fsr3) {
+    if (spatial) {
         const QString name = filter == Settings::ScalingFilter::Fsr ? tr("FSR 1") : tr("FSR 3");
         upscale_status_button->setChecked(true);
         upscale_status_button->setText(name);
@@ -6209,8 +6332,7 @@ void MainWindow::UpdateUpscaleButton() {
                                        ? tr("FSR (IDLE)")
                                        : tr("FSR (%1)").arg(upscale_idle_tag));
     upscale_status_button->setToolTip(
-        tr("AMD FSR is not upscaling. %1 For FSR in this game, pick FSR on the filter button "
-           "next to this one.")
+        tr("AMD FSR is not upscaling. %1 Click to scale this game with FSR 1 instead.")
             .arg(upscale_idle_reason));
 }
 

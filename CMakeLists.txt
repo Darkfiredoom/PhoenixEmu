@@ -73,7 +73,7 @@ endif()
 # qt stuff
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" OFF)
-option(ENABLE_UPDATE_CHECKER "Enable update checker (for Qt and Android)" OFF)
+option(ENABLE_UPDATE_CHECKER "Enable update checker (for Qt and Android)" ON)
 set(PHOENIXEMU_BUILD_TAG "" CACHE STRING "Published build-N release tag; empty for local builds")
 set(PHOENIXEMU_BUILD_PLATFORM "" CACHE STRING "Release asset platform and variant, such as linux-x86_64-pgo")
 cmake_dependent_option(PHOENIX_USE_QT_MULTIMEDIA "Use QtMultimedia for Camera"  OFF "NOT PHOENIX_USE_BUNDLED_QT" OFF)

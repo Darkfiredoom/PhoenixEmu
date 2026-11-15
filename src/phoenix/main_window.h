@@ -443,6 +443,10 @@ private slots:
     void OnApplyRecommendedSettings();
     void OnRestorePreviousSettings();
     void OnDataDialog();
+    void OnSaveSyncDialog();
+    void OnShaderRecipeDialog();
+    void OnQuickSleepResume();
+    void OnManualCheckForUpdates();
     void OnToggleFilterBar();
     void OnToggleStatusBar();
     void OnTogglePerfOverlay();
@@ -559,6 +563,8 @@ private:
     MultiplayerState* multiplayer_state = nullptr;
     bool use_recommended_mkw_settings = false;
     bool asked_recommended_mkw_settings = false;
+    bool is_quick_sleeping = false;
+    int pre_sleep_volume = 100;
 
     GRenderWindow* render_window = nullptr;
     GameList* game_list = nullptr;

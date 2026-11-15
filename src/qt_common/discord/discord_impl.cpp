@@ -49,6 +49,14 @@ constexpr char LogoUrl[] =
     "https://raw.githubusercontent.com/Darkfiredoom/PhoenixEmu/main/dist/branding/"
     "phoenixemu_icon.png";
 
+std::string LogoAsset() {
+    if (const char* const forced = std::getenv("PHOENIXEMU_DISCORD_ICON");
+        forced != nullptr && forced[0] != '\0') {
+        return forced;
+    }
+    return LogoUrl;
+}
+
 s64 Now() {
     return std::chrono::duration_cast<std::chrono::seconds>(
                std::chrono::system_clock::now().time_since_epoch())
@@ -122,12 +130,13 @@ std::string DiscordImpl::GetGameString(const std::string& title) {
 void DiscordImpl::UpdateGameStatus(std::string_view game_url, bool has_boxart) {
     Discord_RunCallbacks();
     // "Playing PhoenixEmu" / "The Legend of Zelda: Ocarina of Time" / "elapsed 12:34".
-    const std::string art = std::string{has_boxart ? game_url : LogoUrl};
+    const std::string logo = LogoAsset();
+    const std::string art = std::string{has_boxart ? game_url : logo};
     const std::string title = game_title;
     DiscordRichPresence presence{};
     presence.largeImageKey = art.c_str();
     presence.largeImageText = title.c_str();
-    presence.smallImageKey = LogoUrl;
+    presence.smallImageKey = logo.c_str();
     presence.smallImageText = LogoText;
     presence.details = title.c_str();
     presence.state = "Playing on PhoenixEmu";
@@ -190,10 +199,11 @@ void DiscordImpl::Update() {
         return;
     }
 
+    const std::string logo = LogoAsset();
     DiscordRichPresence presence{};
-    presence.largeImageKey = LogoUrl;
+    presence.largeImageKey = logo.c_str();
     presence.largeImageText = LogoText;
-    presence.smallImageKey = LogoUrl;
+    presence.smallImageKey = logo.c_str();
     presence.smallImageText = LogoText;
     presence.details = "PhoenixEmu";
     presence.state = "Picking a game";

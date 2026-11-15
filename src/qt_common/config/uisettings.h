@@ -191,6 +191,9 @@ struct Values {
     Setting<std::string> steamgriddb_api_key{linkage, {}, "steamgriddb_api_key", Category::Ui};
     // Look up pictures online for listed games that have none (SteamGridDB with a key).
     Setting<bool> auto_game_pictures{linkage, true, "auto_game_pictures", Category::Ui};
+    // Cloud & LAN Save Sync
+    Setting<std::string> save_sync_folder{linkage, {}, "save_sync_folder", Category::Ui};
+    Setting<bool> auto_save_sync{linkage, false, "auto_save_sync", Category::Ui};
 
     std::string theme;
 

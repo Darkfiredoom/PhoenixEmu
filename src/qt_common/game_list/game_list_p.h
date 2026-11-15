@@ -44,17 +44,17 @@ Q_DECLARE_METATYPE(GameListItemType);
  * @param size The desired width and height of the default icon.
  * @return QPixmap default icon
  */
-// A game without a picture shows a faded CheezyEmu cheese until one is found.
+// A game without a picture shows a faded PhoenixEmu logo until one is found.
 static QPixmap GetDefaultIcon(u32 size) {
     QPixmap icon(size, size);
     icon.fill(Qt::transparent);
-    const QPixmap cheese(QStringLiteral(":/img/cheezyemu.png"));
-    if (!cheese.isNull()) {
+    const QPixmap emblem(QStringLiteral(":/img/phoenixemu.png"));
+    if (!emblem.isNull()) {
         QPainter painter(&icon);
         painter.setRenderHint(QPainter::SmoothPixmapTransform);
         painter.setOpacity(0.35);
         const int inset = static_cast<int>(size) / 6;
-        painter.drawPixmap(QRect(inset, inset, size - 2 * inset, size - 2 * inset), cheese);
+        painter.drawPixmap(QRect(inset, inset, size - 2 * inset, size - 2 * inset), emblem);
     }
     return icon;
 }

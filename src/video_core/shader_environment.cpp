@@ -975,9 +975,9 @@ struct GraphicsEnvironment::DetachedState {
 
 void GraphicsEnvironment::Detach() {
     auto state = std::make_shared<DetachedState>();
-    const auto& stage = maxwell3d->state.shader_stages[stage_index];
-    for (size_t index = 0; index < stage.const_buffers.size(); ++index) {
-        const auto& cbuf = stage.const_buffers[index];
+    const auto& stage_state = maxwell3d->state.shader_stages[stage_index];
+    for (size_t index = 0; index < stage_state.const_buffers.size(); ++index) {
+        const auto& cbuf = stage_state.const_buffers[index];
         state->enabled[index] = cbuf.enabled;
         if (!cbuf.enabled || cbuf.size == 0) {
             continue;

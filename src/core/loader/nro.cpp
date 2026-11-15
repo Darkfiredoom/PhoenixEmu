@@ -149,7 +149,7 @@ bool AppLoader_NRO::IsHomebrew() {
 }
 
 static constexpr u32 PageAlignSize(u32 size) {
-    return static_cast<u32>((size + Core::Memory::YUZU_PAGEMASK) & ~Core::Memory::YUZU_PAGEMASK);
+    return static_cast<u32>((size + Core::Memory::PHOENIX_PAGEMASK) & ~Core::Memory::PHOENIX_PAGEMASK);
 }
 
 static bool LoadNroImpl(Core::System& system, Kernel::KProcess& process,
@@ -230,7 +230,7 @@ static bool LoadNroImpl(Core::System& system, Kernel::KProcess& process,
         }
 
         const size_t entries_and_argv =
-            Common::AlignUp(kConfigTableSize + argv_string.size(), Core::Memory::YUZU_PAGESIZE);
+            Common::AlignUp(kConfigTableSize + argv_string.size(), Core::Memory::PHOENIX_PAGESIZE);
 
         args_offset_in_image = program_image.size();
         codeset.DataSegment().size += static_cast<u32>(entries_and_argv);

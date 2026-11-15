@@ -20,7 +20,7 @@ class SwitchDiscovery(unittest.TestCase):
         self.config = self.root / "config/eden"
         self.config.mkdir(parents=True)
         source = self.root / "probe.cpp"
-        source.write_text('''#include "yuzu/nx2_switches.h"
+        source.write_text('''#include "phoenix/nx2_switches.h"
 #include <iostream>
 namespace Common::FS {
 std::filesystem::path GetDataDirectory(const std::string&) {
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     std::cout << (value ? value : "unset");
 }
 ''')
-        subprocess.run([os.environ.get("CXX", "c++"), "-std=c++20", "-Wall", "-Wextra", "-Werror", "-I", str(ROOT / "src"), str(source), "-o", str(self.bin / "cheezyemu")], check=True)
+        subprocess.run([os.environ.get("CXX", "c++"), "-std=c++20", "-Wall", "-Wextra", "-Werror", "-I", str(ROOT / "src"), str(source), "-o", str(self.bin / "phoenixemu")], check=True)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -50,10 +50,10 @@ int main(int argc, char** argv) {
     def test_untrusted_sidecars_cannot_set_host_environment(self):
         outer = self.root / "app"
         outer.mkdir()
-        image = outer / "CheezyEmu.AppImage"
+        image = outer / "PhoenixEmu.AppImage"
         image.touch()
         forbidden = ("LD_PRELOAD", "LD_LIBRARY_PATH", "LIBVULKAN_PATH", "QT_PLUGIN_PATH",
-                     "PATH", "HOME", "XDG_CONFIG_HOME", "YUZU_DO_STARTUP_CHECKS",
+                     "PATH", "HOME", "XDG_CONFIG_HOME", "PHOENIX_DO_STARTUP_CHECKS",
                      "EDEN_STREAMLINE_DIR")
         for folder in (self.bin, outer):
             sidecar = folder / "nx2_switches.txt"
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
             for name in forbidden:
                 with self.subTest(folder=folder, name=name):
                     expected = str(self.config.parent) if name == "XDG_CONFIG_HOME" else "unset"
-                    self.assertEqual(self.run_probe(self.bin / "cheezyemu", name, APPIMAGE=str(image)), expected)
+                    self.assertEqual(self.run_probe(self.bin / "phoenixemu", name, APPIMAGE=str(image)), expected)
             sidecar.unlink()
 
     def test_diagnostics_and_explicit_user_environment(self):
@@ -74,10 +74,10 @@ int main(int argc, char** argv) {
         (self.bin / "nx2_switches.txt").write_text("".join(f"{name}=1\n" for name in supported))
         for name in supported:
             with self.subTest(name=name):
-                self.assertEqual(self.run_probe(self.bin / "cheezyemu", name), "1")
-                self.assertEqual(self.run_probe(self.bin / "cheezyemu", name, **{name: "2"}), "2")
+                self.assertEqual(self.run_probe(self.bin / "phoenixemu", name), "1")
+                self.assertEqual(self.run_probe(self.bin / "phoenixemu", name, **{name: "2"}), "2")
         (self.config / "nx2_switches.txt").write_text("EDEN_STREAMLINE_DIR=/trusted\n")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", "EDEN_STREAMLINE_DIR"), "/trusted")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", "EDEN_STREAMLINE_DIR"), "/trusted")
 
     def test_invalid_config_base_does_not_search_cwd(self):
         cwd_config = self.root / "eden"
@@ -85,37 +85,37 @@ int main(int argc, char** argv) {
         (cwd_config / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=99\n")
         for base in ("", "."):
             with self.subTest(base=base):
-                self.assertEqual(self.run_probe(self.bin / "cheezyemu", XDG_CONFIG_HOME=base), "unset")
+                self.assertEqual(self.run_probe(self.bin / "phoenixemu", XDG_CONFIG_HOME=base), "unset")
 
     def test_elf_path_symlink_and_precedence(self):
         (self.root / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=99\n")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu"), "unset")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu"), "unset")
         (self.bin / "nx2_switches.txt").write_text('EDEN_NX2_PRELOAD_ALL_PIPELINES="1"\n')
         linkdir = self.root / "links"
         linkdir.mkdir()
-        (linkdir / "cheezyemu").symlink_to(self.bin / "cheezyemu")
-        self.assertEqual(self.run_probe("cheezyemu", PATH=str(linkdir)), "1")
+        (linkdir / "phoenixemu").symlink_to(self.bin / "phoenixemu")
+        self.assertEqual(self.run_probe("phoenixemu", PATH=str(linkdir)), "1")
         (self.config / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=2\n")
-        self.assertEqual(self.run_probe(linkdir / "cheezyemu"), "2")
-        self.assertEqual(self.run_probe(linkdir / "cheezyemu", EDEN_NX2_PRELOAD_ALL_PIPELINES="3"), "3")
+        self.assertEqual(self.run_probe(linkdir / "phoenixemu"), "2")
+        self.assertEqual(self.run_probe(linkdir / "phoenixemu", EDEN_NX2_PRELOAD_ALL_PIPELINES="3"), "3")
 
     def test_appimage_external_overrides_internal(self):
         (self.bin / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=1\n")
         outer = self.root / "app"
         outer.mkdir()
-        image = outer / "CheezyEmu.AppImage"
+        image = outer / "PhoenixEmu.AppImage"
         image.touch()
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(image)), "1")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(outer / "missing.AppImage")), "1")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(image)), "1")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(outer / "missing.AppImage")), "1")
         (outer / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=2\n")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(image)), "2")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(image)), "2")
         link = self.root / "link.AppImage"
         link.symlink_to(image)
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(link)), "2")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE="app/CheezyEmu.AppImage"), "1")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(link)), "2")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE="app/PhoenixEmu.AppImage"), "1")
         (self.config / "nx2_switches.txt").write_text("EDEN_NX2_PRELOAD_ALL_PIPELINES=3\n")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(image)), "3")
-        self.assertEqual(self.run_probe(self.bin / "cheezyemu", APPIMAGE=str(image), EDEN_NX2_PRELOAD_ALL_PIPELINES="4"), "4")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(image)), "3")
+        self.assertEqual(self.run_probe(self.bin / "phoenixemu", APPIMAGE=str(image), EDEN_NX2_PRELOAD_ALL_PIPELINES="4"), "4")
 
 
 if __name__ == "__main__":

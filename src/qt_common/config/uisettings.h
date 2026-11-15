@@ -61,11 +61,11 @@ enum class Theme {
     DarkColorful,
     MidnightBlue,
     MidnightBlueColorful,
-    Cheezy,
+    Phoenix,
 };
 
-// CheezyEmu's own theme everywhere (warm charcoal and cheese yellow).
-static constexpr Theme default_theme{Theme::Cheezy};
+// PhoenixEmu's own theme everywhere (warm charcoal and ember gold).
+static constexpr Theme default_theme{Theme::Phoenix};
 
 using Themes = std::array<std::pair<const char*, const char*>, 7>;
 extern const Themes themes;
@@ -159,7 +159,7 @@ struct Values {
     // Discord RPC
     Setting<bool> enable_discord_presence{linkage, true, "enable_discord_presence", Category::Ui};
 
-    // Menu sounds (yuzu/util/menu_sounds.cpp): the click and start chime, the home screen hum
+    // Menu sounds (phoenix/util/menu_sounds.cpp): the click and start chime, the home screen hum
     // and their volume.
     Setting<bool> menu_sounds{linkage, true, "menu_sounds", Category::Ui};
     Setting<bool> menu_ambient{linkage, true, "menu_ambient", Category::Ui};
@@ -233,7 +233,7 @@ struct Values {
     Setting<bool> show_game_name{linkage, true, "show_game_name", Category::UiGameList};
     /// The status bar shows build 11's graphics buttons and the FSR sizes (its DETAILS toggle).
     Setting<bool> show_status_details{linkage, false, "show_status_details", Category::Ui};
-    /// Customize menu (yuzu/util/cheezy_theme.h): the CheezyEmu theme's accent and background
+    /// Customize menu (phoenix/util/phoenix_theme.h): the PhoenixEmu theme's accent and background
     /// colours (#rrggbb; empty is the theme's own) and button shape (0 pill, 1 soft, 2 square).
     Setting<std::string> theme_accent{linkage, std::string{}, "theme_accent", Category::Ui};
     Setting<std::string> theme_background{linkage, std::string{}, "theme_background", Category::Ui};

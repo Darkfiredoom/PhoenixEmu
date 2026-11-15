@@ -184,7 +184,7 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
            tr("Runs a Switch 2 game's own DLSS (its upscaling network, translated for this GPU) "
               "instead of AMD FSR 3.1 in its place.\nAMD FSR 3.1 still draws while the network is "
               "checked, when it can't run on this GPU, with resolution scaling, and for the rest "
-              "of the session if its output fails CheezyEmu's checks.\nTakes effect when a game "
+              "of the session if its output fails PhoenixEmu's checks.\nTakes effect when a game "
               "starts."));
     INSERT(Settings, frame_rate_limit, tr("Frame rate limit (Switch 2):"),
            tr("Rate of the Switch 2 VSync event that games start their frames on (default 60 Hz)."
@@ -206,7 +206,7 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, nvidia_dlss, tr("Use NVIDIA DLSS in place of a game's DLSS (experimental)"),
            tr("Uses NVIDIA DLSS on GeForce RTX cards in place of a Switch 2 game's own DLSS, "
               "instead of AMD FSR 3.1.\nNeeds NVIDIA's Streamline loader, and NVIDIA DLSS unless "
-              "the NVIDIA app has downloaded it; CheezyEmu does not ship NVIDIA's files. Use the "
+              "the NVIDIA app has downloaded it; PhoenixEmu does not ship NVIDIA's files. Use the "
               "download button below.\nFire Emblem: Fortune's Weave also needs "
               "EDEN_NX2_DLSS_REPLACEMENT=dlss. Without that override, its spatial workaround "
               "remains active.\nIn The Legend of Zelda: Ocarina of Time it replaces the game's "
@@ -303,17 +303,17 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
            tr("Paused while HDR output is active."));
     INSERT(Settings, frame_gen_type, tr("Frame Generation Type"),
            tr("AMD FSR Frame Generation: AMD's frame generation for Ocarina of Time (Windows, "
-              "Resolution 1X; restart CheezyEmu after picking it).\nOptical Flow Interpolation and "
-              "Lossless Scaling are CheezyEmu's other frame generators, for any game."));
+              "Resolution 1X; restart PhoenixEmu after picking it).\nOptical Flow Interpolation and "
+              "Lossless Scaling are PhoenixEmu's other frame generators, for any game."));
     INSERT(Settings, amd_frame_gen_version, tr("AMD Frame Generation Version"),
            tr("Which AMD FSR frame generation runs (with the AMD FSR frame generation type).\n"
               "Auto: FSR 4 frame generation on Radeon RX 9000 (it needs their FP8 support), "
               "FSR 3.1 on every other GPU.\n"
               "FSR 3.1: lighter on the GPU; use it on an RX 9000 if FSR 4 frame generation costs "
-              "too much performance.\nTakes effect when CheezyEmu restarts."));
+              "too much performance.\nTakes effect when PhoenixEmu restarts."));
     INSERT(Settings, frame_gen_multiplier, tr("Frame Generation Multiplier"), QString());
     INSERT(Settings, frame_gen_target_rate, tr("Target Frame Rate"),
-           tr("CheezyEmu's own frame generators (Optical Flow, Lossless Scaling) add frames up to this "
+           tr("PhoenixEmu's own frame generators (Optical Flow, Lossless Scaling) add frames up to this "
               "rate.\nAMD FSR frame generation always doubles the game's frame rate: for a steady "
               "60 on screen, turn the \"FPS Unlock (built-in)\" add-on off so the game runs at 30."));
     INSERT(Settings, frame_gen_flow_scale_auto, tr("Auto Flow Scale"), QString());

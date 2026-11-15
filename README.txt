@@ -1,4 +1,4 @@
-CHEEZYEMU - READ ME
+PHOENIXEMU - READ ME
 ===================
 
 A short guide for players:
@@ -10,27 +10,27 @@ A short guide for players:
   6. Other switches
   7. HDR
 
-What changed in each build, and who made it, is in CHEEZYEMU.md (open it with Notepad).
+What changed in each build, and who made it, is in PHOENIXEMU.md (open it with Notepad).
 
-Help, bug reports and new builds: the CheezyEmu Discord, https://discord.gg/vEK4ug6JD
+Help, bug reports and new builds: the PhoenixEmu Discord, https://discord.gg/mPsZHYeetr
 
 
 1. THE SWITCHES FILE (nx2_switches.txt)
 ---------------------------------------
 
-The most used switches have checkboxes: Tools > Switch 2 Switches (restart CheezyEmu after
+The most used switches have checkboxes: Tools > Switch 2 Switches (restart PhoenixEmu after
 saving). It writes the file below for you. The rest live only in the text file:
 
-  - nx2_switches.txt next to cheezyemu.exe, or
-  - %APPDATA%\cheezyemu\nx2_switches.txt
-    (paste that into the File Explorer address bar). This one is kept when you update CheezyEmu
-    and wins over the one next to cheezyemu.exe, so put your own changes here.
+  - nx2_switches.txt next to phoenixemu.exe, or
+  - %APPDATA%\phoenixemu\nx2_switches.txt
+    (paste that into the File Explorer address bar). This one is kept when you update PhoenixEmu
+    and wins over the one next to phoenixemu.exe, so put your own changes here.
 
 Each line is one switch, NAME=VALUE. A line that starts with # is OFF (a comment).
 
-  - To turn a switch ON:  remove the # at the start of its line, save, restart CheezyEmu.
+  - To turn a switch ON:  remove the # at the start of its line, save, restart PhoenixEmu.
   - To turn a switch OFF: put a # back at the start of its line (or delete the line), save,
-                          restart CheezyEmu.
+                          restart PhoenixEmu.
 
 For example, this switch is off:
 
@@ -40,20 +40,20 @@ and this one is on:
 
     EDEN_NX2_PRELOAD_ALL_PIPELINES=1
 
-Open the file with Notepad. CheezyEmu reads it only when it starts.
+Open the file with Notepad. PhoenixEmu reads it only when it starts.
 
 
 2. SHADERS AND SHADER PACKS
 ---------------------------
 
-The first time the game shows something new, CheezyEmu has to build a shader for it, which can
+The first time the game shows something new, PhoenixEmu has to build a shader for it, which can
 stutter. Built shaders are saved, so each one is built only once.
 
-Since build 12 Ocarina of Time needs no shader pack: CheezyEmu comes with a shader recipe for
-it (the "recipes" folder next to cheezyemu.exe). The first time you start the game, the loading
+Since build 12 Ocarina of Time needs no shader pack: PhoenixEmu comes with a shader recipe for
+it (the "recipes" folder next to phoenixemu.exe). The first time you start the game, the loading
 screen gathers the shader programs from your own copy of the game (about a minute) and builds
 them all, showing "Building shaders N / M (once)" with the time left. This happens once per GPU
-driver; updating CheezyEmu does not start it over. It can take a long time on a PC with no
+driver; updating PhoenixEmu does not start it over. It can take a long time on a PC with no
 saved shaders: the Skip button starts the game right away, and the rest keeps building while you
 play (on one thread, paused while the game builds its own shaders). What is still not
 built when you quit is built on the next start.
@@ -64,7 +64,7 @@ recipe.
 Where shaders are kept
   Each game has its own folder. For Ocarina of Time:
 
-    %APPDATA%\cheezyemu\cache\shader\0400486024dec000\
+    %APPDATA%\phoenixemu\cache\shader\0400486024dec000\
 
     vulkan.fork-v54.bin            The shaders themselves (the pack)
     vulkan_used.fork-v54.bin       Which shaders the game used lately; these are built at boot
@@ -74,14 +74,14 @@ Where shaders are kept
   "fork-v54" is the cache version. A pack must have the same version as your build.
 
 Installing a shader pack
-  1. Close CheezyEmu.
+  1. Close PhoenixEmu.
   2. Back up your own vulkan.fork-v54.bin (copy it somewhere safe) in case you want it back.
   3. Copy the pack's vulkan.fork-v54.bin into the folder above, replacing yours. If the pack
      has a vulkan_used.fork-v54.bin, copy that too.
   4. Start the game. The first boot builds the pack's shaders for your GPU and saves them;
      later boots are faster.
 
-  Packs made on any GPU work, AMD or NVIDIA. CheezyEmu also removes duplicate entries from the
+  Packs made on any GPU work, AMD or NVIDIA. PhoenixEmu also removes duplicate entries from the
   cache on its own, so a big pack shrinks after the first boot.
 
 Moving or sharing your shaders
@@ -102,7 +102,7 @@ Building every shader at once (optional)
          EDEN_NX2_PRELOAD_ALL_PIPELINES=1
   2. Start the game and wait on the loading screen. With a big pack this takes a long time the
      first time (about 12 minutes for 20,000 shaders on an i5-12600K), only once.
-  3. Close CheezyEmu. Every shader is now saved.
+  3. Close PhoenixEmu. Every shader is now saved.
   4. Put the # back in front of the line to return to normal boots. Leaving it on keeps every
      shader in memory (about 10 GB of RAM for Ocarina).
 
@@ -130,7 +130,7 @@ Which FSR you get:
   - FSR 3.1: every other GPU (older Radeon, NVIDIA, Intel), or with the FSR 4 option off while
     frame generation is on.
 
-The log (%APPDATA%\cheezyemu\log\eden_log.txt) says which one runs:
+The log (%APPDATA%\phoenixemu\log\eden_log.txt) says which one runs:
     AMD FSR: upscaler 4.x.x running   (FSR 4)
     AMD FSR: upscaler 3.1.x running   (FSR 3.1)
 
@@ -150,9 +150,9 @@ Low frame rate? (FSR 4 on RX 6000 / RX 7000)
      game > Properties > Add-Ons). It keeps the game at its highest resolution; without it the
      game lowers its resolution when the GPU falls behind.
   3. Advanced, at your own risk: OptiScaler (github.com/optiscaler/OptiScaler) can replace
-     AMD's FSR DLLs next to cheezyemu.exe with its own, including a lighter FSR 4 model for
-     RDNA 2. It isn't part of CheezyEmu; if anything breaks, delete what it added and put back
-     the three amd_fidelityfx_*.dll files from the CheezyEmu zip.
+     AMD's FSR DLLs next to phoenixemu.exe with its own, including a lighter FSR 4 model for
+     RDNA 2. It isn't part of PhoenixEmu; if anything breaks, delete what it added and put back
+     the three amd_fidelityfx_*.dll files from the PhoenixEmu zip.
 
 
 4. AMD FRAME GENERATION
@@ -161,20 +161,20 @@ Low frame rate? (FSR 4 on RX 6000 / RX 7000)
 Frame generation shows one extra, generated frame after each real one: 30 FPS on screen
 becomes 60. It is AMD's FSR frame generation, the same as in PC games. On Windows it works on
 any GPU: FSR 4 frame generation on Radeon RX 9000, FSR 3.1 frame generation on every other GPU.
-On Linux and macOS (new in build 12) the FSR 3 frame generation built into CheezyEmu runs
+On Linux and macOS (new in build 12) the FSR 3 frame generation built into PhoenixEmu runs
 instead, from the same game data.
 
 Turning it on
   1. Emulation > Configure > Graphics: turn on "Enable Frame Generation".
   2. Set "Frame Generation Type" to "AMD FSR Frame Generation (Ocarina, restart)".
-  3. Close and restart CheezyEmu, then start the game.
+  3. Close and restart PhoenixEmu, then start the game.
 
   When it runs, the bottom bar shows "FG AMD FSR 2X" and the frame rate as
   "Game: 60 FPS (30 + FG)": the real frames plus the generated ones.
 
   When it's on but not generating, the bar says why, for example:
     (RES 1X)        set Resolution to 1X
-    (RESTART)       close and reopen CheezyEmu after changing the Frame Generation Type
+    (RESTART)       close and reopen PhoenixEmu after changing the Frame Generation Type
     (OOT ONLY)      it works in Ocarina of Time only
     (WAITING)       menus, cutscenes and loading screens have no motion data (normal)
   Hover over it for the full reason. Check "Frame Generation Type" too: "Optical Flow
@@ -189,7 +189,7 @@ The FPS counter and a locked 60
     2. Set VSync Mode to FIFO.
 
 FSR 4 or FSR 3.1 frame generation
-  "AMD Frame Generation Version" (under the frame generation options, restart CheezyEmu after
+  "AMD Frame Generation Version" (under the frame generation options, restart PhoenixEmu after
   changing it):
   - Auto: FSR 4 frame generation on RX 9000 (it needs their FP8 support), FSR 3.1 on every
     other GPU, picked for you.
@@ -197,7 +197,7 @@ FSR 4 or FSR 3.1 frame generation
     costs too much performance. On other GPUs it's what Auto already uses.
 
 Good to know
-  - Ocarina of Time only for now. It needs the game's motion data, which CheezyEmu reads from
+  - Ocarina of Time only for now. It needs the game's motion data, which PhoenixEmu reads from
     Ocarina. In other games the frame generator pauses (nothing generated).
   - The HUD is kept still (hearts, items, minimap), so it doesn't smear when you turn the
     camera.
@@ -205,10 +205,10 @@ Good to know
   - Fast movement can look soft. The generator guesses the in-between frame; the higher the
     real frame rate, the better it looks. Below about 30 real FPS, fast motion (Link running,
     swaying grass) smears a little.
-  - Stopping a game and starting another without closing CheezyEmu: frame generation is reloaded
+  - Stopping a game and starting another without closing PhoenixEmu: frame generation is reloaded
     for the next game. If the bar says it isn't generating after that, close and reopen
-    CheezyEmu.
-  - To turn it off, untick "Enable Frame Generation" and restart CheezyEmu.
+    PhoenixEmu.
+  - To turn it off, untick "Enable Frame Generation" and restart PhoenixEmu.
 
 Seeing what it does (for bug reports)
   Turn on EDEN_NX2_AMD_FG_DEBUG=2 in nx2_switches.txt to replace the picture with AMD's debug
@@ -223,13 +223,13 @@ Ocarina of Time's own settings (right-click the game > Properties) override the 
 
 Capture Glitch (new in build 12): when something looks wrong, press Ctrl+G (or Home + D-pad
 left on a controller), also under Tools > Capture Glitch. It saves what is on screen and every
-picture the game drew for that frame to %APPDATA%\cheezyemu\log\glitch\<date and time>\
+picture the game drew for that frame to %APPDATA%\phoenixemu\log\glitch\<date and time>\
 (a few seconds to finish writing). Zip that folder and send it with your log: it shows exactly
 which step of the frame went wrong.
 
   - Frame generation or FSR doesn't seem to work: look in the log for "AMD FSR: upscaler ...
     running" and "AMD frame generation: generating frames". Send the log
-    (%APPDATA%\cheezyemu\log\eden_log.txt) with your report.
+    (%APPDATA%\phoenixemu\log\eden_log.txt) with your report.
   - Crash soon after starting or while loading a save, with 16 GB of RAM or less (the log
     shows "error 1455" or images "over the memory budget"): the PC ran out of memory. Build 9
     uses much less of it at boot. If it still happens: make the page file bigger (System >
@@ -237,7 +237,7 @@ which step of the frame went wrong.
     initial, 49152 MB maximum, on an SSD), set VRAM Usage Mode to Conservative, and close
     browsers, Discord and recording software while playing. ("Available VRAM: 7.00 GiB" in the
     log is just Conservative mode's cap, not other programs.)
-  - After a crash, if the next launch misbehaves: check Task Manager for a leftover cheezyemu.exe
+  - After a crash, if the next launch misbehaves: check Task Manager for a leftover phoenixemu.exe
     and end it.
   - Picture white / overexposed (fog and sky blown out) until you reset the game: keep
     "Switch 2 draws with unbuilt pipelines" on "Skip only redrawn targets" (section 2), and
@@ -259,7 +259,7 @@ which step of the frame went wrong.
     monitor has it.
   - Thin grid lines on distant ground (AMD): turn on EDEN_NX2_KEEP_ASTC=1 (below).
   - The GPU hangs or resets, or the screen goes black after the opening cutscene (AMD):
-    on Linux and on laptops / handhelds with built-in Radeon graphics CheezyEmu now avoids
+    on Linux and on laptops / handhelds with built-in Radeon graphics PhoenixEmu now avoids
     the cause by itself. On a desktop Radeon on Windows, turn on
     EDEN_NX2_FORCE_MESH_FALLBACK=1 (below). The first start after that builds shaders for
     several minutes.
@@ -285,7 +285,7 @@ which step of the frame went wrong.
   EDEN_NX2_FSR_VERSION=3            Uses FSR 3.1 even where FSR 4 is offered (for comparing)
   EDEN_NX2_FORCE_MESH_FALLBACK=1    Draws mesh shader geometry the safe way on any GPU (fixes
                                     AMD hangs; =0 never uses it, even where it is automatic)
-  EDEN_NX2_FSR_BUILTIN=1            Uses the FSR 3.1 built into CheezyEmu even where AMD's own
+  EDEN_NX2_FSR_BUILTIN=1            Uses the FSR 3.1 built into PhoenixEmu even where AMD's own
                                     runtime is there (what Linux and macOS run; to compare)
   EDEN_NX2_BUFFER_GC_TOTAL=1        Brings back the old buffer clean-up rule (more hitching in
                                     Ocarina; only to compare)
@@ -306,7 +306,7 @@ which step of the frame went wrong.
 7. HDR
 ------
 
-New in build 12. If your monitor shows HDR, CheezyEmu can show the game's own HDR picture.
+New in build 12. If your monitor shows HDR, PhoenixEmu can show the game's own HDR picture.
   1. Turn on HDR in Windows (Settings > System > Display > Use HDR).
   2. Emulation > Configure > Graphics: set "HDR output" to Auto (HDR whenever Windows shows
      this monitor in HDR) or On.

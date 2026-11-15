@@ -207,7 +207,7 @@ class BufferCache : public VideoCommon::ChannelSetupCaches<BufferCacheChannelInf
     friend struct BufferCacheTestAccess;
     // Page size for caching purposes.
     // This is unrelated to the CPU page size and it can be changed as it seems optimal.
-#ifdef YUZU_LEGACY
+#ifdef PHOENIX_LEGACY
     static constexpr u32 CACHING_PAGEBITS = 12;
 #else
     static constexpr u32 CACHING_PAGEBITS = 16;
@@ -227,7 +227,7 @@ class BufferCache : public VideoCommon::ChannelSetupCaches<BufferCacheChannelInf
     /// TEST (EDEN_NX2_READ_TRACE): the runtime dates work with device timestamps (Vulkan).
     static constexpr bool HAS_READ_TRACE = requires(typename P::Runtime& r) { r.TraceMark(); };
 
-#ifdef YUZU_LEGACY
+#ifdef PHOENIX_LEGACY
     static constexpr s64 TARGET_THRESHOLD = 3_GiB;
 #else
     static constexpr s64 TARGET_THRESHOLD = 4_GiB;
@@ -789,7 +789,7 @@ private:
     Tegra::MaxwellDeviceMemoryManager& device_memory;
 
     Common::SlotVector<Buffer> slot_buffers;
-#ifdef YUZU_LEGACY
+#ifdef PHOENIX_LEGACY
     static constexpr size_t TICKS_TO_DESTROY = 6;
 #else
     static constexpr size_t TICKS_TO_DESTROY = 8;
@@ -878,7 +878,7 @@ private:
     Common::RangeSet<DAddr> uncommitted_gpu_modified_ranges;
 
     /// Whether GPU-written buffer ranges are copied back to guest memory at the next fence;
-    /// otherwise only when something flushes them (as upstream yuzu below High GPU accuracy).
+    /// otherwise only when something flushes them (as upstream phoenix below High GPU accuracy).
     /// Not for Switch 2 titles: title 1 had 250-330 MB/s copied back (a fence per compute
     /// dispatch, the fencing thread holding the buffer cache while it wrote them), while its CPU
     /// read GPU-written memory at most 64 times in 200 s (counted with reactive flushing) and
@@ -1330,7 +1330,7 @@ private:
     u64 minimum_memory = 0;
     u64 critical_memory = 0;
     BufferId inline_buffer_id;
-#ifdef YUZU_LEGACY
+#ifdef PHOENIX_LEGACY
     bool immediately_free = false;
 #endif
 

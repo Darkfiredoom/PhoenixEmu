@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 PhoenixEmu contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="fire" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="980">
+      <stop offset="0" stop-color="#FFD23F"/><stop offset="0.5" stop-color="#FF7A1A"/><stop offset="1" stop-color="#D4240E"/>
+    </linearGradient>
+  </defs>
+  <!-- a flame whose inner tongues read as raised wings and a head -->
+  <path fill="url(#fire)" d="M512 980 C300 940 170 800 170 620 C170 500 230 420 270 330 C300 420 330 470 380 510 C360 360 400 200 512 50 C624 200 664 360 644 510 C694 470 724 420 754 330 C794 420 854 500 854 620 C854 800 724 940 512 980 Z"/>
+  <path fill="#2A1508" d="M512 880 C420 850 360 780 350 690 C400 730 440 740 470 730 C440 660 450 560 512 450 C574 560 584 660 554 730 C584 740 624 730 674 690 C664 780 604 850 512 880 Z"/>
+  <path fill="url(#fire)" d="M512 840 C470 800 460 740 512 640 C564 740 554 800 512 840 Z"/>
+</svg>

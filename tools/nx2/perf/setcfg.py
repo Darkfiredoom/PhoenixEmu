@@ -1,7 +1,7 @@
 """setcfg.py name=value ... : sets per-game settings in the TEST instance's Ocarina config
 (clears the 'default' flag so the value is used)."""
 import os, re, sys
-c = os.path.join(os.environ.get("CHEEZYEMU_TEST_BIN") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "build", "dev2", "bin"), "user", "config", "custom", "0400486024DEC000.ini")
+c = os.path.join(os.environ.get("PHOENIXEMU_TEST_BIN") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "build", "dev2", "bin"), "user", "config", "custom", "0400486024DEC000.ini")
 t = open(c, encoding='utf-8', newline='').read()
 for pair in sys.argv[1:]:
     name, _, value = pair.partition('=')

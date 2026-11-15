@@ -5,7 +5,7 @@ package, wait for the owner to launch the game, press a hotkey and send the log 
 dumps. Every new question costs a relaunch, and most cost a rebuild, because every
 `EDEN_NX2_*` switch is read once at startup.
 
-This document designs an opt-in debug server inside CheezyEmu and an MCP adapter that agents run on
+This document designs an opt-in debug server inside PhoenixEmu and an MCP adapter that agents run on
 the PC, so an agent can ask a running game questions directly. Phase 1 is implemented on the
 `feat/debug-mcp` branch; the later phases are proposals with the hook points they need.
 
@@ -24,7 +24,7 @@ Line numbers refer to `feat/debug-mcp` at the time of writing.
 ## Architecture
 
 ```
-agent ──stdio MCP──> tools/nx2/debug_mcp.py ──TCP 127.0.0.1, JSON lines──> CheezyEmu
+agent ──stdio MCP──> tools/nx2/debug_mcp.py ──TCP 127.0.0.1, JSON lines──> PhoenixEmu
   (on the PC)          (Python, stdlib only)                               ├─ "DebugServer" thread
                                                                            │    tools: status, screenshot, log_*, ...
                                                                            └─ rasterizer thread
@@ -45,7 +45,7 @@ service once a game has loaded (`src/core/core.cpp:476`), and `ShutdownMainProce
 before anything else (`src/core/core.cpp:481`). The member is declared last
 (`src/core/core.cpp:610`), so it is also destroyed first. The tools therefore never see a
 half-built or half-destroyed system, and the server works the same under the Qt frontend and
-`cheezyemu-cli`.
+`phoenixemu-cli`.
 
 Why not reuse the GDB stub? It speaks the GDB remote protocol and parks emulation on every stop
 (`src/core/debugger/debugger.cpp:82`). It is the right tool for guest breakpoints and stays as it
@@ -57,7 +57,7 @@ server copies its threading model, not its protocol.
 - MCP's own transports are stdio, which needs the agent to launch the process (it cannot launch
   the emulator, which the owner starts), and Streamable HTTP, which needs sessions and
   server-sent events. Neither fits inside the emulator cheaply.
-- A JSON-lines socket is about 200 lines of C++ with libraries CheezyEmu already links (Boost.Asio,
+- A JSON-lines socket is about 200 lines of C++ with libraries PhoenixEmu already links (Boost.Asio,
   nlohmann::json, both already used by `core`). Anything can drive it: the adapter, a test,
   or `python -c`.
 - The adapter owns everything that is MCP: tool descriptions, input schemas, image content, error
@@ -87,7 +87,7 @@ Three kinds of work, three places:
    is safe.
 3. **Existing renderer hooks.** The screenshot uses `RendererBase::RequestScreenshot`
    (`src/video_core/renderer_base.cpp:38`), the path the Qt screenshot hotkey uses
-   (`src/yuzu/bootmanager.cpp:819`). It is already safe to call from another thread, and the
+   (`src/phoenix/bootmanager.cpp:819`). It is already safe to call from another thread, and the
    renderer fills the buffer at the next present (`renderer_vulkan.cpp:350`).
 
 The server thread waits for rasterizer-thread work with a timeout (5 s for screenshots and
@@ -391,16 +391,16 @@ Live switch classification, from the switches in `src/`:
 ### Save states
 
 The core cannot save state. There is no serialisation of the kernel, services, the dynarmic and
-NCE CPU state, or the GPU caches, and Eden and yuzu never had it. The `saveState` in
-`src/yuzu/main_window.cpp` is Qt window geometry. Adding save states is a project of its own,
+NCE CPU state, or the GPU caches, and Eden and phoenix never had it. The `saveState` in
+`src/phoenix/main_window.cpp` is Qt window geometry. Adding save states is a project of its own,
 not a tool. The practical substitute is a reproduction script: phase 2 input sequences, recorded
-once (`EDEN_NX2_KEY_RECORD` already records keys in `cheezyemu-cli`) and replayed after boot.
+once (`EDEN_NX2_KEY_RECORD` already records keys in `phoenixemu-cli`) and replayed after boot.
 
 ## Running it on the PC
 
 1. Build the branch as usual:
    `bash C:/lx/build-fix.sh feat/debug-mcp debug-mcp "Any - debug server" "EDEN_NX2_DEBUG_SERVER=127.0.0.1:6545"`.
-   Optionally add `EDEN_NX2_DEBUG_DIR=C:/Users/Zortos/.capy/work/cheezyemu-debug/debug-mcp/dumps`
+   Optionally add `EDEN_NX2_DEBUG_DIR=C:/Users/Zortos/.capy/work/phoenixemu-debug/debug-mcp/dumps`
    so dumps land next to the build.
 2. The owner launches the game from the shortcut. The log shows
    `Debug server listening on 127.0.0.1:6545, dump dir ...`.

@@ -68,8 +68,8 @@ struct RendererSettings {
 
 class RendererBase {
 public:
-    YUZU_NON_COPYABLE(RendererBase);
-    YUZU_NON_MOVEABLE(RendererBase);
+    PHOENIX_NON_COPYABLE(RendererBase);
+    PHOENIX_NON_MOVEABLE(RendererBase);
 
     explicit RendererBase(Core::Frontend::EmuWindow& window,
                           std::unique_ptr<Core::Frontend::GraphicsContext> context);

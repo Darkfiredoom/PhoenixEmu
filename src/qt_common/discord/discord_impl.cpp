@@ -23,7 +23,7 @@
 
 #include "discord_impl.h"
 
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
 #include <openssl/cert.h>
 #endif
 
@@ -31,23 +31,23 @@ namespace DiscordRPC {
 
 namespace {
 
-/// CheezyEmu's Discord application (discord.com/developers/applications): its name is what
-/// Discord shows as "Playing ...". Empty: presence stays off. CHEEZYEMU_DISCORD_APP_ID=<id>
+/// PhoenixEmu's Discord application (discord.com/developers/applications): its name is what
+/// Discord shows as "Playing ...". Empty: presence stays off. PHOENIXEMU_DISCORD_APP_ID=<id>
 /// sets it for a test.
-constexpr char CheezyEmuDiscordAppId[] = "1570203948462247956";
+constexpr char PhoenixEmuDiscordAppId[] = "1571382069651705936";
 
 std::string AppId() {
-    if (const char* const forced = std::getenv("CHEEZYEMU_DISCORD_APP_ID");
+    if (const char* const forced = std::getenv("PHOENIXEMU_DISCORD_APP_ID");
         forced != nullptr && forced[0] != '\0') {
         return forced;
     }
-    return CheezyEmuDiscordAppId;
+    return PhoenixEmuDiscordAppId;
 }
 
-constexpr char LogoText[] = "CheezyEmu";
+constexpr char LogoText[] = "PhoenixEmu";
 constexpr char LogoUrl[] =
-    "https://raw.githubusercontent.com/CheezerWheezer/CheezyEmu/main/dist/branding/"
-    "cheezyemu_icon.png";
+    "https://raw.githubusercontent.com/Darkfiredoom/PhoenixEmu/main/dist/branding/"
+    "phoenixemu_icon.png";
 
 s64 Now() {
     return std::chrono::duration_cast<std::chrono::seconds>(
@@ -60,7 +60,7 @@ s64 Now() {
 DiscordImpl::DiscordImpl(Core::System& system_) : system{system_} {
     const std::string app_id = AppId();
     if (app_id.empty()) {
-        LOG_INFO(Frontend, "Discord presence: no CheezyEmu application ID in this build; off");
+        LOG_INFO(Frontend, "Discord presence: no PhoenixEmu application ID in this build; off");
         return;
     }
     DiscordEventHandlers handlers{};
@@ -111,7 +111,7 @@ std::string DiscordImpl::GetGameString(const std::string& title) {
 }
 
 void DiscordImpl::UpdateGameStatus(std::string_view game_url, bool has_boxart) {
-    // "Playing CheezyEmu" / "The Legend of Zelda: Ocarina of Time" / "elapsed 12:34".
+    // "Playing PhoenixEmu" / "The Legend of Zelda: Ocarina of Time" / "elapsed 12:34".
     const std::string art = std::string{has_boxart ? game_url : LogoUrl};
     const std::string title = game_title;
     DiscordRichPresence presence{};
@@ -120,7 +120,7 @@ void DiscordImpl::UpdateGameStatus(std::string_view game_url, bool has_boxart) {
     presence.smallImageKey = LogoUrl;
     presence.smallImageText = LogoText;
     presence.details = title.c_str();
-    presence.state = "Playing on CheezyEmu";
+    presence.state = "Playing on PhoenixEmu";
     presence.status_display_type = DiscordStatusDisplayType_Details;
     presence.startTimestamp = game_start;
     Discord_UpdatePresence(&presence);
@@ -139,12 +139,12 @@ void DiscordImpl::Update() {
         // Shown at once with the logo; the game's box art replaces it when the lookup (a
         // network request, off this thread) finds one.
         UpdateGameStatus({}, false);
-        // Art, first found: CheezyEmu's own (dist/discord/<program id>.png in its repository),
+        // Art, first found: PhoenixEmu's own (dist/discord/<program id>.png in its repository),
         // then the boxart collection by name.
         u64 program_id{};
         system.GetAppLoader().ReadProgramId(program_id);
         std::vector<std::string> candidates{
-            fmt::format("https://raw.githubusercontent.com/CheezerWheezer/CheezyEmu/main/dist/"
+            fmt::format("https://raw.githubusercontent.com/Darkfiredoom/PhoenixEmu/main/dist/"
                         "discord/{:016x}.png",
                         program_id),
             fmt::format("https://raw.githubusercontent.com/eden-emulator/boxart/refs/heads/master/"
@@ -160,7 +160,7 @@ void DiscordImpl::Update() {
                 client.set_connection_timeout(3);
                 client.set_read_timeout(3);
                 client.set_follow_location(true);
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
                 client.load_ca_cert_store(kCert, sizeof(kCert));
 #endif
                 httplib::Request request{

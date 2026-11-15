@@ -28,8 +28,8 @@ public:
     explicit PlayTimeManager();
     ~PlayTimeManager();
 
-    YUZU_NON_COPYABLE(PlayTimeManager);
-    YUZU_NON_MOVEABLE(PlayTimeManager);
+    PHOENIX_NON_COPYABLE(PlayTimeManager);
+    PHOENIX_NON_MOVEABLE(PlayTimeManager);
 
     u64 GetPlayTime(u64 program_id) const;
     void ResetProgramPlayTime(u64 program_id);

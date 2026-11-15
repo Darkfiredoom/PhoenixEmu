@@ -15,7 +15,7 @@
     - If none are found just use the default linker
 ]]
 
-# This module is based on the work of Yuzu, specifically Liam White,
+# This module is based on the work of Phoenix, specifically Liam White,
 # and later extended by crueter.
 
 option(USE_FASTER_LINKER "Attempt to use a faster linker program" OFF)

@@ -16,12 +16,12 @@ for line in open(raw_path, encoding='utf-8', errors='replace'):
     if fr[0] != thread: continue
     total += n
     raw_leaf = fr[-1]
-    if raw_leaf.startswith('cheezyemu.exe+') or raw_leaf.startswith('jit+'): continue
+    if raw_leaf.startswith('phoenixemu.exe+') or raw_leaf.startswith('jit+'): continue
     names = [m.name_of(f) for f in fr[1:]]
-    ours = [x for f, x in zip(fr[1:], names) if f.startswith('cheezyemu.exe+')]
+    ours = [x for f, x in zip(fr[1:], names) if f.startswith('phoenixemu.exe+')]
     leafmod = raw_leaf.split('+')[0] if '+0x' in raw_leaf else raw_leaf
     # the first non-exe frame after the last exe frame names the API
-    idx = max((i for i, f in enumerate(fr[1:]) if f.startswith('cheezyemu.exe+')), default=-1)
+    idx = max((i for i, f in enumerate(fr[1:]) if f.startswith('phoenixemu.exe+')), default=-1)
     api = names[idx + 1] if idx + 1 < len(names) else leafmod
     key = ' > '.join(dict.fromkeys(ours[-3:])) + '  ==>  ' + api + ' ... ' + names[-1]
     c[key] += n

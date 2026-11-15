@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Game list pictures CheezyEmu found online or the player picked, one PNG per title ID in
+// Game list pictures PhoenixEmu found online or the player picked, one PNG per title ID in
 // <cache>/game_pictures. They win over the icon inside the game file. A title the search found
 // nothing for gets a .none marker, so it isn't searched for again for a day.
 

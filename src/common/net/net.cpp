@@ -17,7 +17,7 @@
 
 #include "common/httplib.h"
 
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
 #include <openssl/cert.h>
 #endif
 
@@ -62,7 +62,7 @@ std::vector<Asset> Release::GetPlatformAssets(std::string_view platform,
     for (const std::string_view variant : pgo ? std::vector<std::string_view>{"-pgo", ""}
                                               : std::vector<std::string_view>{""}) {
         for (const auto extension : extensions) {
-            const auto filename = fmt::format("cheezyemu-{}{}{}", platform, variant, extension);
+            const auto filename = fmt::format("phoenixemu-{}{}{}", platform, variant, extension);
             const auto url = host_url + path + filename;
             if (std::ranges::find(assets, url) == assets.end()) {
                 continue;
@@ -213,7 +213,7 @@ RequestResult Fetch(const std::string& url, const std::string& path) {
         client->set_read_timeout(timeout_seconds);
         client->set_write_timeout(timeout_seconds);
 
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
         client->load_ca_cert_store(kCert, sizeof(kCert));
 #elif !defined(_WIN32)
         // An AppImage or a portable build carries an OpenSSL whose default certificate folder is
@@ -240,7 +240,7 @@ RequestResult Fetch(const std::string& url, const std::string& path) {
         httplib::Request request{
             .method = "GET",
             .path = path,
-            .headers = {{"Accept", "application/vnd.github+json"}, {"User-Agent", "CheezyEmu"}},
+            .headers = {{"Accept", "application/vnd.github+json"}, {"User-Agent", "PhoenixEmu"}},
         };
 
         client->set_follow_location(true);
@@ -279,7 +279,7 @@ ReleaseList GetReleases() {
     const auto response = Fetch(url, Common::g_build_auto_update_api_path);
 
     if (!response.body) {
-        LOG_WARNING(Common, "Failed to get CheezyEmu releases");
+        LOG_WARNING(Common, "Failed to get PhoenixEmu releases");
         return {.status = response.status};
     }
 

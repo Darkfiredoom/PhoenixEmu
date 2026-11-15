@@ -6,16 +6,16 @@
 
 #pragma once
 
-// yuzu data directories
+// phoenix data directories
 
-// CheezyEmu's own data directory (%APPDATA%\cheezyemu, ~/.config/cheezyemu ...), so Eden, Lichii and
+// PhoenixEmu's own data directory (%APPDATA%\phoenixemu, ~/.config/phoenixemu ...), so Eden, Lichii and
 // Fritchii (which share "eden") don't overwrite its settings. The first start offers to import
 // the "eden" one (EDENLEGACY_DIR).
-#define EDEN_DIR "cheezyemu"
+#define EDEN_DIR "phoenixemu"
 #define EDENLEGACY_DIR "eden"
 #define PORTABLE_DIR "user"
 
-// Sub-directories contained within a yuzu data directory
+// Sub-directories contained within a phoenix data directory
 #define AMIIBO_DIR "amiibo"
 #define CACHE_DIR "cache"
 #define CONFIG_DIR "config"
@@ -39,11 +39,11 @@
 // Compatibility with other emulators
 #define CITRON_DIR "citron"
 #define SUDACHI_DIR "sudachi"
-#define YUZU_DIR "yuzu"
+#define PHOENIX_DIR "yuzu"
 #define SUYU_DIR "suyu"
 #define RYUJINX_DIR "Ryujinx"
 
-// yuzu-specific files
+// phoenix-specific files
 #define LOG_FILE "eden_log.txt"
 #define LOSSLESS_DLL_FILE "Lossless.dll"
 #define LOSSLESS_CACHE_FILE "lsfg_spirv.cache"

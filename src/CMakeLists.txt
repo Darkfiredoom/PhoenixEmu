@@ -8,7 +8,7 @@
 include_directories(.)
 
 # Dynarmic
-if ((ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64 OR ARCHITECTURE_riscv64 OR ARCHITECTURE_loongarch64) AND NOT YUZU_STATIC_ROOM)
+if ((ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64 OR ARCHITECTURE_riscv64 OR ARCHITECTURE_loongarch64) AND NOT PHOENIX_STATIC_ROOM)
     add_subdirectory(dynarmic)
     add_library(dynarmic::dynarmic ALIAS dynarmic)
 endif()
@@ -17,7 +17,7 @@ endif()
 set_property(DIRECTORY APPEND PROPERTY
     COMPILE_DEFINITIONS $<$<CONFIG:Debug>:_DEBUG> $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
 
-if (YUZU_STATIC_BUILD)
+if (PHOENIX_STATIC_BUILD)
     add_compile_definitions(QT_STATICPLUGIN)
 endif()
 
@@ -27,9 +27,9 @@ if (NIGHTLY_BUILD)
 endif()
 
 # Legacy (android only)
-if (YUZU_LEGACY)
+if (PHOENIX_LEGACY)
     message(WARNING "Making legacy build. Performance may suffer.")
-    add_compile_definitions(YUZU_LEGACY)
+    add_compile_definitions(PHOENIX_LEGACY)
 endif()
 
 # Genshin Spoof (android only)
@@ -237,10 +237,10 @@ else()
         add_compile_definitions(_FILE_OFFSET_BITS=64)
     endif()
 
-    if (YUZU_STATIC_BUILD AND NOT APPLE AND NOT MSVC)
+    if (PHOENIX_STATIC_BUILD AND NOT APPLE AND NOT MSVC)
         add_compile_options(-static)
 
-        # yuzu-cmd requires us to explicitly link libpthread, libgcc, and libstdc++ as static
+        # phoenix-cmd requires us to explicitly link libpthread, libgcc, and libstdc++ as static
         add_link_options(-Wl,-Bstatic -static -lpthread)
         add_link_options(-static-libgcc -static-libstdc++)
     endif()
@@ -267,16 +267,16 @@ endif()
 add_subdirectory(common)
 add_subdirectory(network)
 
-if (YUZU_ROOM)
+if (PHOENIX_ROOM)
     add_subdirectory(dedicated_room)
 endif()
 
-if (YUZU_ROOM_STANDALONE)
-    add_subdirectory(yuzu_room_standalone)
-    set_target_properties(yuzu-room PROPERTIES OUTPUT_NAME "eden-room")
+if (PHOENIX_ROOM_STANDALONE)
+    add_subdirectory(phoenix_room_standalone)
+    set_target_properties(phoenix-room PROPERTIES OUTPUT_NAME "eden-room")
 endif()
 
-if (YUZU_STATIC_ROOM)
+if (PHOENIX_STATIC_ROOM)
     return()
 endif()
 
@@ -288,7 +288,7 @@ add_subdirectory(input_common)
 add_subdirectory(frontend_common)
 add_subdirectory(shader_recompiler)
 
-if (YUZU_TESTS)
+if (PHOENIX_TESTS)
     add_subdirectory(tests)
 endif()
 
@@ -296,14 +296,14 @@ if (LICHII_FUZZERS)
     add_subdirectory(fuzz)
 endif()
 
-if (YUZU_CMD)
-    add_subdirectory(yuzu_cmd)
-    set_target_properties(yuzu-cmd PROPERTIES OUTPUT_NAME "cheezyemu-cli")
+if (PHOENIX_CMD)
+    add_subdirectory(phoenix_cmd)
+    set_target_properties(phoenix-cmd PROPERTIES OUTPUT_NAME "phoenixemu-cli")
 endif()
 
 if (ENABLE_QT)
     add_subdirectory(qt_common)
-    add_subdirectory(yuzu)
+    add_subdirectory(phoenix)
     if (WIN32 AND ENABLE_UPDATE_CHECKER)
         add_subdirectory(updater)
     endif()
@@ -315,7 +315,7 @@ endif()
 
 if (ANDROID)
     add_subdirectory(android/app/src/main/jni)
-    target_include_directories(yuzu-android PRIVATE android/app/src/main)
+    target_include_directories(phoenix-android PRIVATE android/app/src/main)
 endif()
 
 include(GenerateDepHashes)

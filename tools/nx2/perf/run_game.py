@@ -10,9 +10,9 @@ import sys
 import time
 
 # The dev build's folder (its portable "user" folder is the test instance).
-BIN = os.environ.get("CHEEZYEMU_TEST_BIN") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "build", "dev2", "bin")
-# The game file to boot: set CHEEZYEMU_TEST_GAME to its path.
-GAME = os.environ.get("CHEEZYEMU_TEST_GAME", "")
+BIN = os.environ.get("PHOENIXEMU_TEST_BIN") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "build", "dev2", "bin")
+# The game file to boot: set PHOENIXEMU_TEST_GAME to its path.
+GAME = os.environ.get("PHOENIXEMU_TEST_GAME", "")
 PIDFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_instance.pid")
 ADDR = ("127.0.0.1", 6545)
 
@@ -96,7 +96,7 @@ def main():
             name, _, value = pair.partition("=")
             env[name] = value
         flags = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
-        proc = subprocess.Popen([os.path.join(BIN, "cheezyemu.exe"), GAME], cwd=BIN, env=env,
+        proc = subprocess.Popen([os.path.join(BIN, "phoenixemu.exe"), GAME], cwd=BIN, env=env,
                                 creationflags=flags, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         open(PIDFILE, "w").write(str(proc.pid))

@@ -225,8 +225,8 @@ Use this when you want to import your games inside Eden into Steam to launch wit
     ---
     #### Creating the Eden Parser
     
-    1. Select Create Parser and in the *Community Presets* option look for **Nintendo Switch - Yuzu**.
-    2. Change the **Parser title** from *Nintendo Switch - Yuzu* to *Nintendo Switch - Eden.*
+    1. Select Create Parser and in the *Community Presets* option look for **Nintendo Switch - Phoenix**.
+    2. Change the **Parser title** from *Nintendo Switch - Phoenix* to *Nintendo Switch - Eden.*
     3. Hit the **Browse** option under the *ROMs directory* section.  Select the directory containing your Switch ROMs.
     4. Under *Steam collections*, you can add a Steam category name.  This just organizes the games under a common category in your Steam Library, this is optional but recommended.
     5. Scroll down slightly to the **Executable Configuration > Executable**, select **Browse** and select the Eden AppImage.

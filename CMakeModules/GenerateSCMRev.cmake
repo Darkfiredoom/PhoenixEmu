@@ -14,8 +14,8 @@ endfunction()
 
 get_timestamp(BUILD_DATE)
 
-if (CHEEZYEMU_BUILD_TAG MATCHES "^build-[0-9]+$")
-    set(BUILD_VERSION "${CHEEZYEMU_BUILD_TAG}")
+if (PHOENIXEMU_BUILD_TAG MATCHES "^build-[0-9]+$")
+    set(BUILD_VERSION "${PHOENIXEMU_BUILD_TAG}")
     set(IS_DEV_BUILD false)
 elseif (DEFINED GIT_RELEASE)
     set(BUILD_VERSION "${GIT_TAG}")
@@ -38,24 +38,24 @@ set(GIT_DESC ${BUILD_VERSION})
 # Generate cpp with Git revision from template
 
 # Builds look for updates in the repository that built them, so a fork's releases update to
-# that fork's releases instead of being replaced by upstream ones. CHEEZYEMU_UPDATE_REPO overrides it;
+# that fork's releases instead of being replaced by upstream ones. PHOENIXEMU_UPDATE_REPO overrides it;
 # local builds outside GitHub Actions keep the upstream repository.
-if (DEFINED CHEEZYEMU_UPDATE_REPO AND NOT CHEEZYEMU_UPDATE_REPO STREQUAL "")
-    set(CHEEZYEMU_UPDATE_REPO_RESOLVED "${CHEEZYEMU_UPDATE_REPO}")
+if (DEFINED PHOENIXEMU_UPDATE_REPO AND NOT PHOENIXEMU_UPDATE_REPO STREQUAL "")
+    set(PHOENIXEMU_UPDATE_REPO_RESOLVED "${PHOENIXEMU_UPDATE_REPO}")
 elseif (DEFINED ENV{GITHUB_REPOSITORY} AND NOT "$ENV{GITHUB_REPOSITORY}" STREQUAL "")
-    set(CHEEZYEMU_UPDATE_REPO_RESOLVED "$ENV{GITHUB_REPOSITORY}")
+    set(PHOENIXEMU_UPDATE_REPO_RESOLVED "$ENV{GITHUB_REPOSITORY}")
 else()
-    set(CHEEZYEMU_UPDATE_REPO_RESOLVED "CheezerWheezer/CheezyEmu")
+    set(PHOENIXEMU_UPDATE_REPO_RESOLVED "Darkfiredoom/PhoenixEmu")
 endif()
-set(BUILD_AUTO_UPDATE_STABLE_REPO "${CHEEZYEMU_UPDATE_REPO_RESOLVED}")
+set(BUILD_AUTO_UPDATE_STABLE_REPO "${PHOENIXEMU_UPDATE_REPO_RESOLVED}")
 set(BUILD_AUTO_UPDATE_STABLE_API "api.github.com")
-set(BUILD_AUTO_UPDATE_API_PATH "/repos/${CHEEZYEMU_UPDATE_REPO_RESOLVED}/releases?per_page=100")
+set(BUILD_AUTO_UPDATE_API_PATH "/repos/${PHOENIXEMU_UPDATE_REPO_RESOLVED}/releases?per_page=100")
 set(BUILD_AUTO_UPDATE_WEBSITE "https://github.com")
-set(BUILD_AUTO_UPDATE_REPO "${CHEEZYEMU_UPDATE_REPO_RESOLVED}")
+set(BUILD_AUTO_UPDATE_REPO "${PHOENIXEMU_UPDATE_REPO_RESOLVED}")
 if (NIGHTLY_BUILD)
-    set(REPO_NAME "CheezyEmu Nightly")
+    set(REPO_NAME "PhoenixEmu Nightly")
 else()
-    set(REPO_NAME "CheezyEmu")
+    set(REPO_NAME "PhoenixEmu")
 endif()
 
 set(BUILD_ID ${GIT_REFSPEC})

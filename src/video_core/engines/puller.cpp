@@ -875,8 +875,8 @@ void Puller::ProcessSemaphoreExecute(DmaPusher& dma_pusher, u32 argument) {
         VideoCommon::Nx2FastDraw::Break(VideoCommon::Nx2FastDraw::Reason::Fence);
         ReleaseFences(dma_pusher);
         word = dma_pusher.memory_manager.Read<u32>(address);
-        if (const auto device = dma_pusher.memory_manager.GpuToCpuAddress(address)) {
-            word = Nx2MirrorShadow::Get().Read(*device, *word).value_or(*word);
+        if (const auto shadow_device = dma_pusher.memory_manager.GpuToCpuAddress(address)) {
+            word = Nx2MirrorShadow::Get().Read(*shadow_device, *word).value_or(*word);
         }
     }
     if (word && !ready(*word)) {

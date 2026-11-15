@@ -1,8 +1,8 @@
-# Switch NX2 - read when the CheezyEmu GUI starts.
+# Switch NX2 - read when the PhoenixEmu GUI starts.
 # One NAME=VALUE per line. Lines starting with # are ignored.
 # A variable already set in the environment wins over this file.
-# Between files, the user copy (%APPDATA%\cheezyemu\nx2_switches.txt, or
-# $XDG_CONFIG_HOME/cheezyemu/nx2_switches.txt) wins over this one, so editing this file is never
+# Between files, the user copy (%APPDATA%\phoenixemu\nx2_switches.txt, or
+# $XDG_CONFIG_HOME/phoenixemu/nx2_switches.txt) wins over this one, so editing this file is never
 # needed: copy the lines you want into your own and restart.
 # Beside-application files accept EDEN_NX2_* and the emulator's diagnostic switches only.
 # Host environment settings, including library paths such as EDEN_STREAMLINE_DIR, must be
@@ -53,7 +53,7 @@ EDEN_NX2_FENCE_BATCH=1
 # hangs; the first boot then builds shaders for a while), =0 never uses it.
 #EDEN_NX2_FORCE_MESH_FALLBACK=1
 
-# Build 12, Linux and macOS: AMD FSR runs through the FSR 3.1 built into CheezyEmu (AMD's own
+# Build 12, Linux and macOS: AMD FSR runs through the FSR 3.1 built into PhoenixEmu (AMD's own
 # runtime is Windows only). =1 uses the built-in one on Windows too, to compare the two.
 #EDEN_NX2_FSR_BUILTIN=1
 
@@ -91,7 +91,7 @@ EDEN_NX2_FENCE_BATCH=1
 # instead, as before; =2 builds on two threads (faster, but costs more frame rate meanwhile).
 #EDEN_NX2_PRECACHE_AFTER_SKIP=0
 
-# Experimental and off: CheezyEmu's own memory heaps for the AMD driver's shader compiler (faster
+# Experimental and off: PhoenixEmu's own memory heaps for the AMD driver's shader compiler (faster
 # first-time shader builds in tests). The test PC froze twice with it on; whether it was the cause
 # is not known. Leave it off unless you are asked to test it.
 #EDEN_NX2_VK_ALLOCATOR=1
@@ -104,7 +104,7 @@ EDEN_NX2_FENCE_BATCH=1
 # A white flash ("flashbang")? Set a folder here, play until it happens, then send that folder and
 # the log: every frame's passes are measured and the flash is traced to the pass that caused it.
 # Costs some speed, so leave it off otherwise.
-#EDEN_NX2_FLASH_WATCH=C:\cheezyemu-flash
+#EDEN_NX2_FLASH_WATCH=C:\phoenixemu-flash
 
 # FSR camera jitter for Ocarina of Time (new, being tested): FSR rebuilds fine detail from a camera
 # nudged by less than a pixel every frame. Sharper, less blocky FSR, most at low presets. Remove
@@ -115,7 +115,7 @@ EDEN_NX2_FENCE_BATCH=1
 # 9000), a little softer and ghosts more. Remove the # to use it.
 #EDEN_NX2_FSR_VERSION=3
 
-# FSR 4 output check: when FSR 4 draws black (AMD driver 2.0.406 on RX 9000), CheezyEmu switches to
+# FSR 4 output check: when FSR 4 draws black (AMD driver 2.0.406 on RX 9000), PhoenixEmu switches to
 # FSR 3.1. =0 keeps FSR 4 regardless (if it switched while your picture looked fine).
 #EDEN_NX2_FSR4_CHECK=0
 
@@ -126,7 +126,7 @@ EDEN_NX2_FENCE_BATCH=1
 #EDEN_NX2_SPLIT_SKIP=1
 #EDEN_NX2_AUTO_STUB=1
 
-# --- CheezyEmu (see CHEEZYEMU.md) ---
+# --- PhoenixEmu (see PHOENIXEMU.md) ---
 # Grid lines on distant terrain on AMD: remove the # below to keep ASTC textures as RGBA8 instead
 # of re-compressing them to BC3 (zortos293/Lichii#448). Uses more video memory.
 #EDEN_NX2_KEEP_ASTC=1

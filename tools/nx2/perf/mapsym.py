@@ -1,4 +1,4 @@
-"""mapsym.py <exe.map> <samples.raw> [top] : names cheezyemu.exe+0x... frames with the linker map
+"""mapsym.py <exe.map> <samples.raw> [top] : names phoenixemu.exe+0x... frames with the linker map
 and prints self and inclusive time per thread and function."""
 import bisect
 import collections
@@ -43,7 +43,7 @@ def short(name):
 
 
 def name_of(frame):
-    if frame.startswith('cheezyemu.exe+'):
+    if frame.startswith('phoenixemu.exe+'):
         off = int(frame.split('+')[1], 16)
         i = bisect.bisect_right(addrs, off) - 1
         return short(syms[i][1]) if i >= 0 else frame

@@ -26,7 +26,7 @@ Unsupported architectures:
 
 This file WILL NOT detect endian-ness for you.
 
-This file is based off of Yuzu and Dynarmic.
+This file is based off of Phoenix and Dynarmic.
 ]]
 
 # multiarch builds are a special case and also very difficult

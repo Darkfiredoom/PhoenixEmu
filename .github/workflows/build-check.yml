@@ -103,14 +103,14 @@ jobs:
             -DCMAKE_CXX_COMPILER=g++-13 \
             -DENABLE_WERROR=ON \
             -DBUILD_TESTING=ON \
-            -DYUZU_TESTS=ON \
+            -DPHOENIX_TESTS=ON \
             -DENABLE_QT=ON \
-            -DYUZU_CMD=ON \
-            -DYUZU_ROOM=OFF \
-            -DYUZU_ROOM_STANDALONE=OFF \
-            -DYUZU_USE_BUNDLED_QT=OFF \
+            -DPHOENIX_CMD=ON \
+            -DPHOENIX_ROOM=OFF \
+            -DPHOENIX_ROOM_STANDALONE=OFF \
+            -DPHOENIX_USE_BUNDLED_QT=OFF \
             "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
-            -DYUZU_USE_BUNDLED_SDL3=ON \
+            -DPHOENIX_USE_BUNDLED_SDL3=ON \
             -DVulkanHeaders_FORCE_BUNDLED=ON \
             -DVulkanUtilityLibraries_FORCE_BUNDLED=ON \
             -DENABLE_UPDATE_CHECKER=ON \
@@ -227,13 +227,13 @@ jobs:
           "-DCMAKE_CXX_FLAGS=-DWIN32 -D_WINDOWS -EHsc -DNOMINMAX"
           -DENABLE_WERROR=ON
           -DBUILD_TESTING=ON
-          -DYUZU_TESTS=ON
+          -DPHOENIX_TESTS=ON
           -DENABLE_QT=ON
-          -DYUZU_CMD=ON
-          -DYUZU_ROOM=OFF
-          -DYUZU_ROOM_STANDALONE=OFF
-          -DYUZU_USE_BUNDLED_QT=OFF
-          -DYUZU_USE_BUNDLED_SDL3=ON
+          -DPHOENIX_CMD=ON
+          -DPHOENIX_ROOM=OFF
+          -DPHOENIX_ROOM_STANDALONE=OFF
+          -DPHOENIX_USE_BUNDLED_QT=OFF
+          -DPHOENIX_USE_BUNDLED_SDL3=ON
           -DENABLE_UPDATE_CHECKER=ON
           -DUSE_DISCORD_PRESENCE=OFF
           -DUSE_CCACHE=ON
@@ -248,15 +248,15 @@ jobs:
           cmake --build build --parallel
           ccache --show-stats -v
 
-      # nxformat is linked statically: cheezyemu.exe must not need an nxformat.dll, which Windows
+      # nxformat is linked statically: phoenixemu.exe must not need an nxformat.dll, which Windows
       # may refuse to load (Smart App Control, code integrity policies) or that may be missing.
-      - name: Check cheezyemu.exe does not import nxformat.dll
+      - name: Check phoenixemu.exe does not import nxformat.dll
         run: |
-          imports=$("$LLVM_ROOT/bin/llvm-readobj" --coff-imports build/bin/cheezyemu.exe |
+          imports=$("$LLVM_ROOT/bin/llvm-readobj" --coff-imports build/bin/phoenixemu.exe |
             awk '/^(Import|DelayImport) {/ { kind = $1 } /^  Name:/ { print kind, $2 }')
           echo "$imports"
           if grep -qi ' nxformat.dll$' <<< "$imports"; then
-            echo "::error::cheezyemu.exe imports nxformat.dll; nxformat must be linked statically"
+            echo "::error::phoenixemu.exe imports nxformat.dll; nxformat must be linked statically"
             exit 1
           fi
 

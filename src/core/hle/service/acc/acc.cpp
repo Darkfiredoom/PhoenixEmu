@@ -970,7 +970,7 @@ Result Module::Interface::InitializeApplicationInfoBase() {
     case FileSys::StorageId::NandSystem:
     case FileSys::StorageId::NandUser:
     case FileSys::StorageId::SdCard:
-    case FileSys::StorageId::None: // Yuzu specific, differs from hardware
+    case FileSys::StorageId::None: // Phoenix specific, differs from hardware
         application_info.application_type = ApplicationType::Digital;
         break;
     default:

@@ -1418,7 +1418,7 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
     if (state.statistics) {
         state.statistics->Report();
     }
-    if (const char* const recipe_out = std::getenv("CHEEZYEMU_MAKE_RECIPE");
+    if (const char* const recipe_out = std::getenv("PHOENIXEMU_MAKE_RECIPE");
         recipe_out != nullptr && *recipe_out != '\0' && !stop_loading.stop_requested()) {
         MakeShaderRecipe(title_id, std::filesystem::path{recipe_out}, stop_loading);
     }
@@ -1791,7 +1791,7 @@ void PipelineCache::MakeShaderRecipe(u64 title_id, const std::filesystem::path& 
         LOG_INFO(Render_Vulkan, "Shader recipe: {} shader programs in {} game files, {:.1f} s",
                  programs.programs.size(), programs.stats.files, seconds());
 
-        // 2b. CHEEZYEMU_RECIPE_MERGE=<recipe>: the pipelines of another recipe for this game
+        // 2b. PHOENIXEMU_RECIPE_MERGE=<recipe>: the pipelines of another recipe for this game
         //     that the recorded cache does not have, after the recorded ones (those are known
         //     to be drawn; the other recipe's may be predictions). It is assembled with the
         //     game's programs to get its environments back, in a temporary file.
@@ -1799,7 +1799,7 @@ void PipelineCache::MakeShaderRecipe(u64 title_id, const std::filesystem::path& 
         auto merge_file = out;
         merge_file += ".merge.tmp";
         size_t merge_records{};
-        if (const char* const merge = std::getenv("CHEEZYEMU_RECIPE_MERGE");
+        if (const char* const merge = std::getenv("PHOENIXEMU_RECIPE_MERGE");
             merge != nullptr && *merge != '\0') {
             std::vector<u8> other;
             {
@@ -1949,7 +1949,7 @@ void PipelineCache::MakeShaderRecipe(u64 title_id, const std::filesystem::path& 
 
         // 3. The recipe: the same without the game's code.
         u32 game_version = 0;
-        if (const char* const value = std::getenv("CHEEZYEMU_RECIPE_GAME_VERSION")) {
+        if (const char* const value = std::getenv("PHOENIXEMU_RECIPE_GAME_VERSION")) {
             game_version = static_cast<u32>(std::strtoul(value, nullptr, 0));
         }
         Nx2Recipe::Report report;
@@ -3381,9 +3381,9 @@ std::unique_ptr<GraphicsPipeline> PipelineCache::CreateGraphicsPipeline(
     Common::ThreadWorker* const thread_worker{build_in_parallel ? &workers : nullptr};
     static_assert(VideoCommon::EvictedPointerSlots::NumPrograms == Maxwell::MaxShaderProgram);
     VideoCommon::EvictedPointerSlots::Slots mapped_pointers;
-    for (size_t index = 0, env_index = 0; index < Maxwell::MaxShaderProgram; ++index) {
+    for (size_t index = 0, mapped_env = 0; index < Maxwell::MaxShaderProgram; ++index) {
         if (key.unique_hashes[index] != 0) {
-            mapped_pointers[index] = envs[env_index++]->MappedStoragePointerKeys();
+            mapped_pointers[index] = envs[mapped_env++]->MappedStoragePointerKeys();
         }
     }
     auto pipeline = std::make_unique<GraphicsPipeline>(

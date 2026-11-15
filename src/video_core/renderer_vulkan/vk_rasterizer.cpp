@@ -1184,7 +1184,7 @@ void RasterizerVulkan::PrepareDraw(bool is_indexed, Func&& draw_func, bool is_in
         if (hide == 4) {
             u32 selector = 0;
             for (u32 bit = 0; bit < 5; ++bit) {
-                selector |= Settings::GetDebugKnobAt(2 + bit) ? (1u << bit) : 0u;
+                selector |= Settings::GetDebugKnobAt(static_cast<u8>(2 + bit)) ? (1u << bit) : 0u;
             }
             picked = selector < link_meshes.size() ? link_meshes[selector] : 0;
         }
@@ -3285,7 +3285,7 @@ std::pair<const char*, const char*> RasterizerVulkan::AmdFrameGenIdleReason() co
                             "another Frame Generation Type."};
 #else
     if (!AmdFrameGen::SwapchainActive()) {
-        return {"RESTART", "AMD frame generation starts with CheezyEmu: close and reopen CheezyEmu after "
+        return {"RESTART", "AMD frame generation starts with PhoenixEmu: close and reopen PhoenixEmu after "
                            "changing the Frame Generation Type. If it still shows this, AMD's "
                            "swapchain couldn't start (see the log)."};
     }

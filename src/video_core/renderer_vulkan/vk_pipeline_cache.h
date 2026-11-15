@@ -277,7 +277,7 @@ private:
         const std::filesystem::path& file, std::vector<PrecacheJob>& jobs,
         const std::unordered_set<u64>& precached);
 
-    /// CHEEZYEMU_MAKE_RECIPE=<file>: writes a recipe of every pipeline in the title's recorded
+    /// PHOENIXEMU_MAKE_RECIPE=<file>: writes a recipe of every pipeline in the title's recorded
     /// cache, without the game's code (developer tool; runs on the loading thread).
     void MakeShaderRecipe(u64 title_id, const std::filesystem::path& out, std::stop_token stop);
 
@@ -354,7 +354,7 @@ private:
     std::atomic_bool flush_in_flight{};
 
     /// Requested first when the cache is destroyed, to stop a rewrite of the disk cache: Android
-    /// and yuzu_cmd load with a stop token that never stops
+    /// and phoenix_cmd load with a stop token that never stops
     std::stop_source serialization_stop;
     Common::ThreadWorker workers;
     /// Software HMMA compute pipelines on drivers that take minutes on them

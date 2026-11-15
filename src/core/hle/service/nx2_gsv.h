@@ -667,7 +667,7 @@ private:
         const u32 slot = w[11];
         LOG_DEBUG(Service, "nx2:gpu 214 words {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}",
                  w[1], w[2], w[3], w[4], w[5], w[6], w[7], w[8], w[9], w[10], w[11], w[12]);
-        if (last > start && ((last + 1 - start) % Core::Memory::YUZU_PAGESIZE) == 0) {
+        if (last > start && ((last + 1 - start) % Core::Memory::PHOENIX_PAGESIZE) == 0) {
             const u64 size = last + 1 - start;
             std::scoped_lock lk{m_region_mutex};
             FreeReleasedRegions();
@@ -763,7 +763,7 @@ private:
         }
         if (last > first) {
             if (const auto region = m_sparse_regions.find(first); region != m_sparse_regions.end()) {
-                m_tile_bytes -= Core::Memory::YUZU_PAGESIZE *
+                m_tile_bytes -= Core::Memory::PHOENIX_PAGESIZE *
                                 static_cast<u64>(std::count(region->second.tile_pages.begin(),
                                                             region->second.tile_pages.end(), true));
                 m_sparse_regions.erase(region);
@@ -889,7 +889,7 @@ private:
     // wait on the guest page table lock and a guest thread holding that lock must not be stalled
     // behind a host mutex the service thread is waiting for.
     std::optional<MappedBacking> AllocateGpuOnlyBacking(u64 size, bool log_failure, bool clear) {
-        using Core::Memory::YUZU_PAGESIZE;
+        using Core::Memory::PHOENIX_PAGESIZE;
         auto& kernel_core = system.Kernel();
         auto* const process = system.ApplicationProcess();
         if (process == nullptr) {
@@ -906,7 +906,7 @@ private:
         const bool application_fallback = Kernel::KSystemControl::Init::GetApplicationPoolGrowth() != 0;
         const auto allocate = [&](Kernel::KMemoryManager::Pool pool) {
             return kernel_core.MemoryManager().AllocateAndOpen(
-                pg.get(), size / YUZU_PAGESIZE,
+                pg.get(), size / PHOENIX_PAGESIZE,
                 Kernel::KMemoryManager::EncodeOption(pool,
                                                      Kernel::KMemoryManager::Direction::FromBack));
         };
@@ -1437,9 +1437,9 @@ private:
     // on the console, so it gets no more blocks, and the blocks it got before (written while no
     // tile was mapped, which the console would have dropped) go back.
     void StartTiles(u64 start, SparseRegion& region) {
-        using Core::Memory::YUZU_PAGESIZE;
+        using Core::Memory::PHOENIX_PAGESIZE;
         region.tiles = true;
-        region.tile_pages.assign(Common::DivCeil(region.size, YUZU_PAGESIZE), false);
+        region.tile_pages.assign(Common::DivCeil(region.size, PHOENIX_PAGESIZE), false);
         std::shared_ptr<std::atomic<bool>> done;
         u64 released = 0;
         for (u64 block = 0; block < region.blocks.size(); ++block) {
@@ -1470,19 +1470,19 @@ private:
 
     // Counts the bytes of tiles mapped, page by page.
     void MarkTiles(SparseRegion& region, u64 offset, u64 size, bool mapped) {
-        using Core::Memory::YUZU_PAGESIZE;
+        using Core::Memory::PHOENIX_PAGESIZE;
         if (!region.tiles) {
             return;
         }
-        const u64 last = (std::min)(Common::DivCeil(offset + size, YUZU_PAGESIZE),
+        const u64 last = (std::min)(Common::DivCeil(offset + size, PHOENIX_PAGESIZE),
                                     static_cast<u64>(region.tile_pages.size()));
-        for (u64 page = offset / YUZU_PAGESIZE; page < last; ++page) {
+        for (u64 page = offset / PHOENIX_PAGESIZE; page < last; ++page) {
             if (region.tile_pages[page] != mapped) {
                 region.tile_pages[page] = mapped;
                 if (mapped) {
-                    m_tile_bytes += YUZU_PAGESIZE;
+                    m_tile_bytes += PHOENIX_PAGESIZE;
                 } else {
-                    m_tile_bytes -= YUZU_PAGESIZE;
+                    m_tile_bytes -= PHOENIX_PAGESIZE;
                 }
             }
         }

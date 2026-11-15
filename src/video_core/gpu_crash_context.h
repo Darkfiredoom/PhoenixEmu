@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// What CheezyEmu's own GPU work was doing, written to the log when the GPU crashes (device loss):
+// What PhoenixEmu's own GPU work was doing, written to the log when the GPU crashes (device loss):
 // the 4K path, the FSR version, frame generation. Crash reports from cards we can't test (RX 6800,
 // RADV in docked 4K) then say which of our passes was running.
 
@@ -43,7 +43,7 @@ inline void Log() {
     State& state = Get();
     std::scoped_lock lock{state.mutex};
     if (state.values.empty()) {
-        LOG_CRITICAL(Render_Vulkan, "GPU crash context: none of CheezyEmu's own passes ran");
+        LOG_CRITICAL(Render_Vulkan, "GPU crash context: none of PhoenixEmu's own passes ran");
         return;
     }
     std::string text;

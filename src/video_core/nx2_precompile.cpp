@@ -134,7 +134,7 @@ int Mode() {
             // On by default (Fritchii measured Ocarina of Time's first visit of an area with
             // an empty cache, prepared against a cold driver cache: worst walking freezes
             // 700-850 ms -> 40-70 ms). Only does something for a title with a recipe, and in
-            // CheezyEmu only with the shader precache on. EDEN_NX2_PRECOMPILE=0 turns it off.
+            // PhoenixEmu only with the shader precache on. EDEN_NX2_PRECOMPILE=0 turns it off.
             return 1;
         }
         return std::clamp(std::atoi(value), 0, 2);

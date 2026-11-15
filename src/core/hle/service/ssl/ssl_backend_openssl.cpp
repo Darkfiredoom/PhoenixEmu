@@ -19,7 +19,7 @@
 #include "core/internal_network/network.h"
 #include "core/internal_network/sockets.h"
 
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
 #include <openssl/cert.h>
 #endif
 
@@ -45,7 +45,7 @@ void OneTimeInit();
 void OneTimeInitLogFile();
 bool OneTimeInitBIO();
 
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
 // This is ported from httplib
 struct scope_exit {
   explicit scope_exit(std::function<void(void)> &&f)
@@ -121,7 +121,7 @@ class SSLConnectionBackendOpenSSL final : public SSLConnectionBackend {
 public:
     Result Init() {
         // on bundled OpenSSL, load ca cert store
-#ifdef YUZU_BUNDLED_OPENSSL
+#ifdef PHOENIX_BUNDLED_OPENSSL
         LoadCaCertStore(ssl_ctx, kCert, sizeof(kCert));
 #endif
         std::call_once(one_time_init_flag, OneTimeInit);

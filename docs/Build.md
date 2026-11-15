@@ -95,7 +95,7 @@ Caveat for Debug Builds:
 Also see the root CMakeLists.txt for more build options. Usually the default will provide the best experience, however.
 
 ```sh
-cmake -S . -B build -G "<GENERATOR>" -DCMAKE_BUILD_TYPE=<BUILD_TYPE> -DYUZU_TESTS=OFF
+cmake -S . -B build -G "<GENERATOR>" -DCMAKE_BUILD_TYPE=<BUILD_TYPE> -DPHOENIX_TESTS=OFF
 ```
 
 If you are on Windows and prefer to use Clang:

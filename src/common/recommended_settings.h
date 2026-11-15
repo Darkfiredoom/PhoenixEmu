@@ -19,9 +19,9 @@ struct HostProfile {
     bool windows{true};            ///< AMD's FSR and frame generation runtimes are Windows only
 };
 
-/// CheezyEmu's recommended settings for a PC. This table is the only place that lists them:
+/// PhoenixEmu's recommended settings for a PC. This table is the only place that lists them:
 /// change a value here to change what "Find Best Settings" writes. The first part is upstream
-/// Lichii's developer table with CheezyEmu's own defaults where they differ; the last part is
+/// Lichii's developer table with PhoenixEmu's own defaults where they differ; the last part is
 /// what depends on the PC. Personal choices (language, region, docked or handheld, backend,
 /// device) stay out of it. Every entry is visited for every PC, so a backup made on one holds
 /// what another may change.
@@ -57,7 +57,7 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     entry(config.renderer_force_max_clock, false);
     entry(config.use_disk_shader_cache, true);
     entry(config.use_vulkan_driver_pipeline_cache, true);
-    // CheezyEmu's default since build 9 ("Skip only redrawn targets").
+    // PhoenixEmu's default since build 9 ("Skip only redrawn targets").
     entry(config.native_async_draws, NativeAsyncDraws::Transient);
     entry(config.native_pipeline_wait_ms, 8);
     entry(config.precache_shaders, PrecacheShaders::Always);

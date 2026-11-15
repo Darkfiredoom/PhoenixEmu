@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Builds dist/game_pictures.json: a SteamGridDB picture link for every Switch 2 title ID.
 
-CheezyEmu downloads that list and the pictures it names, so players need no SteamGridDB key.
+PhoenixEmu downloads that list and the pictures it names, so players need no SteamGridDB key.
 The title IDs and names come from switchbrew's Switch 2 title list. Only this script needs a key:
 
     SGDB_API_KEY=... python tools/game_pictures/build_list.py
@@ -32,7 +32,7 @@ OUTPUT = os.path.join(REPO, "dist", "game_pictures.json")
 OVERRIDES = os.path.join(HERE, "overrides.json")
 TITLE_LIST = "https://switchbrew.org/w/index.php?title=Switch_2:_Title_list/Games&action=raw"
 SGDB = "https://www.steamgriddb.com/api/v2"
-USER_AGENT = "CheezyEmu-game-pictures/1.0"
+USER_AGENT = "PhoenixEmu-game-pictures/1.0"
 
 
 def get(url, key=None, retries=4):

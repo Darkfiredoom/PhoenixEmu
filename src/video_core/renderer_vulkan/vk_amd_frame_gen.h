@@ -41,7 +41,7 @@ namespace AmdFrameGen {
 /// carry no game motion, so nothing is generated there and every shown frame is a game frame.
 [[nodiscard]] bool GeneratingNow();
 
-/// Whether AMD's frame generation swapchain is in use (it is set up when CheezyEmu starts).
+/// Whether AMD's frame generation swapchain is in use (it is set up when PhoenixEmu starts).
 [[nodiscard]] bool SwapchainActive();
 
 /// Creates AMD's frame generation swapchain in place of vkCreateSwapchainKHR. Returns

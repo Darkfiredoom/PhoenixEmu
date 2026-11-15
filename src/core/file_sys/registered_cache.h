@@ -178,8 +178,8 @@ public:
                                const VfsCopyFunction& copy = &VfsRawCopy);
 
     // Due to the fact that we must use Meta-type NCAs to determine the existence of files, this
-    // poses quite a challenge. Instead of creating a new meta NCA for this file, yuzu will create a
-    // dir inside the NAND called 'yuzu_meta' and store the raw CNMT there.
+    // poses quite a challenge. Instead of creating a new meta NCA for this file, phoenix will create a
+    // dir inside the NAND called 'phoenix_meta' and store the raw CNMT there.
     // TODO(DarkLordZach): Author real meta-type NCAs and install those.
     InstallResult InstallEntry(const NCA& nca, TitleType type, bool overwrite_if_exists = false,
                                const VfsCopyFunction& copy = &VfsRawCopy);
@@ -199,13 +199,13 @@ private:
                             std::function<bool(const CNMT&, const ContentRecord&)> filter) const;
     std::vector<NcaID> AccumulateFiles() const;
     void ProcessFiles(const std::vector<NcaID>& ids);
-    void AccumulateYuzuMeta();
+    void AccumulatePhoenixMeta();
     std::optional<NcaID> GetNcaIDFromMetadata(u64 title_id, ContentRecordType type) const;
     VirtualFile GetFileAtID(NcaID id) const;
     VirtualFile OpenFileOrDirectoryConcat(const VirtualDir& open_dir, std::string_view path) const;
     InstallResult RawInstallNCA(const NCA& nca, const VfsCopyFunction& copy,
                                 bool overwrite_if_exists, std::optional<NcaID> override_id = {});
-    bool RawInstallYuzuMeta(const CNMT& cnmt);
+    bool RawInstallPhoenixMeta(const CNMT& cnmt);
 
     VirtualDir dir;
     ContentProviderParsingFunction parser;
@@ -214,8 +214,8 @@ private:
     ::Common::unordered_map<u64, NcaID> meta_id;
     // maps tid -> meta
     ::Common::unordered_map<u64, CNMT> meta;
-    // maps tid -> meta for CNMT in yuzu_meta
-    ::Common::unordered_map<u64, CNMT> yuzu_meta;
+    // maps tid -> meta for CNMT in phoenix_meta
+    ::Common::unordered_map<u64, CNMT> phoenix_meta;
 };
 
 enum class ContentProviderUnionSlot {

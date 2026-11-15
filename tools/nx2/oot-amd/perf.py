@@ -1,7 +1,7 @@
 # OoT performance loop: launch, load the autosave, measure gameplay fps, optionally profile.
 #
 #   perf.py run <name> [--env K=V ...] [--profile] [--sample S] [--threads GPU,GPUBack,CPUCore_*]
-#               [--grep TEXT ...] [--measure N] [--settle S] [--exe cheezyemu.exe] [--attach] [--kill]
+#               [--grep TEXT ...] [--measure N] [--settle S] [--exe phoenixemu.exe] [--attach] [--kill]
 #   perf.py results            : the results table
 #
 # Every switch goes into the launched process's own environment (EDEN_NX2_GPU_PROFILE is read at
@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 MCP = os.path.join(REPO, "tools", "nx2", "debug_mcp.py")
 OUT = os.environ.get("OOT_PERF_DIR", os.path.join(os.environ["TEMP"], "oot-perf"))
-EMU_DIR = os.environ.get("CHEEZYEMU_DIR", "")  # folder with cheezyemu.exe
+EMU_DIR = os.environ.get("PHOENIXEMU_DIR", "")  # folder with phoenixemu.exe
 ROM = os.environ.get("OOT_ROM", "")  # the game file
 REFERENCE = os.environ.get("OOT_REFERENCE", "")  # optional screenshot of the benchmark spot
 SERVER = "127.0.0.1:6545"
@@ -34,15 +34,15 @@ def call(method, params=None, out=None, timeout=None):
 
 
 def running():
-    r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq cheezyemu.exe", "/NH"], capture_output=True, text=True)
-    return "cheezyemu.exe" in r.stdout.lower()
+    r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq phoenixemu.exe", "/NH"], capture_output=True, text=True)
+    return "phoenixemu.exe" in r.stdout.lower()
 
 
 def launch(env, exe, kill, affinity=None):
     if running():
         if not kill:
-            sys.exit("cheezyemu.exe is already running: pass --kill to replace it or --attach to use it")
-        subprocess.run(["taskkill", "/F", "/IM", "cheezyemu.exe"], capture_output=True)
+            sys.exit("phoenixemu.exe is already running: pass --kill to replace it or --attach to use it")
+        subprocess.run(["taskkill", "/F", "/IM", "phoenixemu.exe"], capture_output=True)
         for _ in range(20):
             if not running():
                 break
@@ -220,7 +220,7 @@ def git_rev():
 
 def run(a):
     if not a.attach and (not EMU_DIR or not ROM):
-        sys.exit("set CHEEZYEMU_DIR (the folder with cheezyemu.exe) and OOT_ROM (the game file)")
+        sys.exit("set PHOENIXEMU_DIR (the folder with phoenixemu.exe) and OOT_ROM (the game file)")
     env = {"EDEN_NX2_DEBUG_SERVER": SERVER}
     for kv in a.env:
         k, v = kv.split("=", 1)
@@ -305,12 +305,12 @@ def main():
                         "hitches (frames over 50 ms) from the present intervals")
     r.add_argument("--frametimes", type=float, default=0,
                    help="seconds of present intervals to summarise (p50/p90/p99/max, stutters)")
-    r.add_argument("--exe", default=os.environ.get("CHEEZYEMU_EXE", "cheezyemu.exe"))
+    r.add_argument("--exe", default=os.environ.get("PHOENIXEMU_EXE", "phoenixemu.exe"))
     r.add_argument("--affinity", help="hex CPU mask for the process (e.g. ffff = the first CCD of a 16-core Ryzen, SMT included)")
     r.add_argument("--slot", type=int, default=int(os.environ.get("OOT_SLOT", "1")),
                    help="save on the Load list, 0 = newest, -1 = the bottom one (default 1)")
     r.add_argument("--attach", action="store_true", help="measure the game already running in gameplay")
-    r.add_argument("--kill", action="store_true", help="close a running cheezyemu.exe first")
+    r.add_argument("--kill", action="store_true", help="close a running phoenixemu.exe first")
     sub.add_parser("results")
     a = p.parse_args()
     os.makedirs(OUT, exist_ok=True)

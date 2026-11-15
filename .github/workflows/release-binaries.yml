@@ -24,7 +24,7 @@ on:
     paths:
       - "src/**"
       # Test-only changes cannot change a binary: the build configures with BUILD_TESTING=OFF and
-      # YUZU_TESTS=OFF below, so a push that only touches src/tests has nothing to rebuild.
+      # PHOENIX_TESTS=OFF below, so a push that only touches src/tests has nothing to rebuild.
       - "!src/tests/**"
       - "CMakeLists.txt"
       - "CMakeModules/**"
@@ -102,7 +102,7 @@ jobs:
           # eglantine.profdata. Eden's profile (Eden-CI/PGO) comes from Switch 1 games: with it Mario
           # Kart World ran at about half the speed of the normal build, with eglantine.profdata at
           # about the same speed. Both Windows builds are clang-cl with ThinLTO; windows-x86_64-pgo
-          # adds cheezyemu-windows.profdata, an MSVC-ABI profile trained on Ocarina of Time (see
+          # adds phoenixemu-windows.profdata, an MSVC-ABI profile trained on Ocarina of Time (see
           # docs/CI.md). MSVC still builds for development.
           - platform: linux-x86_64-pgo
             runner: ubuntu-24.04
@@ -112,7 +112,7 @@ jobs:
           - platform: windows-x86_64-pgo
             runner: windows-2022
             pgo: true
-            profile: cheezyemu-windows.profdata
+            profile: phoenixemu-windows.profdata
           - platform: linux-aarch64
             runner: ubuntu-24.04-arm
           - platform: linux-aarch64-pgo
@@ -299,20 +299,20 @@ jobs:
           flags=(
             -DCMAKE_BUILD_TYPE=Release
             -DBUILD_TESTING=OFF
-            -DYUZU_TESTS=OFF
-            -DYUZU_CMD=ON
-            -DYUZU_ROOM=OFF
-            -DYUZU_ROOM_STANDALONE=OFF
-            -DYUZU_USE_BUNDLED_QT=OFF
+            -DPHOENIX_TESTS=OFF
+            -DPHOENIX_CMD=ON
+            -DPHOENIX_ROOM=OFF
+            -DPHOENIX_ROOM_STANDALONE=OFF
+            -DPHOENIX_USE_BUNDLED_QT=OFF
             "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR"
-            -DYUZU_USE_BUNDLED_SDL3=ON
+            -DPHOENIX_USE_BUNDLED_SDL3=ON
             -DVulkanHeaders_FORCE_BUNDLED=ON
             -DVulkanUtilityLibraries_FORCE_BUNDLED=ON
             -DENABLE_UPDATE_CHECKER=ON
-            -DCHEEZYEMU_BUILD_TAG=${{ env.RELEASE_TAG }}
-            -DCHEEZYEMU_BUILD_PLATFORM=${{ matrix.platform }}
+            -DPHOENIXEMU_BUILD_TAG=${{ env.RELEASE_TAG }}
+            -DPHOENIXEMU_BUILD_PLATFORM=${{ matrix.platform }}
             -DUSE_DISCORD_PRESENCE=ON
-            -DYUZU_USE_BUNDLED_SIRIT=OFF
+            -DPHOENIX_USE_BUNDLED_SIRIT=OFF
             -DUSE_CCACHE=ON
           )
           if [ '${{ matrix.pgo }}' = 'true' ]; then
@@ -352,17 +352,17 @@ jobs:
           retry cmake -S . -B build/release -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
-            -DYUZU_TESTS=OFF \
-            -DYUZU_CMD=ON \
-            -DYUZU_ROOM=OFF \
-            -DYUZU_ROOM_STANDALONE=OFF \
-            -DYUZU_USE_BUNDLED_QT=OFF \
-            -DYUZU_USE_BUNDLED_SDL3=ON \
+            -DPHOENIX_TESTS=OFF \
+            -DPHOENIX_CMD=ON \
+            -DPHOENIX_ROOM=OFF \
+            -DPHOENIX_ROOM_STANDALONE=OFF \
+            -DPHOENIX_USE_BUNDLED_QT=OFF \
+            -DPHOENIX_USE_BUNDLED_SDL3=ON \
             -DENABLE_UPDATE_CHECKER=ON \
-            -DCHEEZYEMU_BUILD_TAG=${{ env.RELEASE_TAG }} \
-            -DCHEEZYEMU_BUILD_PLATFORM=${{ matrix.platform }} \
+            -DPHOENIXEMU_BUILD_TAG=${{ env.RELEASE_TAG }} \
+            -DPHOENIXEMU_BUILD_PLATFORM=${{ matrix.platform }} \
             -DUSE_DISCORD_PRESENCE=ON \
-            -DYUZU_USE_BUNDLED_SIRIT=OFF \
+            -DPHOENIX_USE_BUNDLED_SIRIT=OFF \
             "${launcher[@]}" \
             "-DCMAKE_C_COMPILER=$LLVM_ROOT/bin/clang-cl.exe" \
             "-DCMAKE_CXX_COMPILER=$LLVM_ROOT/bin/clang-cl.exe" \
@@ -380,20 +380,20 @@ jobs:
           retry cmake -S . -B build/release -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
-            -DYUZU_TESTS=OFF \
-            -DYUZU_CMD=ON \
-            -DYUZU_ROOM=OFF \
-            -DYUZU_ROOM_STANDALONE=OFF \
-            -DYUZU_USE_BUNDLED_QT=OFF \
+            -DPHOENIX_TESTS=OFF \
+            -DPHOENIX_CMD=ON \
+            -DPHOENIX_ROOM=OFF \
+            -DPHOENIX_ROOM_STANDALONE=OFF \
+            -DPHOENIX_USE_BUNDLED_QT=OFF \
             "-DCMAKE_PREFIX_PATH=$(brew --prefix qt@6);$(brew --prefix zlib)" \
             "-DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" \
             -DVulkanHeaders_FORCE_BUNDLED=ON \
             -DVulkanUtilityLibraries_FORCE_BUNDLED=ON \
             -DENABLE_UPDATE_CHECKER=ON \
-            -DCHEEZYEMU_BUILD_TAG=${{ env.RELEASE_TAG }} \
-            -DCHEEZYEMU_BUILD_PLATFORM=${{ matrix.platform }} \
+            -DPHOENIXEMU_BUILD_TAG=${{ env.RELEASE_TAG }} \
+            -DPHOENIXEMU_BUILD_PLATFORM=${{ matrix.platform }} \
             -DUSE_DISCORD_PRESENCE=ON \
-            -DYUZU_USE_BUNDLED_SIRIT=OFF \
+            -DPHOENIX_USE_BUNDLED_SIRIT=OFF \
             -DUSE_CCACHE=ON
 
       - name: Save CPM downloads
@@ -407,8 +407,8 @@ jobs:
         shell: bash
         run: |
           if command -v ccache > /dev/null; then ccache --zero-stats; elif command -v sccache > /dev/null; then sccache --zero-stats; fi
-          targets="yuzu yuzu-cmd"
-          if [[ "${{ matrix.platform }}" == windows* ]]; then targets="$targets cheezyemu-updater"; fi
+          targets="phoenix phoenix-cmd"
+          if [[ "${{ matrix.platform }}" == windows* ]]; then targets="$targets phoenixemu-updater"; fi
           cmake --build build/release --target $targets --parallel
           if command -v ccache > /dev/null; then ccache --show-stats; elif command -v sccache > /dev/null; then sccache --show-stats; fi
 
@@ -433,14 +433,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -x build/release/bin/cheezyemu
-          test -x build/release/bin/cheezyemu-cli
-          strip build/release/bin/cheezyemu build/release/bin/cheezyemu-cli
-          cp README.txt CHEEZYEMU.md LICENSE.txt NOTICE.txt build/release/bin/
-          tar -czf "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz" \
-            -C build/release/bin cheezyemu cheezyemu-cli nx2_switches.txt recipes README.txt \
-            CHEEZYEMU.md LICENSE.txt NOTICE.txt
-          ls -la "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz"
+          test -x build/release/bin/phoenixemu
+          test -x build/release/bin/phoenixemu-cli
+          strip build/release/bin/phoenixemu build/release/bin/phoenixemu-cli
+          cp README.txt PHOENIXEMU.md LICENSE.txt NOTICE.txt build/release/bin/
+          tar -czf "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz" \
+            -C build/release/bin phoenixemu phoenixemu-cli nx2_switches.txt recipes README.txt \
+            PHOENIXEMU.md LICENSE.txt NOTICE.txt
+          ls -la "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz"
 
       # A self-contained AppImage: linuxdeploy bundles every library the two programs need except
       # the base system ones (glibc, X11/Wayland client libraries, the GPU driver and Vulkan loader),
@@ -450,8 +450,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -x build/release/bin/cheezyemu
-          test -x build/release/bin/cheezyemu-cli
+          test -x build/release/bin/phoenixemu
+          test -x build/release/bin/phoenixemu-cli
           tools="$RUNNER_TEMP/linuxdeploy"
           mkdir -p "$tools"
           arch=$(uname -m)   # aarch64 or x86_64
@@ -465,9 +465,9 @@ jobs:
           https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$arch
           export LDAI_RUNTIME_FILE="$tools/runtime-$arch"
           chmod +x "$tools"/*.AppImage
-          # The desktop file names its icon io.github.cheezerwheezer.cheezyemu.
-          icon="$RUNNER_TEMP/io.github.cheezerwheezer.cheezyemu.png"
-          cp dist/cheezyemu.png "$icon"
+          # The desktop file names its icon io.github.darkfiredoom.phoenixemu.
+          icon="$RUNNER_TEMP/io.github.darkfiredoom.phoenixemu.png"
+          cp dist/phoenixemu.png "$icon"
           export APPIMAGE_EXTRACT_AND_RUN=1
           export QMAKE="$QT_ROOT_DIR/bin/qmake"
           # Include Wayland platform plugins and their graphics/shell integrations.
@@ -475,16 +475,16 @@ jobs:
           export EXTRA_PLATFORM_PLUGINS='libqwayland-egl.so;libqwayland-generic.so'
           # Embedded in the AppImage metadata; matches the release tag (build-N) plus the commit.
           export LDAI_VERSION="${RELEASE_TAG}-${GITHUB_SHA::7}"
-          export LDAI_OUTPUT="cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.AppImage"
+          export LDAI_OUTPUT="phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.AppImage"
           export OUTPUT="$LDAI_OUTPUT"
           export ARCH="$arch"
           mkdir -p AppDir/usr/bin
           cp build/release/bin/nx2_switches.txt AppDir/usr/bin/
           cp -r build/release/bin/recipes AppDir/usr/bin/
           "$tools/linuxdeploy-$arch.AppImage" --appdir AppDir \
-            --executable build/release/bin/cheezyemu \
-            --executable build/release/bin/cheezyemu-cli \
-            --desktop-file dist/io.github.cheezerwheezer.cheezyemu.desktop \
+            --executable build/release/bin/phoenixemu \
+            --executable build/release/bin/phoenixemu-cli \
+            --desktop-file dist/io.github.darkfiredoom.phoenixemu.desktop \
             --icon-file "$icon" \
             --plugin qt \
             --output appimage
@@ -495,14 +495,14 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         run: |
-          foreach ($exe in 'cheezyemu.exe', 'cheezyemu-cli.exe') {
+          foreach ($exe in 'phoenixemu.exe', 'phoenixemu-cli.exe') {
             if (-not (Test-Path "build/release/bin/$exe")) {
               throw "build/release/bin/$exe was not produced"
             }
           }
-          windeployqt --release --no-translations build/release/bin/cheezyemu.exe
-          # The player guide and the release notes, next to cheezyemu.exe.
-          Copy-Item README.txt, CHEEZYEMU.md, LICENSE.txt, NOTICE.txt build/release/bin/
+          windeployqt --release --no-translations build/release/bin/phoenixemu.exe
+          # The player guide and the release notes, next to phoenixemu.exe.
+          Copy-Item README.txt, PHOENIXEMU.md, LICENSE.txt, NOTICE.txt build/release/bin/
           # Link maps (from /MAP) go in their own artifact and release asset, not the player zip:
           # with them a player's crash dump can be matched to functions.
           New-Item -ItemType Directory -Force build/release/maps | Out-Null
@@ -518,12 +518,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app=build/release/bin/cheezyemu.app
-          test -x "$app/Contents/MacOS/cheezyemu"
-          test -x build/release/bin/cheezyemu-cli
-          cp build/release/bin/cheezyemu-cli "$app/Contents/MacOS/cheezyemu-cli"
+          app=build/release/bin/phoenixemu.app
+          test -x "$app/Contents/MacOS/phoenixemu"
+          test -x build/release/bin/phoenixemu-cli
+          cp build/release/bin/phoenixemu-cli "$app/Contents/MacOS/phoenixemu-cli"
           "$(brew --prefix qt@6)/bin/macdeployqt" "$app" \
-            -executable="$app/Contents/MacOS/cheezyemu-cli" -libpath="$(brew --prefix)/lib" \
+            -executable="$app/Contents/MacOS/phoenixemu-cli" -libpath="$(brew --prefix)/lib" \
             -always-overwrite -verbose=1
           # Qt's virtual keyboard input plugin pulls in the QML stack, which the emulator doesn't use.
           rm -f "$app/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib"
@@ -537,7 +537,7 @@ jobs:
               done
           done
           # Libraries that load their dependencies through @rpath find them in the bundle.
-          for program in cheezyemu cheezyemu-cli; do
+          for program in phoenixemu phoenixemu-cli; do
             install_name_tool -add_rpath @executable_path/../Frameworks \
               "$app/Contents/MacOS/$program" 2> /dev/null
           done
@@ -561,19 +561,19 @@ jobs:
           codesign --force --deep --sign - "$app"
           if [ -f dist/eglantine.entitlements ]; then
             codesign --force --sign - --entitlements dist/eglantine.entitlements \
-              "$app/Contents/MacOS/cheezyemu-cli"
+              "$app/Contents/MacOS/phoenixemu-cli"
             codesign --force --sign - --entitlements dist/eglantine.entitlements "$app"
           fi
           codesign --verify --deep --strict "$app"
-          ditto -c -k --keepParent "$app" "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.zip"
-          ls -la "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.zip"
-          # Also ship a .dmg (drag cheezyemu.app onto Applications).
+          ditto -c -k --keepParent "$app" "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.zip"
+          ls -la "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.zip"
+          # Also ship a .dmg (drag phoenixemu.app onto Applications).
           dmgdir=$(mktemp -d)
-          ditto "$app" "$dmgdir/cheezyemu.app"
+          ditto "$app" "$dmgdir/phoenixemu.app"
           ln -s /Applications "$dmgdir/Applications"
-          hdiutil create -volname "CheezyEmu" -srcfolder "$dmgdir" -ov -format UDZO \
-            "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.dmg"
-          ls -la "cheezyemu-${GITHUB_SHA}-${{ matrix.platform }}.dmg"
+          hdiutil create -volname "PhoenixEmu" -srcfolder "$dmgdir" -ov -format UDZO \
+            "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.dmg"
+          ls -la "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.dmg"
 
       # The artifact is the bin folder itself: GitHub zips artifacts on download, and uploading a
       # zip gave a zip inside a zip. The release job zips it once for the release.
@@ -581,7 +581,7 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         uses: actions/upload-artifact@v7
         with:
-          name: cheezyemu-${{ matrix.platform }}-${{ github.sha }}
+          name: phoenixemu-${{ matrix.platform }}-${{ github.sha }}
           path: build/release/bin/
           if-no-files-found: error
           retention-days: 7
@@ -590,7 +590,7 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         uses: actions/upload-artifact@v7
         with:
-          name: cheezyemu-${{ matrix.platform }}-map-${{ github.sha }}
+          name: phoenixemu-${{ matrix.platform }}-map-${{ github.sha }}
           path: build/release/maps/
           if-no-files-found: warn
           retention-days: 7
@@ -600,10 +600,10 @@ jobs:
         if: startsWith(matrix.platform, 'linux')
         uses: actions/upload-artifact@v7
         with:
-          name: cheezyemu-${{ matrix.platform }}-${{ github.sha }}
+          name: phoenixemu-${{ matrix.platform }}-${{ github.sha }}
           path: |
-            cheezyemu-${{ github.sha }}-${{ matrix.platform }}.tar.gz
-            cheezyemu-${{ github.sha }}-${{ matrix.platform }}.AppImage
+            phoenixemu-${{ github.sha }}-${{ matrix.platform }}.tar.gz
+            phoenixemu-${{ github.sha }}-${{ matrix.platform }}.AppImage
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -613,10 +613,10 @@ jobs:
         if: startsWith(matrix.platform, 'macos')
         uses: actions/upload-artifact@v7
         with:
-          name: cheezyemu-${{ matrix.platform }}-${{ github.sha }}
+          name: phoenixemu-${{ matrix.platform }}-${{ github.sha }}
           path: |
-            cheezyemu-${{ github.sha }}-${{ matrix.platform }}.zip
-            cheezyemu-${{ github.sha }}-${{ matrix.platform }}.dmg
+            phoenixemu-${{ github.sha }}-${{ matrix.platform }}.zip
+            phoenixemu-${{ github.sha }}-${{ matrix.platform }}.dmg
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -635,7 +635,7 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@v7
         with:
-          pattern: cheezyemu-*-${{ github.sha }}
+          pattern: phoenixemu-*-${{ github.sha }}
           path: artifacts
 
       - name: Package release files
@@ -677,11 +677,11 @@ jobs:
           fi
           tag="${RELEASE_TAG}"
           if [[ "$tag" == test-* ]]; then
-            title="CheezyEmu TEST build ${tag} (${GITHUB_SHA::7})"
+            title="PhoenixEmu TEST build ${tag} (${GITHUB_SHA::7})"
             test_note="> [!WARNING]
           > **This is a test build for testers**, not a release. It may have bugs the released build does not. The in-app updater does not offer it, and a test build does not update itself: download the next build by hand."
           else
-            title="CheezyEmu ${GITHUB_REF_NAME} build ${BUILD_NUMBER} (${GITHUB_SHA::7})"
+            title="PhoenixEmu ${GITHUB_REF_NAME} build ${BUILD_NUMBER} (${GITHUB_SHA::7})"
             test_note=""
           fi
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}"
@@ -711,11 +711,11 @@ jobs:
           }
           pgo_note=""
           if [[ -n "$has_pgo" ]]; then
-            pgo_note="The PGO builds are the same programs compiled with profile-guided optimization. Linux uses clang with Eglantine's profile; Windows uses clang-cl and ThinLTO with a profile trained in CheezyEmu on Ocarina of Time, so other games gain less. Prefer them when your CPU supports it."
+            pgo_note="The PGO builds are the same programs compiled with profile-guided optimization. Linux uses clang with Eglantine's profile; Windows uses clang-cl and ThinLTO with a profile trained in PhoenixEmu on Ocarina of Time, so other games gain less. Prefer them when your CPU supports it."
           fi
-          # "What's new": the newest "## New in build" section of CHEEZYEMU.md at this commit.
+          # "What's new": the newest "## New in build" section of PHOENIXEMU.md at this commit.
           whats_new=$(gh api -H "Accept: application/vnd.github.raw" \
-              "repos/${GITHUB_REPOSITORY}/contents/CHEEZYEMU.md?ref=${GITHUB_SHA}" |
+              "repos/${GITHUB_REPOSITORY}/contents/PHOENIXEMU.md?ref=${GITHUB_SHA}" |
             awk '/^## /{ if (f) exit } /^## New in build/{ f=1; print "## What'"'"'s new"; next }
                  f && !/^How to use all of this/' || true)
 
@@ -725,9 +725,9 @@ jobs:
           ${test_note}
 
           > [!IMPORTANT]
-          > **Read \`README.txt\`** (next to \`cheezyemu.exe\` after you unzip, or [on GitHub](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/README.txt)): how to turn switches on and off, install and move shader packs, and use AMD FSR upscaling and AMD frame generation. Changes and credits: [CHEEZYEMU.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/CHEEZYEMU.md).
+          > **Read \`README.txt\`** (next to \`phoenixemu.exe\` after you unzip, or [on GitHub](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/README.txt)): how to turn switches on and off, install and move shader packs, and use AMD FSR upscaling and AMD frame generation. Changes and credits: [PHOENIXEMU.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/PHOENIXEMU.md).
 
-          💬 **Join the CheezyEmu Discord** for help, bug reports and new builds: https://discord.gg/vEK4ug6JD
+          💬 **Join the PhoenixEmu Discord** for help, bug reports and new builds: https://discord.gg/mPsZHYeetr
 
           ${whats_new}
 
@@ -738,24 +738,24 @@ jobs:
 
           Linux packages come as an AppImage (self-contained, needs glibc 2.39 or newer: Ubuntu 24.04, Fedora 40, Debian 13, Arch) and a tar.gz (uses your system libraries, so Qt 6 and the usual libraries must be installed).
 
-          AMD on Linux / SteamOS: from build 11 CheezyEmu draws mesh shader geometry the safe way by itself (native mesh shaders hang or reset AMD GPUs on RADV). On older builds, or to force it on any GPU, add \`EDEN_NX2_FORCE_MESH_FALLBACK=1 %command%\` to the launch options.
+          AMD on Linux / SteamOS: from build 11 PhoenixEmu draws mesh shader geometry the safe way by itself (native mesh shaders hang or reset AMD GPUs on RADV). On older builds, or to force it on any GPU, add \`EDEN_NX2_FORCE_MESH_FALLBACK=1 %command%\` to the launch options.
 
           $({
-            row amd64 "$(appimage_tar cheezyemu-linux-x86_64)" "$(appimage_tar cheezyemu-linux-x86_64-pgo)" "Make the AppImage executable (\`chmod +x\`) and run it"
-            row "ARM (aarch64)" "$(appimage_tar cheezyemu-linux-aarch64)" "$(appimage_tar cheezyemu-linux-aarch64-pgo)" ""
+            row amd64 "$(appimage_tar phoenixemu-linux-x86_64)" "$(appimage_tar phoenixemu-linux-x86_64-pgo)" "Make the AppImage executable (\`chmod +x\`) and run it"
+            row "ARM (aarch64)" "$(appimage_tar phoenixemu-linux-aarch64)" "$(appimage_tar phoenixemu-linux-aarch64-pgo)" ""
           } | table)
 
           ## Windows
 
-          Windows packages are in-place zip files: extract and run \`cheezyemu.exe\`, or \`cheezyemu-cli.exe\` from a terminal.
+          Windows packages are in-place zip files: extract and run \`phoenixemu.exe\`, or \`phoenixemu-cli.exe\` from a terminal.
 
           $({
-            row "amd64 / x86_64" "$(link zip cheezyemu-windows-x86_64.zip)" "$(link "PGO zip" cheezyemu-windows-x86_64-pgo.zip)" "Both built with clang-cl and ThinLTO; the PGO zip adds a profile trained on Ocarina of Time"
+            row "amd64 / x86_64" "$(link zip phoenixemu-windows-x86_64.zip)" "$(link "PGO zip" phoenixemu-windows-x86_64-pgo.zip)" "Both built with clang-cl and ThinLTO; the PGO zip adds a profile trained on Ocarina of Time"
           } | table)
 
           ## macOS
 
-          $(row "arm64 (Apple Silicon)" "$(link zip cheezyemu-macos-arm64.zip)" "" "macOS 15 or newer. Not notarized: right-click and choose Open the first time, or run \`xattr -dr com.apple.quarantine cheezyemu.app\`. \`cheezyemu-cli\` is inside the app, in \`Contents/MacOS\`" | table)
+          $(row "arm64 (Apple Silicon)" "$(link zip phoenixemu-macos-arm64.zip)" "" "macOS 15 or newer. Not notarized: right-click and choose Open the first time, or run \`xattr -dr com.apple.quarantine phoenixemu.app\`. \`phoenixemu-cli\` is inside the app, in \`Contents/MacOS\`" | table)
 
           ${pgo_note}
           EOF
@@ -767,7 +767,7 @@ jobs:
             --title "${title}" \
             --notes-file notes.md
 
-      # CHEEZYEMU_BUILD_TAG is baked into every binary as build-<run number>, and the update checker
+      # PHOENIXEMU_BUILD_TAG is baked into every binary as build-<run number>, and the update checker
       # compares release tags against it. A release whose tag or title names another run would be
       # skipped or offered wrongly, so fail the run instead of leaving it published.
       - name: Verify the release tag matches the run number

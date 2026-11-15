@@ -124,7 +124,7 @@ public:
         GenerateLegacyPath(EmuPath::titleName##CacheDir, GetAppDataRoamingDirectory() / upperName##_DIR / CACHE_DIR);
         LEGACY_PATH(Citron, CITRON)
         LEGACY_PATH(Sudachi, SUDACHI)
-        LEGACY_PATH(Yuzu, YUZU)
+        LEGACY_PATH(Phoenix, PHOENIX)
         LEGACY_PATH(Suyu, SUYU)
         LEGACY_PATH(EdenLegacy, EDENLEGACY)
 #undef LEGACY_PATH
@@ -147,7 +147,7 @@ public:
         GenerateLegacyPath(EmuPath::titleName##CacheDir, GetDataDirectory("XDG_CACHE_HOME") / upperName##_DIR);
         LEGACY_PATH(Citron, CITRON)
         LEGACY_PATH(Sudachi, SUDACHI)
-        LEGACY_PATH(Yuzu, YUZU)
+        LEGACY_PATH(Phoenix, PHOENIX)
         LEGACY_PATH(Suyu, SUYU)
         LEGACY_PATH(EdenLegacy, EDENLEGACY)
 #undef LEGACY_PATH

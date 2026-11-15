@@ -423,8 +423,8 @@
     <string name="install_game_content_help_link">https://yuzu-mirror.github.io/help/quickstart/#dumping-installed-updates</string>
     <string name="custom_driver_not_supported">Custom drivers not supported</string>
     <string name="custom_driver_not_supported_description">Custom driver loading isn\'t currently supported for this device.\nCheck this option again in the future to see if support was added!</string>
-    <string name="manage_yuzu_data">Manage Eden data</string>
-    <string name="manage_yuzu_data_description">Import/export firmware, keys, user data, and more!</string>
+    <string name="manage_phoenix_data">Manage Eden data</string>
+    <string name="manage_phoenix_data_description">Import/export firmware, keys, user data, and more!</string>
     <string name="game_folders">Game folders</string>
     <string name="deep_scan">Deep scan</string>
     <string name="add_game_folder">Add game folder</string>
@@ -491,12 +491,12 @@
     <string name="user_data_description">Import/export all app data.\n\nWhen importing user data, all existing user data will be deleted!\n\nImporting data from Citron may cause issues. It\'s recommended to manually import all needed data.</string>
     <string name="exporting_user_data">Exporting user data…</string>
     <string name="importing_user_data">Importing user data…</string>
-    <string name="invalid_yuzu_backup">Invalid Eden backup</string>
+    <string name="invalid_phoenix_backup">Invalid Eden backup</string>
     <string name="user_data_export_success">User data exported successfully</string>
     <string name="user_data_import_success">User data imported successfully</string>
     <string name="user_data_export_cancelled">Export cancelled</string>
     <string name="user_data_import_failed_description">Make sure the user data folders are at the root of the zip folder and contain a config file at config/config.ini and try again.</string>
-    <string name="discord_link" translatable="false">https://discord.gg/HstXbPch7X</string>
+    <string name="discord_link" translatable="false">https://discord.gg/mPsZHYeetr</string>
     <string name="stoat_link" translatable="false">https://stt.gg/qKgFEAbH</string>
     <string name="x_link" translatable="false">https://nitter.poast.org/edenemuofficial</string>
     <string name="website_link" translatable="false">https://eden-emu.dev</string>
@@ -946,7 +946,7 @@
     <string name="loader_error_encrypted_keys_description"><![CDATA[Please ensure your <a href=\"https://yuzu-mirror.github.io/help/quickstart/#dumping-prodkeys-and-titlekeys\">prod.keys</a> file is installed so that games can be decrypted.]]></string>
     <string name="loader_error_video_core">An error occurred initializing the video core</string>
     <string name="loader_error_memory">Not enough memory to start the game</string>
-    <string name="loader_error_memory_description">CheezyEmu could not allocate the game\'s memory. Close other applications to free memory, then try again.</string>
+    <string name="loader_error_memory_description">PhoenixEmu could not allocate the game\'s memory. Close other applications to free memory, then try again.</string>
     <string name="loader_error_video_core_description">This is usually caused by an incompatible GPU driver. Installing a custom GPU driver may resolve this problem.</string>
     <string name="loader_error_file_not_found">ROM file does not exist</string>
 

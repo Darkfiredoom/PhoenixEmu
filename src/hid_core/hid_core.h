@@ -28,8 +28,8 @@ public:
     explicit HIDCore(Kernel::KernelCore& kernel);
     ~HIDCore();
 
-    YUZU_NON_COPYABLE(HIDCore);
-    YUZU_NON_MOVEABLE(HIDCore);
+    PHOENIX_NON_COPYABLE(HIDCore);
+    PHOENIX_NON_MOVEABLE(HIDCore);
 
     EmulatedController* GetEmulatedController(NpadIdType npad_id_type);
     const EmulatedController* GetEmulatedController(NpadIdType npad_id_type) const;

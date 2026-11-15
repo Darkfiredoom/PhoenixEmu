@@ -47,8 +47,8 @@ enum class Architecture {
 /// Generic ARMv8 CPU interface
 class ArmInterface {
 public:
-    YUZU_NON_COPYABLE(ArmInterface);
-    YUZU_NON_MOVEABLE(ArmInterface);
+    PHOENIX_NON_COPYABLE(ArmInterface);
+    PHOENIX_NON_MOVEABLE(ArmInterface);
 
     explicit ArmInterface(bool uses_wall_clock) : m_uses_wall_clock{uses_wall_clock} {}
     virtual ~ArmInterface() = default;

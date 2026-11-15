@@ -290,7 +290,7 @@ QList<QStandardItem*> MakeGameListEntry(const std::string& path, const std::stri
     }
 
     u64 play_time = play_time_manager.GetPlayTime(program_id);
-    // A picture CheezyEmu found or the player picked wins over the one inside the game.
+    // A picture PhoenixEmu found or the player picked wins over the one inside the game.
     const std::vector<u8> saved_picture = QtCommon::GamePictures::Load(program_id);
     return QList<QStandardItem*>{
         new GameListItemPath(FormatGameName(path), saved_picture.empty() ? icon : saved_picture,

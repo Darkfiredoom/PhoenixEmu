@@ -24,7 +24,7 @@ std::string DownloadUrl() {
 Common::Net::Release MakeRelease(std::string tag, std::string filename) {
     const nlohmann::json json{
         {"tag_name", tag},
-        {"name", "CheezyEmu nx2 " + tag},
+        {"name", "PhoenixEmu nx2 " + tag},
         {"prerelease", true},
         {"assets",
          {{{"browser_download_url",
@@ -36,11 +36,11 @@ Common::Net::Release MakeRelease(std::string tag, std::string filename) {
 
 } // namespace
 
-TEST_CASE("CheezyEmu updates compare build numbers, not tag strings", "[updater]") {
+TEST_CASE("PhoenixEmu updates compare build numbers, not tag strings", "[updater]") {
     const auto releases = std::array{
-        MakeRelease("build-9", "cheezyemu-windows-x86_64.zip"),
-        MakeRelease("build-100", "cheezyemu-windows-x86_64.zip"),
-        MakeRelease("build-99", "cheezyemu-windows-x86_64.zip"),
+        MakeRelease("build-9", "phoenixemu-windows-x86_64.zip"),
+        MakeRelease("build-100", "phoenixemu-windows-x86_64.zip"),
+        MakeRelease("build-99", "phoenixemu-windows-x86_64.zip"),
     };
     const auto update = UpdateChecker::SelectUpdate(releases, "build-70", "windows-x86_64");
     REQUIRE(update);
@@ -50,20 +50,20 @@ TEST_CASE("CheezyEmu updates compare build numbers, not tag strings", "[updater]
     CHECK_FALSE(UpdateChecker::SelectUpdate({}, "build-70", "windows-x86_64"));
 }
 
-TEST_CASE("CheezyEmu ignores dev builds and malformed release tags", "[updater]") {
+TEST_CASE("PhoenixEmu ignores dev builds and malformed release tags", "[updater]") {
     const std::string tag =
         GENERATE("", "nx2", "v0.2.0", "abc123-nx2", "nx2-build-71", "build-", "build-0", "build--1",
                  "build-+71", "build-71junk", "build- 71", "build-18446744073709551616");
-    const auto releases = std::array{MakeRelease("build-71", "cheezyemu-windows-x86_64.zip")};
+    const auto releases = std::array{MakeRelease("build-71", "phoenixemu-windows-x86_64.zip")};
     CHECK_FALSE(UpdateChecker::SelectUpdate(releases, tag, "windows-x86_64"));
     auto invalid = releases;
     invalid[0].tag = tag;
     invalid[0].assets = {DownloadUrl() + "" + tag +
-                         "/cheezyemu-windows-x86_64.zip"};
+                         "/phoenixemu-windows-x86_64.zip"};
     CHECK_FALSE(UpdateChecker::SelectUpdate(invalid, "build-70", "windows-x86_64"));
 }
 
-TEST_CASE("CheezyEmu selects only the matching platform and PGO variant", "[updater]") {
+TEST_CASE("PhoenixEmu selects only the matching platform and PGO variant", "[updater]") {
     const std::string platform =
         GENERATE("windows-x86_64", "windows-x86_64-pgo", "linux-x86_64", "linux-x86_64-pgo",
                  "linux-aarch64", "linux-aarch64-pgo", "macos-arm64");
@@ -74,13 +74,13 @@ TEST_CASE("CheezyEmu selects only the matching platform and PGO variant", "[upda
           "macos-arm64.zip", "linux-x86_64.AppImage", "linux-x86_64-pgo.AppImage",
           "linux-aarch64.AppImage", "linux-aarch64-pgo.AppImage"}) {
         release.assets.push_back(
-            DownloadUrl() + "build-71/cheezyemu-" +
+            DownloadUrl() + "build-71/phoenixemu-" +
             std::string{name});
     }
     const auto selected = release.GetPlatformAssets(platform);
     REQUIRE(selected.size() == 1);
     CHECK(selected[0].filename ==
-          "cheezyemu-" + platform + (platform.starts_with("linux-") ? ".AppImage" : ".zip"));
+          "phoenixemu-" + platform + (platform.starts_with("linux-") ? ".AppImage" : ".zip"));
     CHECK(selected[0].url == "https://github.com");
     CHECK(selected[0].path ==
           "/" + Repo() + "/releases/download/build-71/" + selected[0].filename);
@@ -88,16 +88,16 @@ TEST_CASE("CheezyEmu selects only the matching platform and PGO variant", "[upda
     CHECK_FALSE(release.GetPlatformAssets("").size());
 }
 
-TEST_CASE("CheezyEmu skips releases without its asset and falls back to Linux archives", "[updater]") {
+TEST_CASE("PhoenixEmu skips releases without its asset and falls back to Linux archives", "[updater]") {
     const auto releases = std::array{
-        MakeRelease("build-73", "cheezyemu-linux-x86_64.AppImage"),
-        MakeRelease("build-71", "cheezyemu-linux-x86_64-pgo.tar.gz"),
-        MakeRelease("build-72", "cheezyemu-linux-aarch64-pgo.AppImage"),
+        MakeRelease("build-73", "phoenixemu-linux-x86_64.AppImage"),
+        MakeRelease("build-71", "phoenixemu-linux-x86_64-pgo.tar.gz"),
+        MakeRelease("build-72", "phoenixemu-linux-aarch64-pgo.AppImage"),
     };
     const auto update = UpdateChecker::SelectUpdate(releases, "build-70", "linux-x86_64");
     REQUIRE(update);
     CHECK(update->tag == "build-73");
-    CHECK(update->GetPlatformAssets("linux-x86_64")[0].filename == "cheezyemu-linux-x86_64.AppImage");
+    CHECK(update->GetPlatformAssets("linux-x86_64")[0].filename == "phoenixemu-linux-x86_64.AppImage");
     CHECK_FALSE(UpdateChecker::SelectUpdate(releases, "build-70", "windows-x86_64"));
 
     const auto archive = UpdateChecker::SelectUpdate(releases, "build-70", "linux-x86_64-pgo",
@@ -105,25 +105,25 @@ TEST_CASE("CheezyEmu skips releases without its asset and falls back to Linux ar
     REQUIRE(archive);
     CHECK(archive->tag == "build-71");
     CHECK(archive->GetPlatformAssets("linux-x86_64-pgo", Common::Net::LinuxPackage::Archive)[0]
-              .filename == "cheezyemu-linux-x86_64-pgo.tar.gz");
+              .filename == "phoenixemu-linux-x86_64-pgo.tar.gz");
 }
 
 TEST_CASE("PGO builds fall back to the standard asset, standard builds never get PGO", "[updater]") {
-    auto release = MakeRelease("build-71", "cheezyemu-windows-x86_64.zip");
+    auto release = MakeRelease("build-71", "phoenixemu-windows-x86_64.zip");
     const auto pgo = release.GetPlatformAssets("windows-x86_64-pgo");
     REQUIRE(pgo.size() == 1);
     CHECK(pgo[0].name == "Standard");
-    CHECK(pgo[0].filename == "cheezyemu-windows-x86_64.zip");
+    CHECK(pgo[0].filename == "phoenixemu-windows-x86_64.zip");
 
     release.assets.push_back(
-        DownloadUrl() + "build-71/cheezyemu-windows-x86_64-pgo.zip");
+        DownloadUrl() + "build-71/phoenixemu-windows-x86_64-pgo.zip");
     const auto preferred = release.GetPlatformAssets("windows-x86_64-pgo");
     REQUIRE(preferred.size() == 1);
     CHECK(preferred[0].name == "PGO");
-    CHECK(preferred[0].filename == "cheezyemu-windows-x86_64-pgo.zip");
-    CHECK(release.GetPlatformAssets("windows-x86_64")[0].filename == "cheezyemu-windows-x86_64.zip");
+    CHECK(preferred[0].filename == "phoenixemu-windows-x86_64-pgo.zip");
+    CHECK(release.GetPlatformAssets("windows-x86_64")[0].filename == "phoenixemu-windows-x86_64.zip");
 
-    const auto pgo_only = MakeRelease("build-72", "cheezyemu-windows-x86_64-pgo.zip");
+    const auto pgo_only = MakeRelease("build-72", "phoenixemu-windows-x86_64-pgo.zip");
     CHECK(pgo_only.GetPlatformAssets("windows-x86_64").empty());
     CHECK_FALSE(UpdateChecker::SelectUpdate(std::array{pgo_only}, "build-70", "windows-x86_64"));
     CHECK(UpdateChecker::SelectUpdate(std::array{pgo_only}, "build-70", "windows-x86_64-pgo"));
@@ -131,15 +131,15 @@ TEST_CASE("PGO builds fall back to the standard asset, standard builds never get
 }
 
 TEST_CASE("Linux installs only get the package they were installed from", "[updater]") {
-    auto release = MakeRelease("build-71", "cheezyemu-linux-x86_64.AppImage");
+    auto release = MakeRelease("build-71", "phoenixemu-linux-x86_64.AppImage");
     release.assets.push_back(
-        DownloadUrl() + "build-71/cheezyemu-linux-x86_64.tar.gz");
+        DownloadUrl() + "build-71/phoenixemu-linux-x86_64.tar.gz");
     CHECK(release.GetPlatformAssets("linux-x86_64", Common::Net::LinuxPackage::AppImage)[0]
-              .filename == "cheezyemu-linux-x86_64.AppImage");
+              .filename == "phoenixemu-linux-x86_64.AppImage");
     CHECK(release.GetPlatformAssets("linux-x86_64", Common::Net::LinuxPackage::Archive)[0]
-              .filename == "cheezyemu-linux-x86_64.tar.gz");
+              .filename == "phoenixemu-linux-x86_64.tar.gz");
 
-    const auto appimage_only = MakeRelease("build-72", "cheezyemu-linux-x86_64.AppImage");
+    const auto appimage_only = MakeRelease("build-72", "phoenixemu-linux-x86_64.AppImage");
     CHECK(appimage_only.GetPlatformAssets("linux-x86_64", Common::Net::LinuxPackage::Archive)
               .empty());
 }
@@ -151,17 +151,17 @@ TEST_CASE("Asset digest and size come from the release JSON", "[updater]") {
         {"assets",
          {{{"browser_download_url",
             DownloadUrl() + "build-71/"
-            "cheezyemu-windows-x86_64.zip"},
+            "phoenixemu-windows-x86_64.zip"},
            {"size", u64{1234}},
            {"digest", "sha256:" + sha}},
           {{"browser_download_url",
             DownloadUrl() + "build-71/"
-            "cheezyemu-linux-x86_64.AppImage"},
+            "phoenixemu-linux-x86_64.AppImage"},
            {"size", u64{5}},
            {"digest", "sha256:zz"}},
           {{"browser_download_url",
             DownloadUrl() + "build-71/"
-            "cheezyemu-linux-x86_64.tar.gz"},
+            "phoenixemu-linux-x86_64.tar.gz"},
            {"digest", "md5:abc"}}}},
     };
     const auto release =
@@ -190,16 +190,16 @@ TEST_CASE("Failed release requests are classified by status", "[updater]") {
     CHECK(UpdateChecker::ClassifyFailure(200) == UpdateChecker::Failure::Network);
 }
 
-TEST_CASE("CheezyEmu does not select Eden or lookalike download URLs", "[updater]") {
+TEST_CASE("PhoenixEmu does not select Eden or lookalike download URLs", "[updater]") {
     const std::string url = GENERATE(
         as<std::string>{},
-        "https://github.com/eden-emu/eden/releases/download/build-71/cheezyemu-windows-x86_64.zip",
-        DownloadUrl() + "build-70/cheezyemu-windows-x86_64.zip",
+        "https://github.com/eden-emu/eden/releases/download/build-71/phoenixemu-windows-x86_64.zip",
+        DownloadUrl() + "build-70/phoenixemu-windows-x86_64.zip",
         DownloadUrl() + "build-71/"
-        "not-cheezyemu-windows-x86_64.zip",
+        "not-phoenixemu-windows-x86_64.zip",
         "https://github.com.example.com/zortos293/Lichii/releases/download/build-71/"
-        "cheezyemu-windows-x86_64.zip");
-    auto release = MakeRelease("build-71", "cheezyemu-windows-x86_64.zip");
+        "phoenixemu-windows-x86_64.zip");
+    auto release = MakeRelease("build-71", "phoenixemu-windows-x86_64.zip");
     release.assets = {url};
     CHECK(release.GetPlatformAssets("windows-x86_64").empty());
 }
@@ -228,7 +228,7 @@ TEST_CASE("Release requests handle HTTP failures without throwing", "[updater]")
     httplib::Server server;
     server.Get("/releases", [status](const httplib::Request& request, httplib::Response& response) {
         response.status =
-            request.get_header_value("User-Agent") == "CheezyEmu" &&
+            request.get_header_value("User-Agent") == "PhoenixEmu" &&
                     request.get_header_value("Accept") == "application/vnd.github+json"
                 ? status
                 : 400;

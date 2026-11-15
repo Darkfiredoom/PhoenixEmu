@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 CheezyEmu contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Refreshes dist/game_pictures.json, the title ID -> picture list CheezyEmu reads so players get
+# Refreshes dist/game_pictures.json, the title ID -> picture list PhoenixEmu reads so players get
 # game pictures without a SteamGridDB key of their own. Needs the repository secret SGDB_API_KEY
 # (Settings > Secrets and variables > Actions).
 

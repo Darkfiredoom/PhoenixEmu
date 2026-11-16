@@ -13,6 +13,7 @@ on:
         default: ""
   push:
     branches:
+      - main
       - nx2-experimental
     # A test build for testers: push a lightweight tag named test-<anything> (for example
     # test-21ab4c1). Every platform is built and published as a pre-release under that tag. The

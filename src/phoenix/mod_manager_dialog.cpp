@@ -266,7 +266,7 @@ void ModManagerDialog::OpenModFolder() {
                               fmt::format("{:016X}", m_current_program_id);
     std::error_code ec;
     std::filesystem::create_directories(game_mod_dir, ec);
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(game_mod_dir.wstring())));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(Common::FS::PathToUTF8String(game_mod_dir))));
 }
 
 void ModManagerDialog::InstallModFromZip() {
@@ -280,7 +280,7 @@ void ModManagerDialog::InstallModFromZip() {
         return;
     }
 
-    const std::filesystem::path src_path(folder.toStdWString());
+    const std::filesystem::path src_path(folder.toStdString());
     const auto target_dir = Common::FS::GetEdenPath(Common::FS::EdenPath::LoadDir) /
                             fmt::format("{:016X}", m_current_program_id) / src_path.filename();
     std::error_code ec;
@@ -289,7 +289,7 @@ void ModManagerDialog::InstallModFromZip() {
 
     if (!ec) {
         QMessageBox::information(this, tr("Mod Installed"),
-                                 tr("Mod '%1' was successfully installed!").arg(QString::fromStdWString(src_path.filename().wstring())));
+                                 tr("Mod '%1' was successfully installed!").arg(QString::fromStdString(Common::FS::PathToUTF8String(src_path.filename()))));
         RefreshMods();
     } else {
         QMessageBox::critical(this, tr("Install Error"), tr("Failed to copy mod folder: %1").arg(QString::fromStdString(ec.message())));

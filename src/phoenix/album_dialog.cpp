@@ -156,7 +156,7 @@ void AlbumDialog::RefreshGallery() {
         return;
     }
 
-    uint64_t total_bytes = 0;
+    u64 total_bytes = 0;
     std::vector<std::filesystem::path> paths;
     for (const auto& entry : std::filesystem::directory_iterator(dir_path, ec)) {
         if (!entry.is_regular_file(ec)) {
@@ -176,15 +176,15 @@ void AlbumDialog::RefreshGallery() {
     for (const auto& p : paths) {
         ImageEntry entry;
         entry.path = p;
-        entry.filename = QString::fromStdWString(p.filename().wstring());
+        entry.filename = QString::fromStdString(Common::FS::PathToUTF8String(p.filename()));
         entry.file_size = std::filesystem::file_size(p, ec);
         total_bytes += entry.file_size;
 
-        QImageReader reader(QString::fromStdWString(p.wstring()));
+        QImageReader reader(QString::fromStdString(Common::FS::PathToUTF8String(p)));
         entry.resolution = reader.size();
 
         // Fast thumbnail read
-        QPixmap full_pix(QString::fromStdWString(p.wstring()));
+        QPixmap full_pix(QString::fromStdString(Common::FS::PathToUTF8String(p)));
         if (!full_pix.isNull()) {
             entry.thumbnail = full_pix.scaled(128, 72, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         }
@@ -223,7 +223,7 @@ void AlbumDialog::SelectItem(int index) {
 
     m_current_index = index;
     const auto& entry = m_entries[index];
-    QPixmap full_pix(QString::fromStdWString(entry.path.wstring()));
+    QPixmap full_pix(QString::fromStdString(Common::FS::PathToUTF8String(entry.path)));
     if (!full_pix.isNull()) {
         m_preview_label->setPixmap(full_pix.scaled(m_preview_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
@@ -243,7 +243,7 @@ void AlbumDialog::CopyToClipboard() {
         return;
     }
     const auto& entry = m_entries[m_current_index];
-    QImage img(QString::fromStdWString(entry.path.wstring()));
+    QImage img(QString::fromStdString(Common::FS::PathToUTF8String(entry.path)));
     if (!img.isNull()) {
         QGuiApplication::clipboard()->setImage(img);
         QMessageBox::information(this, tr("Copied"), tr("Screenshot copied to clipboard!"));
@@ -252,7 +252,7 @@ void AlbumDialog::CopyToClipboard() {
 
 void AlbumDialog::OpenInExplorer() {
     const auto dir_path = Common::FS::GetEdenPath(Common::FS::EdenPath::ScreenshotsDir);
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(dir_path.wstring())));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(Common::FS::PathToUTF8String(dir_path))));
 }
 
 void AlbumDialog::DeleteCurrentScreenshot() {

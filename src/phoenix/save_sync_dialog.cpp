@@ -66,7 +66,7 @@ SaveSyncDialog::SaveSyncDialog(QWidget* parent) : QDialog(parent) {
     auto* local_layout = new QVBoxLayout(local_group);
 
     const auto local_path = GetLocalSaveDir();
-    auto* local_path_label = new QLabel(QString::fromStdWString(local_path.wstring()), this);
+    auto* local_path_label = new QLabel(QString::fromStdString(Common::FS::PathToUTF8String(local_path)), this);
     local_path_label->setStyleSheet(QStringLiteral("color: #aaa; font-size: 11px;"));
     local_path_label->setWordWrap(true);
     local_layout->addWidget(local_path_label);
@@ -180,7 +180,7 @@ void SaveSyncDialog::OnOpenLocal() {
     const auto local_path = GetLocalSaveDir();
     std::error_code ec;
     std::filesystem::create_directories(local_path, ec);
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(local_path.wstring())));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(Common::FS::PathToUTF8String(local_path))));
 }
 
 void SaveSyncDialog::OnOpenTarget() {
@@ -228,7 +228,7 @@ void SaveSyncDialog::OnBackupNow() {
     }
 
     QMessageBox::information(this, tr("Save Sync"),
-                             tr("Successfully backed up all save files to %1").arg(QString::fromStdWString(dest_dir.wstring())));
+                             tr("Successfully backed up all save files to %1").arg(QString::fromStdString(Common::FS::PathToUTF8String(dest_dir))));
     RefreshStatus();
 }
 
@@ -252,7 +252,7 @@ void SaveSyncDialog::OnRestore() {
             tr("This will replace current local saves with the backup from %1.\n\n"
                "A safety backup of your current local saves will be saved as 'save.pre_restore'.\n\n"
                "Do you want to proceed?")
-                .arg(QString::fromStdWString(source_dir.wstring())),
+                .arg(QString::fromStdString(Common::FS::PathToUTF8String(source_dir))),
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) {
         return;
     }

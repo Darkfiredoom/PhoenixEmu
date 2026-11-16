@@ -413,7 +413,13 @@ jobs:
           if command -v ccache > /dev/null; then ccache --zero-stats; elif command -v sccache > /dev/null; then sccache --zero-stats; fi
           targets="phoenix phoenix-cmd"
           if [[ "${{ matrix.platform }}" == windows* ]]; then targets="$targets phoenixemu-updater"; fi
-          cmake --build build/release --target $targets --parallel
+          if ! cmake --build build/release --target $targets --parallel 2>&1 | tee build.log; then
+            echo "### Build failure log (${{ matrix.platform }})" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 80 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           if command -v ccache > /dev/null; then ccache --show-stats; elif command -v sccache > /dev/null; then sccache --show-stats; fi
 
       - name: Stop sccache on Windows

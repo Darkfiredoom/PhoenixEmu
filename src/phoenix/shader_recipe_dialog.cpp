@@ -113,17 +113,17 @@ void ShaderRecipeDialog::PopulateGames() {
                 GameEntry game;
                 game.program_id = id;
                 game.title = QStringLiteral("%1").arg(id, 16, 16, QLatin1Char('0')).toUpper();
-                game.shader_dir = QString::fromStdWString(entry.path().wstring());
+                game.shader_dir = QString::fromStdString(Common::FS::PathToUTF8String(entry.path()));
 
                 // Check for recipe
                 const auto recipe_in_dir = entry.path() / fmt::format("{:016x}.nx2recipe", id);
                 const auto recipe_in_recipes = recipes_dir / fmt::format("{:016X}.nx2recipe", id);
                 if (std::filesystem::exists(recipe_in_dir, ec)) {
                     game.has_recipe = true;
-                    game.recipe_path = QString::fromStdWString(recipe_in_dir.wstring());
+                    game.recipe_path = QString::fromStdString(Common::FS::PathToUTF8String(recipe_in_dir));
                 } else if (std::filesystem::exists(recipe_in_recipes, ec)) {
                     game.has_recipe = true;
-                    game.recipe_path = QString::fromStdWString(recipe_in_recipes.wstring());
+                    game.recipe_path = QString::fromStdString(Common::FS::PathToUTF8String(recipe_in_recipes));
                 }
 
                 // Check for precompiled pipelines
@@ -188,7 +188,7 @@ void ShaderRecipeDialog::OnOpenShaderFolder() {
         const auto base = GetShaderBaseDir();
         std::error_code ec;
         std::filesystem::create_directories(base, ec);
-        QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(base.wstring())));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdString(Common::FS::PathToUTF8String(base))));
     }
 }
 

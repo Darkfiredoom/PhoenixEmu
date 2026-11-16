@@ -682,8 +682,10 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
     if (program_id == 0x0400A3A01EE4C000) {
         const std::vector<std::filesystem::path> pokopia_candidates = {
             custom_wav,
+#ifdef _WIN32
             Common::FS::GetExeDirectory() / "pokopia_theme.wav",
-            std::filesystem::current_path() / "pokopia_theme.wav",
+#endif
+            std::filesystem::current_path(ec) / "pokopia_theme.wav",
             std::filesystem::path("C:/Users/16789/Downloads/Title Screen Theme - Pokémon Pokopia [OST].mp3"),
         };
         for (const auto& candidate : pokopia_candidates) {

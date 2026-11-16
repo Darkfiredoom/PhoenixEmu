@@ -9,6 +9,7 @@ PhoenixEmu is distributed in the hope that it will be useful, but WITHOUT ANY WA
 even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 PhoenixEmu includes code from these projects, under their copyright and licenses:
+  - CheezyEmu by CheezyWheezer, GPL-3.0-or-later
   - Lichii (zortos293 and contributors), GPL-3.0-or-later
   - Eglantine, Eden Emulator Project, GPL-3.0-or-later
   - yuzu Emulator Project, GPL-2.0-or-later

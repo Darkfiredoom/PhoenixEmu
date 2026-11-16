@@ -75,6 +75,7 @@ notices and licenses:
 
 - [Lichii](https://github.com/zortos293/Lichii) by zortos293 and contributors, the emulator
   PhoenixEmu started from;
+- CheezyEmu by CheezyWheezer;
 - Eglantine (original developer Camille LaVey), Eden and Sudachi;
 - [conongnang](https://github.com/conongnang/Lichii)'s AMD performance work,
   [Fritchii](https://github.com/Frizti/Fritchii) and [Nyamu](https://github.com/Spikol02/Nyamu);

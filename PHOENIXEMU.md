@@ -584,4 +584,4 @@ shader cache repair is zortos293/Lichii#815 by zortos293 and jpkto; the Ocarina 
 the RX 580 thread limit are from [Spikol02/Nyamu](https://github.com/Spikol02/Nyamu); turning
 off the stale upload skip follows [Frizti/Fritchii](https://github.com/Frizti/Fritchii).
 PhoenixEmu started from [Lichii](https://github.com/zortos293/Lichii) by zortos293 and contributors,
-itself built on Eglantine, Eden and Sudachi.
+itself built on CheezyEmu by CheezyWheezer, Eglantine, Eden and Sudachi.

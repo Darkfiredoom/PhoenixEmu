@@ -644,7 +644,10 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: github.event_name == 'push' || inputs.publish_release
+    # Published with the platforms that built: a platform that fails or never gets a runner
+    # (macOS on this account) is left out instead of holding back the others. The Windows zip
+    # and the Linux AppImage are required (checked below).
+    if: ${{ !cancelled() && (github.event_name == 'push' || inputs.publish_release) }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -679,6 +682,12 @@ jobs:
             fi
           done
           ls -la dist
+          for needed in phoenixemu-windows-x86_64.zip phoenixemu-linux-x86_64.AppImage; do
+            if [[ ! -e "dist/$needed" ]]; then
+              echo "::error::$needed was not built: not publishing."
+              exit 1
+            fi
+          done
 
       - name: Create release
         shell: bash

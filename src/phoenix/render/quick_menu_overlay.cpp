@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmap>
 #include <QPushButton>
 #include <QSlider>
 #include <QVBoxLayout>
@@ -514,7 +515,7 @@ void QuickMenuOverlay::UpdateSlotInfo(int slot_index) {
 
     m_slot_thumbnail->clear();
     if (std::filesystem::exists(thumb_path, ec)) {
-        QPixmap pix(QString::fromStdWString(thumb_path.wstring()));
+        QPixmap pix(QString::fromStdString(thumb_path.string()));
         if (!pix.isNull()) {
             m_slot_thumbnail->setPixmap(pix.scaled(m_slot_thumbnail->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
             m_slot_thumbnail->setStyleSheet(QStringLiteral("background: #110E0C; border: 1px solid rgba(255,255,255,40); border-radius: 6px;"));
@@ -553,7 +554,7 @@ void QuickMenuOverlay::SaveSelectedSlot() {
 
     const auto thumb_path = slot_dir / "thumb.png";
     if (m_main_window && m_main_window->render_window) {
-        m_main_window->render_window->CaptureScreenshot(QString::fromStdWString(thumb_path.wstring()));
+        m_main_window->render_window->CaptureScreenshot(QString::fromStdString(thumb_path.string()));
     }
 
     const auto active_dir = GetGameActiveSaveDir();

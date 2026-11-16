@@ -3,11 +3,14 @@
 
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <vector>
 #include <QDialog>
 #include <QPixmap>
 #include <QSize>
+
+#include "common/common_types.h"
 
 class QLabel;
 class QListWidget;
@@ -33,7 +36,7 @@ private:
         QString date_str;
         QPixmap thumbnail;
         QSize resolution;
-        uint64_t file_size = 0;
+        u64 file_size = 0;
     };
 
     std::vector<ImageEntry> m_entries;

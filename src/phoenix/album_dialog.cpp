@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 
 #include <QClipboard>
@@ -28,7 +29,7 @@
 
 namespace {
 
-QString FormatBytes(uint64_t bytes) {
+QString FormatBytes(u64 bytes) {
     if (bytes < 1024) {
         return QStringLiteral("%1 B").arg(bytes);
     }

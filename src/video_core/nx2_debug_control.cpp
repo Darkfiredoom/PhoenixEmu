@@ -10,7 +10,12 @@
 #include <unordered_map>
 #include <utility>
 
+#include "video_core/nx2.h"
 #include "video_core/nx2_debug_control.h"
+
+namespace Tegra {
+Nx2WrittenPagesArray g_nx2_gpu_written_pages;
+}
 
 namespace VideoCore::Nx2Debug {
 namespace {

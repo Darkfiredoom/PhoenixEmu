@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <array>
+#include <filesystem>
 #include <QWidget>
 
 class MainWindow;
@@ -12,8 +14,8 @@ class QPushButton;
 class QSlider;
 
 /// An in-game floating glassmorphic quick-settings panel summoned via Guide button, F10, or Shift+F2.
-/// Allows live adjustment of volume, docked/handheld mode, FSR sharpness, and frame generation
-/// without leaving or minimizing the game.
+/// Allows live adjustment of volume, docked/handheld mode, FSR sharpness, frame generation,
+/// and visual save state slots without leaving or minimizing the game.
 class QuickMenuOverlay : public QWidget {
     Q_OBJECT
 
@@ -31,6 +33,10 @@ protected:
 
 private:
     void Reposition();
+    void UpdateSlotInfo(int slot_index);
+    void SaveSelectedSlot();
+    void LoadSelectedSlot();
+    std::filesystem::path GetSlotDir(int slot_index) const;
 
     MainWindow* m_main_window = nullptr;
 
@@ -39,9 +45,18 @@ private:
     QPushButton* m_mute_button = nullptr;
     QPushButton* m_docked_button = nullptr;
     QCheckBox* m_frame_gen_check = nullptr;
+    QCheckBox* m_anr_check = nullptr;
     QSlider* m_sharpness_slider = nullptr;
     QLabel* m_sharpness_label = nullptr;
     QCheckBox* m_perf_overlay_check = nullptr;
     QPushButton* m_screenshot_button = nullptr;
     QPushButton* m_resume_button = nullptr;
+
+    int m_selected_slot = 1;
+    std::array<QPushButton*, 5> m_slot_buttons{};
+    QLabel* m_slot_thumbnail = nullptr;
+    QLabel* m_slot_meta_label = nullptr;
+    QPushButton* m_slot_save_btn = nullptr;
+    QPushButton* m_slot_load_btn = nullptr;
+    QPushButton* m_slot_restart_btn = nullptr;
 };

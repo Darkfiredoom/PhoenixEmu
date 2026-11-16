@@ -44,7 +44,8 @@ static_assert(Nx2GpuAddressSpaceSize == (1ULL << 40));
 // clear: the dispatch that rewrites a page may still be queued on the split's back when its front
 // reads the command list. One bit per 4 KiB of the 36-bit device address space (2 MiB).
 inline constexpr u64 Nx2WrittenPageBits = 12;
-inline std::array<std::atomic<u64>, (u64{1} << (36 - Nx2WrittenPageBits)) / 64> g_nx2_gpu_written_pages{};
+using Nx2WrittenPagesArray = std::array<std::atomic<u64>, (u64{1} << (36 - Nx2WrittenPageBits)) / 64>;
+extern Nx2WrittenPagesArray g_nx2_gpu_written_pages;
 
 inline void Nx2MarkGpuWritten(u64 device_address, u64 size) {
     if (size == 0) {

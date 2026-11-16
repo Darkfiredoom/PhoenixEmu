@@ -215,7 +215,8 @@ void FrameGen::Process(const Device& device, Frame* frame, VkFormat format,
         return;
     }
 
-    if (!shaders->IsValid() && Settings::FrameGenTypeInUse() != Settings::FrameGenType::Fsr3) {
+    if (!shaders->IsValid() && Settings::FrameGenTypeInUse() != Settings::FrameGenType::Fsr3 &&
+        Settings::FrameGenTypeInUse() != Settings::FrameGenType::Anr) {
         unavailable = true;
         state.store(shaders->IsDeviceSupported() ? VideoCore::FrameGenState::MissingLosslessDll
                                                  : VideoCore::FrameGenState::UnsupportedGpu,
@@ -286,7 +287,8 @@ void FrameGen::Process(const Device& device, Frame* frame, VkFormat format,
     generated = warm && warm_streak >= LSFG_RECURRENCE_FRAMES && last_generations > 0;
     generated_frames.fetch_add(GeneratedFrameCount(), std::memory_order_relaxed);
 
-    const bool use_fsr3 = Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3;
+    const bool use_fsr3 = Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3 ||
+                          Settings::FrameGenTypeInUse() == Settings::FrameGenType::Anr;
 
     // Every 10 s: game frames and generated frames per second. Without it a log can't tell
     // whether the built-in frame generation ran or only said so in the status bar.
@@ -385,7 +387,8 @@ void FrameGen::GenerateInto(const Device& device, Frame* destination, size_t gen
         }
         return;
     }
-    const bool use_fsr3 = Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3;
+    const bool use_fsr3 = Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3 ||
+                          Settings::FrameGenTypeInUse() == Settings::FrameGenType::Anr;
 
     if (use_fsr3 && fsr3_chain) {
         const f32 blend = static_cast<f32>(generation + 1) / static_cast<f32>(last_generations + 1);
@@ -417,7 +420,8 @@ void FrameGen::Rebuild(const Device& device, VkExtent2D extent, VkFormat format,
 
     built_flow_scale = flow_scale;
 
-    if (Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3) {
+    if (Settings::FrameGenTypeInUse() == Settings::FrameGenType::Fsr3 ||
+        Settings::FrameGenTypeInUse() == Settings::FrameGenType::Anr) {
         fsr3_chain.emplace(device, memory_allocator, extent, format);
     } else {
         chain.emplace(device, memory_allocator, *shaders, extent, format, built_flow_scale);

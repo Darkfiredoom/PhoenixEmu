@@ -4,7 +4,7 @@
 // Static Qt on macOS doesn't use Vulkan
 // Other platforms do, and thus have conflicting VulkanMemoryAllocator symbols
 #include "core/launch_params.h"
-#if defined(QT_STATICPLUGIN) && !defined(__APPLE__)
+#if defined(QT_STATICPLUGIN) && !defined(__APPLE__) && !defined(_WIN32)
 #undef VMA_IMPLEMENTATION
 #endif
 
@@ -39,6 +39,8 @@
 #include "data_dialog.h"
 #include "save_sync_dialog.h"
 #include "shader_recipe_dialog.h"
+#include "album_dialog.h"
+#include "mod_manager_dialog.h"
 #include "nx2_switches_dialog.h"
 #include "pipeline_visualizer_dialog.h"
 #include "deps_dialog.h"
@@ -342,7 +344,7 @@ using namespace Common::Literals;
 #ifdef QT_STATICPLUGIN
 #include <QtPlugin>
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_MSC_VER)
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 #elif defined(__APPLE__)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)
@@ -1969,6 +1971,40 @@ void MainWindow::FillCustomizeMenu(QMenu* menu) {
     }
 
     menu->addSeparator();
+    QMenu* const audio_menu = menu->addMenu(tr("Home Screen Audio"));
+    QAction* const music_act = audio_menu->addAction(tr("Play Game Music in Home Menu"), [](bool checked) {
+        UISettings::values.menu_game_music = checked;
+    });
+    music_act->setCheckable(true);
+    music_act->setChecked(UISettings::values.menu_game_music.GetValue());
+
+    QAction* const random_act = audio_menu->addAction(tr("Soundtrack Mode (Random Songs)"), [](bool checked) {
+        UISettings::values.menu_music_random = checked;
+    });
+    random_act->setCheckable(true);
+    random_act->setChecked(UISettings::values.menu_music_random.GetValue());
+    random_act->setEnabled(UISettings::values.menu_game_music.GetValue());
+
+    QAction* const ambient_act = audio_menu->addAction(tr("Play Ambient Warmth Hum"), [](bool checked) {
+        UISettings::values.menu_ambient = checked;
+    });
+    ambient_act->setCheckable(true);
+    ambient_act->setChecked(UISettings::values.menu_ambient.GetValue());
+
+    QAction* const sounds_act = audio_menu->addAction(tr("Play Navigation Sound Effects"), [](bool checked) {
+        UISettings::values.menu_sounds = checked;
+    });
+    sounds_act->setCheckable(true);
+    sounds_act->setChecked(UISettings::values.menu_sounds.GetValue());
+
+    audio_menu->addSeparator();
+    QAction* const mute_all_act = audio_menu->addAction(tr("Mute All Home Menu Sounds"), [](bool checked) {
+        UISettings::values.menu_muted = checked;
+    });
+    mute_all_act->setCheckable(true);
+    mute_all_act->setChecked(UISettings::values.menu_muted.GetValue());
+
+    menu->addSeparator();
     menu->addAction(tr("Reset to Defaults"), [this] {
         UISettings::values.theme = "phoenix";
         UISettings::values.theme_accent = std::string{};
@@ -2020,6 +2056,16 @@ void MainWindow::ConnectMenuEvents() {
         action_quick_sleep->setShortcuts({QKeySequence(Qt::Key_Pause), QKeySequence(Qt::Key_F9)});
         ui->menu_Emulation->addAction(action_quick_sleep);
         connect_menu(action_quick_sleep, &MainWindow::OnQuickSleepResume);
+    }
+    {
+        auto* const action_toggle_music = new QAction(tr("Toggle Home Screen Music (F8)"), this);
+        action_toggle_music->setShortcut(QKeySequence(Qt::Key_F8));
+        addAction(action_toggle_music);
+        connect(action_toggle_music, &QAction::triggered, this, [this] {
+            const bool now = !UISettings::values.menu_game_music.GetValue();
+            UISettings::values.menu_game_music = now;
+            statusBar()->showMessage(now ? tr("Home Screen Music: Enabled") : tr("Home Screen Music: Disabled/Muted"), 3000);
+        });
     }
 
     // View
@@ -2144,6 +2190,8 @@ void MainWindow::ConnectMenuEvents() {
     });
     ui->menu_Tools->addAction(tr("Cloud && LAN Save Sync..."), this, &MainWindow::OnSaveSyncDialog);
     ui->menu_Tools->addAction(tr("Shader Recipe && Precache Manager..."), this, &MainWindow::OnShaderRecipeDialog);
+    ui->menu_Tools->addAction(tr("Screenshot Album (Media Gallery)..."), this, &MainWindow::OnAlbumDialog);
+    ui->menu_Tools->addAction(tr("Graphics && 60 FPS Mod Assistant..."), this, [this] { OnModManagerDialog(0); });
 
     // Help
     connect_menu(ui->action_Root_Data_Folder, &MainWindow::OnOpenRootDataFolder);
@@ -4191,7 +4239,7 @@ void MainWindow::OpenURL(const QUrl& url) {
 }
 
 void MainWindow::OnOpenModsPage() {
-    OpenURL(QUrl(QStringLiteral("https://github.com/eden-emulator/yuzu-mod-archive")));
+    OnModManagerDialog(0);
 }
 
 void MainWindow::OnOpenUserHandbook() {
@@ -5128,6 +5176,19 @@ void MainWindow::OnSaveSyncDialog() {
 
 void MainWindow::OnShaderRecipeDialog() {
     ShaderRecipeDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::OnAlbumDialog() {
+    AlbumDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::OnModManagerDialog(u64 program_id) {
+    if (program_id == 0 && QtCommon::system && emulation_running) {
+        program_id = QtCommon::system->GetApplicationProcessProgramID();
+    }
+    ModManagerDialog dialog(this, program_id);
     dialog.exec();
 }
 
@@ -7021,7 +7082,7 @@ void VolumeButton::ResetMultiplier() {
 #undef main
 #endif
 
-#if !defined(QT_STATICPLUGIN) || defined(__APPLE__)
+#if !defined(QT_STATICPLUGIN) || defined(__APPLE__) || defined(_WIN32)
 #define VMA_IMPLEMENTATION 1
 #include "video_core/vulkan_common/vma.h"
 #endif

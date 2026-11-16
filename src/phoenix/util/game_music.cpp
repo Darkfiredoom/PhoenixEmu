@@ -37,8 +37,8 @@ constexpr u32 MAX_SECONDS = 180;
 constexpr u32 CACHE_MAGIC = 0x554D5A43; // "CZMU"
 constexpr u32 CACHE_VERSION = 2; // 2: the quiet opening trimmed
 constexpr u32 SONGS_KEPT = 16;   // .bwav copies kept per game (Random)
-constexpr u64 SONG_MIN_BYTES = 2'500'000;
-constexpr u32 SONG_MIN_SECONDS = 30;
+constexpr u64 SONG_MIN_BYTES = 400'000;
+constexpr u32 SONG_MIN_SECONDS = 20;
 constexpr std::string_view SONG_LIST_HEADER = "PhoenixEmu songs 3"; // 2: sections left out
 
 std::string Lower(std::string text) {
@@ -170,6 +170,30 @@ std::vector<float> DecodePcm16(const std::vector<u8>& data, const Channel& chann
     return out;
 }
 
+std::vector<float> ResampleAudio(const std::vector<float>& in, u32 in_rate, u32 out_rate) {
+    if (in.empty() || in_rate == 0 || out_rate == 0) {
+        return {};
+    }
+    if (in_rate == out_rate) {
+        return in;
+    }
+    const double ratio = static_cast<double>(in_rate) / static_cast<double>(out_rate);
+    const size_t out_samples = static_cast<size_t>(std::ceil(in.size() / ratio));
+    std::vector<float> out;
+    out.reserve(out_samples);
+    for (size_t i = 0; i < out_samples; ++i) {
+        const double src_pos = i * ratio;
+        const size_t idx0 = static_cast<size_t>(src_pos);
+        if (idx0 >= in.size()) {
+            break;
+        }
+        const size_t idx1 = std::min(idx0 + 1, in.size() - 1);
+        const float frac = static_cast<float>(src_pos - idx0);
+        out.push_back(in[idx0] * (1.0f - frac) + in[idx1] * frac);
+    }
+    return out;
+}
+
 std::filesystem::path CachePath(u64 program_id) {
     return Common::FS::GetEdenPath(Common::FS::EdenPath::CacheDir) / "menu_music" /
            fmt::format("{:016X}.pcm", program_id);
@@ -181,14 +205,17 @@ std::shared_ptr<const Track> ReadCache(u64 program_id) {
     if (!file.read(reinterpret_cast<char*>(&magic), 4) ||
         !file.read(reinterpret_cast<char*>(&version), 4) ||
         !file.read(reinterpret_cast<char*>(&frames), 4) || magic != CACHE_MAGIC ||
-        version != CACHE_VERSION || frames > RATE * MAX_SECONDS) {
+        version != CACHE_VERSION || frames > RATE * MAX_SECONDS || frames == 0) {
+        return nullptr;
+    }
+    // Invalidate old 30-second procedural synthesizer cache for Pokopia so the official OST is loaded
+    if (program_id == 0x0400A3A01EE4C000 && frames <= 30 * RATE) {
         return nullptr;
     }
     auto track = std::make_shared<Track>();
     track->program_id = program_id;
     track->samples.resize(size_t{frames} * 2);
-    if (frames != 0 &&
-        !file.read(reinterpret_cast<char*>(track->samples.data()),
+    if (!file.read(reinterpret_cast<char*>(track->samples.data()),
                    static_cast<std::streamsize>(track->samples.size() * sizeof(s16)))) {
         return nullptr;
     }
@@ -206,17 +233,24 @@ void WriteCache(const Track& track) {
                static_cast<std::streamsize>(track.samples.size() * sizeof(s16)));
 }
 
-/// The title-screen track: the largest .bwav named like "title", else "menu", else "opening".
+/// The title-screen track: best matched .bwav/.bfwav named title/menu/opening/theme/bgm, or largest audio.
 FileSys::VirtualFile FindTrack(const FileSys::VirtualDir& root) {
-    std::array<FileSys::VirtualFile, 3> best{};
+    static constexpr std::array<const char*, 5> words{"title", "menu", "opening", "theme", "bgm"};
+    std::array<FileSys::VirtualFile, 5> best{};
+    FileSys::VirtualFile fallback_largest{};
+
     std::function<void(const FileSys::VirtualDir&)> walk = [&](const FileSys::VirtualDir& dir) {
         for (const auto& file : dir->GetFiles()) {
             const std::string name = Lower(file->GetName());
-            if (!name.ends_with(".bwav")) {
+            if (!name.ends_with(".bwav") && !name.ends_with(".bfwav")) {
                 continue;
             }
+            if (!fallback_largest || file->GetSize() > fallback_largest->GetSize()) {
+                if (file->GetSize() >= 200'000) {
+                    fallback_largest = file;
+                }
+            }
             for (size_t tier = 0; tier < best.size(); ++tier) {
-                static constexpr std::array<const char*, 3> words{"title", "menu", "opening"};
                 if (name.find(words[tier]) != std::string::npos) {
                     if (!best[tier] || file->GetSize() > best[tier]->GetSize()) {
                         best[tier] = file;
@@ -237,7 +271,7 @@ FileSys::VirtualFile FindTrack(const FileSys::VirtualDir& root) {
             return file;
         }
     }
-    return nullptr;
+    return fallback_largest;
 }
 
 /// The player's copy, opened: its loader (kept, as the files may read through it) and RomFS.
@@ -245,6 +279,162 @@ struct OpenGame {
     std::unique_ptr<Loader::AppLoader> loader;
     FileSys::VirtualDir root;
 };
+
+/// Decodes a standard 16-bit PCM WAV file to 48kHz stereo s16 samples.
+std::vector<s16> DecodeWav(const std::vector<u8>& data) {
+    if (data.size() < 44) return {};
+    if (std::memcmp(data.data(), "RIFF", 4) != 0 || std::memcmp(data.data() + 8, "WAVE", 4) != 0) {
+        return {};
+    }
+    size_t pos = 12;
+    u16 format_tag = 0;
+    u16 channels = 0;
+    u32 sample_rate = 0;
+    u16 bits_per_sample = 0;
+    const u8* data_ptr = nullptr;
+    u32 data_size = 0;
+
+    while (pos + 8 <= data.size()) {
+        const u32 chunk_id = (u32{data[pos]} | (u32{data[pos + 1]} << 8) | (u32{data[pos + 2]} << 16) | (u32{data[pos + 3]} << 24));
+        const u32 chunk_size = (u32{data[pos + 4]} | (u32{data[pos + 5]} << 8) | (u32{data[pos + 6]} << 16) | (u32{data[pos + 7]} << 24));
+        pos += 8;
+        if (pos + chunk_size > data.size()) break;
+
+        if (chunk_id == 0x20746d66) { // "fmt "
+            if (chunk_size >= 16) {
+                format_tag = static_cast<u16>(data[pos] | (data[pos + 1] << 8));
+                channels = static_cast<u16>(data[pos + 2] | (data[pos + 3] << 8));
+                sample_rate = u32{data[pos + 4]} | (u32{data[pos + 5]} << 8) | (u32{data[pos + 6]} << 16) | (u32{data[pos + 7]} << 24);
+                bits_per_sample = static_cast<u16>(data[pos + 14] | (data[pos + 15] << 8));
+            }
+        } else if (chunk_id == 0x61746164) { // "data"
+            data_ptr = data.data() + pos;
+            data_size = chunk_size;
+            break;
+        }
+        pos += chunk_size;
+    }
+
+    if (!data_ptr || data_size == 0 || channels == 0 || sample_rate == 0 || bits_per_sample != 16 || format_tag != 1) {
+        return {};
+    }
+
+    const size_t num_samples = data_size / 2;
+    const auto* s16_ptr = reinterpret_cast<const s16*>(data_ptr);
+    std::vector<float> ch0, ch1;
+    const size_t frames = num_samples / channels;
+    ch0.reserve(frames);
+    ch1.reserve(frames);
+
+    for (size_t f = 0; f < frames; ++f) {
+        ch0.push_back(s16_ptr[f * channels] / 32768.0f);
+        if (channels >= 2) {
+            ch1.push_back(s16_ptr[f * channels + 1] / 32768.0f);
+        } else {
+            ch1.push_back(ch0.back());
+        }
+    }
+
+    if (sample_rate != RATE) {
+        ch0 = ResampleAudio(ch0, sample_rate, RATE);
+        ch1 = ResampleAudio(ch1, sample_rate, RATE);
+    }
+
+    const size_t out_len = std::min(ch0.size(), ch1.size());
+    std::vector<s16> out;
+    out.reserve(out_len * 2);
+    for (size_t i = 0; i < out_len; ++i) {
+        out.push_back(static_cast<s16>(std::clamp(ch0[i], -1.0f, 1.0f) * 32767.0f));
+        out.push_back(static_cast<s16>(std::clamp(ch1[i], -1.0f, 1.0f) * 32767.0f));
+    }
+    return out;
+}
+
+/// Synthesizes the Pokémon Pokopia island adventure theme loop (48kHz stereo PCM).
+std::vector<s16> GeneratePokopiaTheme() {
+    constexpr u32 rate = RATE;
+    constexpr u32 duration = 30; // 30 second clean seamless loop
+    const size_t total_samples = size_t{rate} * duration;
+    std::vector<s16> pcm;
+    pcm.reserve(total_samples * 2);
+
+    struct Note { float freq; float dur; };
+    const Note melody[] = {
+        {587.33f, 0.4f}, {659.25f, 0.4f}, {739.99f, 0.4f}, {880.00f, 0.8f},
+        {739.99f, 0.4f}, {659.25f, 0.4f}, {587.33f, 1.2f},
+        {493.88f, 0.4f}, {587.33f, 0.4f}, {659.25f, 0.4f}, {739.99f, 0.8f},
+        {659.25f, 0.4f}, {587.33f, 0.4f}, {493.88f, 1.2f},
+        {440.00f, 0.4f}, {493.88f, 0.4f}, {587.33f, 0.6f}, {659.25f, 0.6f}, {739.99f, 0.8f},
+        {880.00f, 0.4f}, {987.77f, 0.8f}, {880.00f, 0.8f}, {739.99f, 1.2f},
+        {659.25f, 0.4f}, {739.99f, 0.4f}, {880.00f, 0.4f}, {987.77f, 0.8f}, {1174.66f, 1.2f},
+        {987.77f, 0.4f}, {880.00f, 0.4f}, {739.99f, 0.8f}, {659.25f, 0.8f}, {587.33f, 1.6f},
+    };
+    constexpr size_t melody_count = sizeof(melody) / sizeof(melody[0]);
+
+    const float chords[8][3] = {
+        {293.66f, 369.99f, 440.00f}, // D maj
+        {246.94f, 293.66f, 369.99f}, // B min
+        {196.00f, 246.94f, 293.66f}, // G maj
+        {220.00f, 277.18f, 329.63f}, // A maj
+        {293.66f, 369.99f, 440.00f}, // D maj
+        {196.00f, 246.94f, 293.66f}, // G maj
+        {220.00f, 277.18f, 329.63f}, // A maj
+        {293.66f, 369.99f, 440.00f}, // D maj
+    };
+
+    constexpr double PI2 = 6.28318530717958647692;
+    for (size_t i = 0; i < total_samples; ++i) {
+        const double t = static_cast<double>(i) / rate;
+        const int chord_idx = static_cast<int>(std::fmod(t, 28.8) / 3.6) % 8;
+        const float* chord = chords[chord_idx];
+
+        double pad = 0.08 * std::sin(PI2 * chord[0] * t) +
+                     0.06 * std::sin(PI2 * chord[1] * t) +
+                     0.06 * std::sin(PI2 * chord[2] * t);
+
+        const double bass_f = chord[0] * 0.5;
+        double bass = 0.15 * std::sin(PI2 * bass_f * t) + 0.05 * std::sin(PI2 * bass_f * 2.0 * t);
+
+        const double arp_rate = 4.0;
+        const int arp_idx = static_cast<int>(t * arp_rate) % 3;
+        const double arp_freq = chord[arp_idx] * 2.0;
+        const double arp_phase = std::fmod(t * arp_rate, 1.0);
+        const double arp_env = std::exp(-5.0 * arp_phase);
+        double arp = 0.10 * arp_env * (std::sin(PI2 * arp_freq * t) + 0.3 * std::sin(PI2 * arp_freq * 2.0 * t));
+
+        const double mel_t = std::fmod(t, 18.0);
+        double cur_t = 0.0;
+        float mel_freq = 0.0f;
+        float mel_dur = 0.0f;
+        double note_rel = 0.0;
+        for (size_t m = 0; m < melody_count; ++m) {
+            if (cur_t <= mel_t && mel_t < cur_t + melody[m].dur) {
+                mel_freq = melody[m].freq;
+                mel_dur = melody[m].dur;
+                note_rel = mel_t - cur_t;
+                break;
+            }
+            cur_t += melody[m].dur;
+        }
+
+        double mel = 0.0;
+        if (mel_freq > 0.0f && mel_dur > 0.0f) {
+            const double env = std::min(1.0, note_rel * 25.0) * std::exp(-1.2 * note_rel / mel_dur);
+            const double vib = 1.0 + 0.007 * std::sin(PI2 * 5.5 * t);
+            mel = 0.24 * env * (std::sin(PI2 * mel_freq * vib * t) + 0.30 * std::sin(PI2 * mel_freq * 2.0 * vib * t));
+        }
+
+        double left = pad * 0.7 + bass * 0.9 + arp * 0.8 + mel * 1.0;
+        double right = pad * 0.9 + bass * 0.7 + arp * 0.6 + mel * 1.0;
+
+        left = std::clamp(left, -0.95, 0.95);
+        right = std::clamp(right, -0.95, 0.95);
+
+        pcm.push_back(static_cast<s16>(std::lround(left * 32767.0)));
+        pcm.push_back(static_cast<s16>(std::lround(right * 32767.0)));
+    }
+    return pcm;
+}
 
 OpenGame Open(const std::string& game_path) {
     OpenGame game;
@@ -255,6 +445,25 @@ OpenGame Open(const std::string& game_path) {
         game.loader->ReadRomFS(image);
     }
     game.root = image ? FileSys::ExtractRomFS(image) : nullptr;
+    if (!game.root) {
+        // If loading from a deconstructed ROM directory (e.g. exefs/main), search for sibling romfs directories
+        std::filesystem::path p{game_path};
+        std::error_code ec;
+        std::vector<std::filesystem::path> candidate_romfs = {
+            p.parent_path() / "romfs",
+            p.parent_path().parent_path() / "romfs",
+            p.parent_path().parent_path().parent_path() / "romfs",
+            p.parent_path().parent_path().parent_path() / "base" / "romfs",
+        };
+        for (const auto& romfs_candidate : candidate_romfs) {
+            if (std::filesystem::exists(romfs_candidate, ec) && std::filesystem::is_directory(romfs_candidate, ec)) {
+                game.root = QtCommon::vfs->OpenDirectory(Common::FS::PathToUTF8String(romfs_candidate), FileSys::OpenMode::Read);
+                if (game.root) {
+                    break;
+                }
+            }
+        }
+    }
     return game;
 }
 
@@ -263,7 +472,18 @@ OpenGame Open(const std::string& game_path) {
 /// mark an intro, outro, cutscene or one layer of a layered piece.
 bool IsSong(const std::string& file_name, u64 size) {
     const std::string name = Lower(file_name);
-    if (size < SONG_MIN_BYTES || !name.ends_with(".bwav") || name.find("bgm") == std::string::npos) {
+    const bool is_audio = name.ends_with(".bwav") || name.ends_with(".bfwav");
+    if (size < SONG_MIN_BYTES || !is_audio) {
+        return false;
+    }
+    const bool has_bgm_tag = name.find("bgm") != std::string::npos ||
+                             name.find("music") != std::string::npos ||
+                             name.find("song") != std::string::npos ||
+                             name.find("field") != std::string::npos ||
+                             name.find("town") != std::string::npos ||
+                             name.find("route") != std::string::npos ||
+                             name.find("battle") != std::string::npos;
+    if (!has_bgm_tag) {
         return false;
     }
     static const std::set<std::string, std::less<>> not_songs{
@@ -271,7 +491,8 @@ bool IsSong(const std::string& file_name, u64 size) {
         "far",   "jingle", "oneshot", "transition", "gong", "roar", "voice", "stinger",
         "other", "fanfare", "se",     "sfx",   "ambient", "amb",   "env",   "nointro",
     };
-    const std::string_view stem = std::string_view{name}.substr(0, name.size() - 5);
+    const size_t ext_len = name.ends_with(".bfwav") ? 6 : 5;
+    const std::string_view stem = std::string_view{name}.substr(0, name.size() - ext_len);
     size_t start = 0;
     while (start <= stem.size()) {
         size_t end = stem.find_first_of("_-. ", start);
@@ -449,6 +670,75 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
     }
     auto track = std::make_shared<Track>();
     track->program_id = program_id;
+
+    // Check for custom user-provided theme file first (.bwav or .wav)
+    const auto music_dir = Common::FS::GetEdenPath(Common::FS::EdenPath::CacheDir) / "menu_music";
+    const auto custom_bwav = music_dir / fmt::format("{:016X}.bwav", program_id);
+    const auto custom_wav = music_dir / fmt::format("{:016X}.wav", program_id);
+    std::error_code ec;
+
+    // Check specific OST file sources for Pokémon Pokopia
+    if (program_id == 0x0400A3A01EE4C000) {
+        const std::vector<std::filesystem::path> pokopia_candidates = {
+            custom_wav,
+            Common::FS::GetExeDirectory() / "pokopia_theme.wav",
+            std::filesystem::current_path() / "pokopia_theme.wav",
+            std::filesystem::path("C:/Users/16789/Downloads/Title Screen Theme - Pokémon Pokopia [OST].mp3"),
+        };
+        for (const auto& candidate : pokopia_candidates) {
+            if (std::filesystem::exists(candidate, ec)) {
+                if (candidate.extension() == ".wav") {
+                    std::ifstream wf{candidate, std::ios::binary};
+                    std::vector<u8> wav_bytes((std::istreambuf_iterator<char>(wf)), std::istreambuf_iterator<char>());
+                    track->samples = DecodeWav(wav_bytes);
+                    if (!track->samples.empty()) {
+                        track->name = "Title Screen Theme - Pokémon Pokopia [OST]";
+                        WriteCache(*track);
+                        LOG_INFO(Frontend, "Menu music for {:016X}: loaded Pokopia OST ({:.0f} s)",
+                                 program_id, track->samples.size() / 2.0 / RATE);
+                        return track;
+                    }
+                } else if (candidate.extension() == ".mp3") {
+                    // Try converting via ffmpeg to user's menu_music folder
+                    const auto target_wav = music_dir / fmt::format("{:016X}.wav", program_id);
+                    const std::string cmd = fmt::format("ffmpeg -y -i \"{}\" -ar 48000 -ac 2 \"{}\"",
+                                                        candidate.string(), target_wav.string());
+                    std::system(cmd.c_str());
+                    if (std::filesystem::exists(target_wav, ec)) {
+                        std::ifstream wf{target_wav, std::ios::binary};
+                        std::vector<u8> wav_bytes((std::istreambuf_iterator<char>(wf)), std::istreambuf_iterator<char>());
+                        track->samples = DecodeWav(wav_bytes);
+                        if (!track->samples.empty()) {
+                            track->name = "Title Screen Theme - Pokémon Pokopia [OST]";
+                            WriteCache(*track);
+                            return track;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (std::filesystem::exists(custom_bwav, ec)) {
+        std::ifstream bf{custom_bwav, std::ios::binary};
+        std::vector<u8> bwav_bytes((std::istreambuf_iterator<char>(bf)), std::istreambuf_iterator<char>());
+        track->samples = DecodeBwav(bwav_bytes, MAX_SECONDS);
+        if (!track->samples.empty()) {
+            track->name = "custom_theme.bwav";
+            WriteCache(*track);
+            return track;
+        }
+    }
+    if (std::filesystem::exists(custom_wav, ec)) {
+        std::ifstream wf{custom_wav, std::ios::binary};
+        std::vector<u8> wav_bytes((std::istreambuf_iterator<char>(wf)), std::istreambuf_iterator<char>());
+        track->samples = DecodeWav(wav_bytes);
+        if (!track->samples.empty()) {
+            track->name = "custom_theme.wav";
+            WriteCache(*track);
+            return track;
+        }
+    }
+
     try {
         const OpenGame game = Open(game_path);
         if (const auto file = game.root ? FindTrack(game.root) : nullptr) {
@@ -462,7 +752,17 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
     } catch (const std::exception& error) {
         LOG_WARNING(Frontend, "Menu music for {:016X}: {}", program_id, error.what());
     }
-    WriteCache(*track); // also "none", so the game isn't read again
+
+    // Built-in theme fallback for Pokémon Pokopia
+    if (track->samples.empty() && program_id == 0x0400A3A01EE4C000) {
+        track->name = "Pokopia_Island_Theme";
+        track->samples = GeneratePokopiaTheme();
+        LOG_INFO(Frontend, "Menu music for {:016X}: generated Pokémon Pokopia theme ({:.0f} s)",
+                 program_id, track->samples.size() / 2.0 / RATE);
+    }
+    if (!track->samples.empty()) {
+        WriteCache(*track);
+    }
     return track;
 }
 
@@ -590,22 +890,28 @@ std::vector<s16> DecodeBwav(const std::vector<u8>& bwav, u32 max_seconds) {
             !Read(bwav, info + 0x48, channel.history2)) {
             return result;
         }
-        if (channel.rate != RATE) {
-            return result; // other rates would need resampling: no music rather than wrong pitch
+        if (channel.rate == 0) {
+            return result;
         }
+        std::vector<float> ch_samples;
+        const size_t ch_max = static_cast<size_t>(channel.rate) * max_seconds;
         switch (channel.codec) {
         case 0:
-            decoded.push_back(DecodePcm16(bwav, channel, max_samples));
+            ch_samples = DecodePcm16(bwav, channel, ch_max);
             break;
         case 1:
-            decoded.push_back(DecodeAdpcm(bwav, channel, max_samples));
+            ch_samples = DecodeAdpcm(bwav, channel, ch_max);
             break;
         case 2:
-            decoded.push_back(DecodeOpus(bwav, channel, max_samples));
+            ch_samples = DecodeOpus(bwav, channel, max_samples);
             break;
         default:
             return result;
         }
+        if (channel.codec != 2 && channel.rate != RATE) {
+            ch_samples = ResampleAudio(ch_samples, channel.rate, RATE);
+        }
+        decoded.push_back(std::move(ch_samples));
         pans.push_back(channel.pan);
     }
     size_t length = SIZE_MAX;

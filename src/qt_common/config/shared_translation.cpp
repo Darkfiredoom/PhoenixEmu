@@ -647,6 +647,7 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                           {
                               PAIR(FrameGenType, Lsfg, tr("Lossless Scaling (LSFG)")),
                               PAIR(FrameGenType, Fsr3, tr("Optical Flow Interpolation (built-in)")),
+                              PAIR(FrameGenType, Anr, tr("Apex Neural Rendering (ANR, all GPUs)")),
 #ifdef _WIN32 // AMD ships its frame generation runtime for Windows only
                               PAIR(FrameGenType, AmdFsr, tr("AMD FSR Frame Generation (Ocarina, restart)")),
 #endif
@@ -674,6 +675,7 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                               PAIR(ScalingFilter, Sgsr, tr("Snapdragon Game Super Resolution")),
                               PAIR(ScalingFilter, SgsrEdge, tr("Snapdragon Game Super Resolution EdgeDir")),
                               PAIR(ScalingFilter, Fsr3, tr("AMD FidelityFX Super Resolution 1, softer sharpening")),
+                              PAIR(ScalingFilter, Anr, tr("Apex Neural Rendering Super Resolution (ANR SR)")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::AntiAliasing>::Index(),
                           {

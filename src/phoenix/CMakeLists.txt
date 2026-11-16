@@ -269,6 +269,8 @@ add_executable(phoenix
     updater/update_dialog.h updater/update_dialog.cpp updater/update_dialog.ui
     save_sync_dialog.h save_sync_dialog.cpp
     shader_recipe_dialog.h shader_recipe_dialog.cpp
+    album_dialog.h album_dialog.cpp
+    mod_manager_dialog.h mod_manager_dialog.cpp
     game/common.h
     game/carousel.h game/carousel.cpp
 )

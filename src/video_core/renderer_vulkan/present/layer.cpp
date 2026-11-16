@@ -80,7 +80,8 @@ Layer::Layer(const Device& device, MemoryAllocator& memory_allocator_, Scheduler
         sr_filter.emplace<SGSR>(device, memory_allocator, image_count, output_size, false);
     } else if (filters.get_scaling_filter() == Settings::ScalingFilter::SgsrEdge) {
         sr_filter.emplace<SGSR>(device, memory_allocator, image_count, output_size, true);
-    } else if (filters.get_scaling_filter() == Settings::ScalingFilter::Fsr3) {
+    } else if (filters.get_scaling_filter() == Settings::ScalingFilter::Fsr3 ||
+               filters.get_scaling_filter() == Settings::ScalingFilter::Anr) {
         sr_filter.emplace<FSR3>(device, memory_allocator, image_count, output_size);
     }
 }

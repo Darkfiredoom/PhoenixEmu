@@ -445,6 +445,8 @@ private slots:
     void OnDataDialog();
     void OnSaveSyncDialog();
     void OnShaderRecipeDialog();
+    void OnAlbumDialog();
+    void OnModManagerDialog(u64 program_id = 0);
     void OnQuickSleepResume();
     void OnManualCheckForUpdates();
     void OnToggleFilterBar();

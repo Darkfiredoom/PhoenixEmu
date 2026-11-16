@@ -10,6 +10,8 @@ doc-build/
 out/
 AppDir/
 uruntime
+*.wav
+pokopia_theme.wav
 
 # dtrace and ktrace stuffs
 [dk]trace-out/

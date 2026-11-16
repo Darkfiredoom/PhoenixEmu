@@ -34,6 +34,8 @@ struct CheckResult {
 Failure ClassifyFailure(int status);
 
 CheckResult Check();
+std::string_view Platform();
+std::string_view BuildTag();
 std::optional<Common::Net::Release> GetUpdate();
 std::optional<Common::Net::Release> SelectUpdate(
     std::span<const Common::Net::Release> releases, std::string_view build_tag,

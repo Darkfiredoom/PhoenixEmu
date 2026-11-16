@@ -790,3 +790,34 @@ jobs:
             echo "Release is tagged '$published_tag' and titled '$published_title', expected tag $expected and a title naming build ${BUILD_NUMBER}"
             exit 1
           fi
+
+      # Test builds are announced in the Discord channel behind the DISCORD_TEST_BUILDS_WEBHOOK
+      # secret (Settings > Secrets and variables > Actions). Without the secret this does nothing,
+      # and a failed post never fails the release.
+      - name: Announce the test build on Discord
+        if: startsWith(github.ref, 'refs/tags/test-')
+        shell: bash
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_TEST_BUILDS_WEBHOOK }}
+        run: |
+          set -uo pipefail
+          if [ -z "${DISCORD_WEBHOOK}" ]; then
+            echo "No DISCORD_TEST_BUILDS_WEBHOOK secret: not announcing."
+            exit 0
+          fi
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+          files=$(cd dist && ls | sed 's/^/- /' | head -20)
+          jq -n --arg tag "${RELEASE_TAG}" --arg url "$url" --arg sha "${GITHUB_SHA::7}" \
+                --arg files "$files" '{
+              username: "PhoenixEmu Builds",
+              allowed_mentions: {parse: []},
+              embeds: [{
+                title: ("New PhoenixEmu test build: " + $tag),
+                url: $url,
+                description: ("Built from commit `" + $sha + "`.\n\n**Downloads**\n" + $files +
+                              "\n\n[Open the release page](" + $url + ")"),
+                color: 16732720
+              }]
+            }' > discord.json
+          curl -sS --fail-with-body -H "Content-Type: application/json" -d @discord.json \
+            "${DISCORD_WEBHOOK}" || echo "::warning::The Discord announcement failed."

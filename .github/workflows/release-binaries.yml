@@ -422,6 +422,13 @@ jobs:
           fi
           if command -v ccache > /dev/null; then ccache --show-stats; elif command -v sccache > /dev/null; then sccache --show-stats; fi
 
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.platform }}${{ matrix.pgo && '-pgo' || '' }}
+          path: build.log
+
       - name: Stop sccache on Windows
         if: always() && startsWith(matrix.platform, 'windows') && steps.compiler-cache.outcome == 'success'
         shell: pwsh

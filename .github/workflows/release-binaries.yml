@@ -301,6 +301,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
             -DBUILD_TESTING=OFF
             -DPHOENIX_TESTS=OFF
+            -DENABLE_WERROR=OFF
             -DPHOENIX_CMD=ON
             -DPHOENIX_ROOM=OFF
             -DPHOENIX_ROOM_STANDALONE=OFF
@@ -354,6 +355,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
             -DPHOENIX_TESTS=OFF \
+            -DENABLE_WERROR=OFF \
             -DPHOENIX_CMD=ON \
             -DPHOENIX_ROOM=OFF \
             -DPHOENIX_ROOM_STANDALONE=OFF \
@@ -382,6 +384,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
             -DPHOENIX_TESTS=OFF \
+            -DENABLE_WERROR=OFF \
             -DPHOENIX_CMD=ON \
             -DPHOENIX_ROOM=OFF \
             -DPHOENIX_ROOM_STANDALONE=OFF \

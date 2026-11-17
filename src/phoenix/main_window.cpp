@@ -6256,9 +6256,23 @@ void MainWindow::UpdateStatusBar() {
     upscale_idle_tag = QString::fromStdString(upscaler.idle_tag);
     upscale_idle_reason = QString::fromStdString(upscaler.idle_reason);
     // FSR on in a game AMD FSR has nothing to replace in: FSR 1 scales it for this session
-    // (the filter from before comes back when the game stops).
+    // (the filter from before comes back when the game stops). The renderer says "OOT ONLY"
+    // before it knows the game too, so Ocarina of Time itself is never switched: it got FSR 1
+    // over its own AMD FSR 3.1.
+    constexpr u64 ocarina_program = 0x0400486024DEC000ULL;
+    const u64 running_program = QtCommon::system->GetApplicationProcessProgramID();
+    if (const QVariant before = qApp->property("phoenix_fsr_filter_before");
+        before.isValid() && (upscale_running || running_program == ocarina_program)) {
+        if (Settings::values.scaling_filter.GetValue() == Settings::ScalingFilter::Fsr) {
+            Settings::values.scaling_filter.SetValue(
+                static_cast<Settings::ScalingFilter>(before.toUInt()));
+            UpdateFilterText();
+        }
+        qApp->setProperty("phoenix_fsr_filter_before", QVariant{});
+    }
     if (Settings::values.amd_fsr4.GetValue() && !upscale_running &&
-        upscale_idle_tag == QStringLiteral("OOT ONLY") &&
+        upscale_idle_tag == QStringLiteral("OOT ONLY") && running_program != 0 &&
+        running_program != ocarina_program &&
         !qApp->property("phoenix_fsr_filter_before").isValid()) {
         const auto filter = Settings::values.scaling_filter.GetValue();
         if (filter != Settings::ScalingFilter::Fsr && filter != Settings::ScalingFilter::Fsr3) {

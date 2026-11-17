@@ -4,6 +4,10 @@
 // Windows crash report: when PhoenixEmu crashes, eden_log.txt gets the exception and the module and
 // offset it happened at (match the offset with the release's phoenixemu-*-map.zip), and a minidump
 // goes to <data>/crash_dumps. Without it a crash just ended the log mid-line.
+//
+// Linux: a fatal signal writes the signal, fault address, memory use and a backtrace (module and
+// offset per frame) to <log dir>/crash_report.txt and flushes the log. The next start copies the
+// report into eden_log.txt. A run that ended with neither was killed from outside (out of memory).
 
 #pragma once
 
@@ -119,12 +123,174 @@ inline void Install() {
     SetUnhandledExceptionFilter(detail::Filter);
 }
 
+inline void LogPrevious() {}
+
+} // namespace CrashReport
+
+#elif defined(__linux__) && defined(__GLIBC__) && !defined(__ANDROID__)
+
+#include <atomic>
+#include <csignal>
+#include <cstdint>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+#include <dlfcn.h>
+#include <execinfo.h>
+#include <fcntl.h>
+#include <sys/prctl.h>
+#include <ucontext.h>
+#include <unistd.h>
+
+#include "common/fs/path_util.h"
+#include "common/logging.h"
+
+namespace CrashReport {
+
+namespace detail {
+
+inline char report_path[1024];
+
+// The handler only uses calls that are safe after a crash: no allocation, no stdio.
+inline void Put(int fd, const char* text) {
+    [[maybe_unused]] const auto written = write(fd, text, std::strlen(text));
+}
+
+inline void PutNumber(int fd, std::uintptr_t value, unsigned base) {
+    char digits[24];
+    int at = sizeof(digits);
+    digits[--at] = 0;
+    do {
+        digits[--at] = "0123456789abcdef"[value % base];
+        value /= base;
+    } while (value != 0 && at > 0);
+    Put(fd, base == 16 ? "0x" : "");
+    Put(fd, digits + at);
+}
+
+inline void PutFile(int fd, const char* path) {
+    const int in = open(path, O_RDONLY);
+    if (in < 0) {
+        return;
+    }
+    char block[4096];
+    for (ssize_t got; (got = read(in, block, sizeof(block))) > 0;) {
+        [[maybe_unused]] const auto written = write(fd, block, static_cast<size_t>(got));
+    }
+    close(in);
+}
+
+inline void Handler(int sig, siginfo_t* info, void* raw_context) {
+    static std::atomic_flag handled;
+    if (handled.test_and_set()) {
+        // Another thread is writing the report.
+        sleep(3);
+    } else {
+        // A crash inside the logger or the allocator must not hang the report.
+        alarm(5);
+        const int fd = open(report_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd >= 0) {
+            std::uintptr_t pc{};
+#if defined(__x86_64__)
+            pc = static_cast<std::uintptr_t>(
+                static_cast<ucontext_t*>(raw_context)->uc_mcontext.gregs[REG_RIP]);
+#elif defined(__aarch64__)
+            pc = static_cast<std::uintptr_t>(static_cast<ucontext_t*>(raw_context)->uc_mcontext.pc);
+#endif
+            char thread[32]{};
+            prctl(PR_GET_NAME, thread);
+            Put(fd, "signal ");
+            PutNumber(fd, static_cast<std::uintptr_t>(sig), 10);
+            Put(fd, sig == SIGSEGV   ? " (SIGSEGV)"
+                    : sig == SIGBUS  ? " (SIGBUS)"
+                    : sig == SIGABRT ? " (SIGABRT)"
+                    : sig == SIGILL  ? " (SIGILL)"
+                    : sig == SIGFPE  ? " (SIGFPE)"
+                                     : "");
+            Put(fd, " code ");
+            PutNumber(fd, static_cast<std::uintptr_t>(info ? info->si_code : 0), 10);
+            Put(fd, " address ");
+            PutNumber(fd, info ? reinterpret_cast<std::uintptr_t>(info->si_addr) : 0, 16);
+            Put(fd, " thread ");
+            Put(fd, thread);
+            Put(fd, "\npc ");
+            PutNumber(fd, pc, 16);
+            Dl_info module{};
+            if (pc != 0 && dladdr(reinterpret_cast<void*>(pc), &module) != 0 && module.dli_fname) {
+                Put(fd, " = ");
+                Put(fd, module.dli_fname);
+                Put(fd, "+");
+                PutNumber(fd, pc - reinterpret_cast<std::uintptr_t>(module.dli_fbase), 16);
+            }
+            Put(fd, "\nbacktrace:\n");
+            void* frames[64];
+            backtrace_symbols_fd(frames, backtrace(frames, 64), fd);
+            Put(fd, "memory:\n");
+            PutFile(fd, "/proc/self/status");
+            Put(fd, "system memory:\n");
+            PutFile(fd, "/proc/meminfo");
+            close(fd);
+        }
+        Common::Log::Stop(); // flush
+        alarm(0);
+    }
+    // The default action ends the process and leaves the usual core dump.
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
+} // namespace detail
+
+/// Call once at startup, before the CPU backends install their own fault handlers: those pass
+/// the faults they do not handle on to this one.
+inline void Install() {
+    const auto path =
+        (Common::FS::GetEdenPath(Common::FS::EdenPath::LogDir) / "crash_report.txt").string();
+    if (path.size() >= sizeof(detail::report_path)) {
+        return;
+    }
+    std::memcpy(detail::report_path, path.c_str(), path.size() + 1);
+    // backtrace() loads libgcc on first use, which must not happen inside the handler.
+    void* frame[1];
+    backtrace(frame, 1);
+    struct sigaction action {};
+    action.sa_sigaction = detail::Handler;
+    action.sa_flags = SA_SIGINFO;
+    sigemptyset(&action.sa_mask);
+    for (const int sig : {SIGSEGV, SIGBUS, SIGABRT, SIGILL, SIGFPE}) {
+        sigaction(sig, &action, nullptr);
+    }
+}
+
+/// Call once the log is open: copies the report of the last run's crash into the log.
+inline void LogPrevious() {
+    std::error_code ec;
+    const std::filesystem::path path{detail::report_path};
+    if (path.empty() || !std::filesystem::exists(path, ec)) {
+        return;
+    }
+    std::stringstream text;
+    text << std::ifstream{path}.rdbuf();
+    std::string line;
+    LOG_CRITICAL(Frontend, "The previous run crashed. Its crash report:");
+    while (std::getline(text, line)) {
+        LOG_CRITICAL(Frontend, "  {}", line);
+    }
+    auto kept = path;
+    kept.replace_extension(".old.txt");
+    std::filesystem::rename(path, kept, ec);
+}
+
 } // namespace CrashReport
 
 #else
 
 namespace CrashReport {
 inline void Install() {}
+inline void LogPrevious() {}
 } // namespace CrashReport
 
 #endif

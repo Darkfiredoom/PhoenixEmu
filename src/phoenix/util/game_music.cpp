@@ -19,6 +19,7 @@
 #include <set>
 #include <unordered_map>
 
+#include <QFile>
 #include <opus.h>
 
 #include "common/fs/fs.h"
@@ -705,7 +706,6 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
             custom_wav,
             pokopia_theme,
             std::filesystem::current_path(ec) / "pokopia_theme.wav",
-            std::filesystem::path("C:/Users/16789/Downloads/Title Screen Theme - Pokémon Pokopia [OST].mp3"),
         };
         for (const auto& candidate : pokopia_candidates) {
             if (std::filesystem::exists(candidate, ec)) {
@@ -737,6 +737,19 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
                         }
                     }
                 }
+            }
+        }
+        // The copy built into the program.
+        if (QFile bundled{QStringLiteral(":/music/pokopia_theme.wav")};
+            bundled.open(QIODevice::ReadOnly)) {
+            const QByteArray bytes = bundled.readAll();
+            track->samples = DecodeWav(std::vector<u8>(bytes.begin(), bytes.end()));
+            if (!track->samples.empty()) {
+                track->name = "Title Screen Theme - Pokémon Pokopia [OST]";
+                WriteCache(*track);
+                LOG_INFO(Frontend, "Menu music for {:016X}: built-in Pokopia theme ({:.0f} s)",
+                         program_id, track->samples.size() / 2.0 / RATE);
+                return track;
             }
         }
     }

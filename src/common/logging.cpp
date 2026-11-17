@@ -305,6 +305,11 @@ struct FileBackend final : public Backend {
         // Option to log each line rather than 4k buffers
         if (Settings::values.log_flush_line.GetValue())
             file->Flush();
+        // A process killed from outside (out of memory) cannot flush: stay under a second behind.
+        if (entry.timestamp - last_flush >= std::chrono::seconds{1}) {
+            last_flush = entry.timestamp;
+            file->Flush();
+        }
 
         using namespace Common::Literals;
         // Prevent logs from exceeding a set maximum size in the event that log entries are spammed.
@@ -325,6 +330,7 @@ struct FileBackend final : public Backend {
 private:
     std::optional<FS::IOFile> file;
     std::size_t bytes_written = 0;
+    std::chrono::microseconds last_flush{};
     bool enabled = true;
 };
 #endif

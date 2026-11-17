@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // Windows: a crash logs where it happened and writes a minidump (util/crash_report.h).
+    // A crash logs where it happened; Windows also writes a minidump (util/crash_report.h).
     CrashReport::Install();
 
 #ifdef PHOENIX_CRASH_DUMPS
@@ -215,6 +215,7 @@ int main(int argc, char* argv[]) {
     setlocale(LC_ALL, "C");
 
     MainWindow main_window{has_broken_vulkan};
+    CrashReport::LogPrevious();
     // After settings have been loaded by GMainWindow, apply the filter
     main_window.show();
 

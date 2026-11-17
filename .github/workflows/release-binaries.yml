@@ -739,11 +739,22 @@ jobs:
           if [[ -n "$has_pgo" ]]; then
             pgo_note="The PGO builds are the same programs compiled with profile-guided optimization. Linux uses clang with Eglantine's profile; Windows uses clang-cl and ThinLTO with a profile trained in PhoenixEmu on Ocarina of Time, so other games gain less. Prefer them when your CPU supports it."
           fi
-          # "What's new": the newest "## New in build" section of PHOENIXEMU.md at this commit.
-          whats_new=$(gh api -H "Accept: application/vnd.github.raw" \
-              "repos/${GITHUB_REPOSITORY}/contents/PHOENIXEMU.md?ref=${GITHUB_SHA}" |
-            awk '/^## /{ if (f) exit } /^## New in build/{ f=1; print "## What'"'"'s new"; next }
-                 f && !/^How to use all of this/' || true)
+          # "What's new": the commits since the newest earlier release built from another commit
+          # (a main build and a test build of the same commit would otherwise list nothing).
+          whats_new=""
+          : > changes.md
+          for prev in $(gh release list --repo "${GITHUB_REPOSITORY}" --limit 10 \
+                          --json tagName --jq '.[].tagName' || true); do
+            [ "$prev" = "$tag" ] && continue
+            changes=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${prev}...${GITHUB_SHA}" \
+                --jq '.commits[] | "- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"' |
+              grep -v '^- Merge ' | tail -n 40 || true)
+            if [ -n "$changes" ]; then
+              echo "$changes" > changes.md
+              whats_new="## What's new since ${prev}"$'\n\n'"${changes}"
+              break
+            fi
+          done
 
           cat > notes.md <<EOF
           Automatic build of \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA}.
@@ -833,14 +844,17 @@ jobs:
           fi
           url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
           files=$(cd dist && ls | sed 's/^/- /' | head -20)
+          changes=$(head -n 15 changes.md 2>/dev/null | cut -c1-160 || true)
           jq -n --arg tag "${RELEASE_TAG}" --arg url "$url" --arg sha "${GITHUB_SHA::7}" \
-                --arg files "$files" '{
+                --arg files "$files" --arg changes "$changes" '{
               username: "PhoenixEmu Builds",
               allowed_mentions: {parse: []},
               embeds: [{
                 title: ("New PhoenixEmu test build: " + $tag),
                 url: $url,
-                description: ("Built from commit `" + $sha + "`.\n\n**Downloads**\n" + $files +
+                description: ("Built from commit `" + $sha + "`.\n\n" +
+                              (if $changes == "" then "" else "**What'\''s new**\n" + $changes + "\n\n" end) +
+                              "**Downloads**\n" + $files +
                               "\n\n[Open the release page](" + $url + ")"),
                 color: 16732720
               }]

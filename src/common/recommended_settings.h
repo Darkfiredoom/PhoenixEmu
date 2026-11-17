@@ -17,6 +17,7 @@ struct HostProfile {
     bool amd{true};                ///< AMD GPU
     bool integrated{false};        ///< Integrated GPU (shares the system's RAM)
     bool windows{true};            ///< AMD's FSR and frame generation runtimes are Windows only
+    bool steam_deck{false};        ///< A Valve Steam Deck (LCD or OLED)
 };
 
 /// PhoenixEmu's recommended settings for a PC. This table is the only place that lists them:
@@ -60,7 +61,15 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     // PhoenixEmu's default since build 9 ("Skip only redrawn targets").
     entry(config.native_async_draws, NativeAsyncDraws::Transient);
     entry(config.native_pipeline_wait_ms, 8);
-    entry(config.precache_shaders, PrecacheShaders::Always);
+    // Building every cached shader before a game starts holds a lot of RAM and can take many
+    // minutes on a handheld: ask there instead.
+    entry(config.precache_shaders, host.integrated || host.ram_bytes < 14 * GiB
+                                       ? PrecacheShaders::Ask
+                                       : PrecacheShaders::Always);
+    // Built shader pipelines kept: Low under 16 GB (a Steam Deck's low-memory daemon ended games
+    // while they loaded), Auto picks by RAM otherwise.
+    entry(config.ram_usage_mode,
+          host.ram_bytes < 14 * GiB ? RamUsageMode::Low : RamUsageMode::Auto);
     entry(config.use_video_framerate, false);
     entry(config.mkw_30fps, false);
     entry(config.mkw_dynamic_fps, false);
@@ -125,6 +134,7 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
         entry(config.astc_recompression, AstcRecompression::Bc3);
         entry(config.oot_fsr_preset, OotFsrPreset::Performance);
         entry(config.oot_docked_output, OotDockedOutput::Output1440p);
+        entry(config.frame_gen, false);
     } else {
         // Docked output: 4K needs the video memory for 4K images.
         entry(config.oot_docked_output,

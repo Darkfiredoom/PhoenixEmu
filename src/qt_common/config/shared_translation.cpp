@@ -179,6 +179,10 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, hdr_contrast, tr("HDR Contrast"),
            tr("PsychoV35's contrast (100 is neutral). Higher deepens shadows and brightens "
               "highlights; colour saturation is kept."));
+    INSERT(Settings, hdr_sdr_to_hdr, tr("SDR games in HDR"),
+           tr("An SDR game on an HDR display: its bright parts are expanded up to HDR Peak "
+              "Luminance, so highlights shine as in an HDR game. The HUD and menus are "
+              "expanded too. Off: SDR games look as on an SDR screen."));
     INSERT(Settings, renderer_backend, tr("API:"),
            tr("Changes the output graphics API.\nVulkan is recommended."));
     INSERT(Settings, vulkan_device, tr("Device:"),

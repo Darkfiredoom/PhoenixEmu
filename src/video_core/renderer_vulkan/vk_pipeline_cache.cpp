@@ -2016,11 +2016,13 @@ bool PrecacheAfterSkip() {
     return value == nullptr || value[0] != '0';
 }
 
-/// Test: EDEN_NX2_PRECACHE_SKIP_AFTER=<seconds> presses Skip that long into the precache.
+/// Skip is pressed by itself two minutes into the precache: the game starts and the rest builds
+/// behind it (PrecacheAfterSkip). Ocarina's bundled recipe kept a first start on the loading
+/// screen for 15 minutes. EDEN_NX2_PRECACHE_SKIP_AFTER=<seconds> sets another time, -1 never.
 bool PrecacheSkipDue(std::chrono::steady_clock::time_point begin) {
     static const long seconds = [] {
         const char* const value = std::getenv("EDEN_NX2_PRECACHE_SKIP_AFTER");
-        return value != nullptr ? std::strtol(value, nullptr, 10) : -1L;
+        return value != nullptr ? std::strtol(value, nullptr, 10) : 120L;
     }();
     return seconds >= 0 && std::chrono::steady_clock::now() - begin >= std::chrono::seconds{seconds};
 }

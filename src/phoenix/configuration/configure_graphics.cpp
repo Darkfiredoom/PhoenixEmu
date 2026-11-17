@@ -275,7 +275,8 @@ void ConfigureGraphics::Setup(const ConfigurationShared::Builder& builder) {
             setting->Id() == Settings::values.hdr_reference_white.Id() ||
             setting->Id() == Settings::values.hdr_peak_luminance.Id() ||
             setting->Id() == Settings::values.hdr_tonemapper.Id() ||
-            setting->Id() == Settings::values.hdr_contrast.Id()) {
+            setting->Id() == Settings::values.hdr_contrast.Id() ||
+            setting->Id() == Settings::values.hdr_sdr_to_hdr.Id()) {
             hdr_widgets.push_back(widget);
         }
 

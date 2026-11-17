@@ -3136,7 +3136,7 @@ void MainWindow::TerminateEmulationThread() {
         QMessageBox::warning(this, tr("PhoenixEmu"),
                              tr("The game got stuck while closing, so PhoenixEmu will restart to "
                                 "free the memory it was using.\n\nIf this keeps happening, "
-                                "please share eden_log.txt (it says where the game got stuck)."));
+                                "please share phoenixemu_log.txt (it says where the game got stuck)."));
         QProcess::startDetached(QCoreApplication::applicationFilePath(), {});
     }
     Common::Log::Stop();
@@ -5091,6 +5091,50 @@ void MainWindow::OnEdenDependencies() {
     depsDialog.exec();
 }
 
+namespace {
+/// A Valve Steam Deck: the board vendor (LCD "Jupiter", OLED "Galileo").
+bool IsSteamDeck() {
+#ifdef __linux__
+    QFile vendor{QStringLiteral("/sys/devices/virtual/dmi/id/board_vendor")};
+    return vendor.open(QFile::ReadOnly) && vendor.readAll().trimmed() == "Valve";
+#else
+    return false;
+#endif
+}
+} // Anonymous namespace
+
+void MainWindow::OfferSteamDeckTips() {
+    if (emulation_running || boot_in_progress || close_pending || !IsSteamDeck() ||
+        Settings::values.steam_deck_tips_shown.GetValue()) {
+        return;
+    }
+    constexpr u64 GiB = u64{1} << 30;
+    const auto& memory = Common::GetMemInfo();
+    // A 16 GB Deck reports about 14.5 GiB with the default 1 GB UMA frame buffer; under 13 the
+    // buffer is set larger and takes RAM the games need. Swap under 8 GiB fills while loading.
+    const bool large_uma = memory.TotalPhysicalMemory < 13 * GiB;
+    const bool small_swap = memory.TotalSwapMemory < 8 * GiB;
+    Settings::values.steam_deck_tips_shown = true;
+    OnSaveConfig();
+    if (!large_uma && !small_swap) {
+        return;
+    }
+    QString text = tr("Switch 2 games need a lot of memory, and SteamOS closes the emulator "
+                      "when it runs out (the log says \"SIGTERM from ... earlyoom\").<br><br>");
+    if (large_uma) {
+        text += tr("<b>RAM:</b> this Deck reports %1 GB. In the BIOS (hold Volume Up and press "
+                   "Power, then Setup Utility > Advanced), set <b>UMA Frame Buffer Size</b> "
+                   "to <b>1G</b>: the graphics still borrow more when they need it.<br><br>")
+                    .arg(static_cast<double>(memory.TotalPhysicalMemory) / GiB, 0, 'f', 1);
+    }
+    if (small_swap) {
+        text += tr("<b>Swap:</b> %1 GB. A larger swap file (16 GB, for example with "
+                   "CryoUtilities) gives games room while they load.")
+                    .arg(static_cast<double>(memory.TotalSwapMemory) / GiB, 0, 'f', 1);
+    }
+    QMessageBox::information(this, tr("Steam Deck memory"), text);
+}
+
 Settings::HostProfile MainWindow::RecommendedHost(QString& host_text) {
     // The PC the settings are chosen for: the GPU picked in Graphics (the first one before any
     // was), its video memory, and the RAM.
@@ -5101,6 +5145,7 @@ Settings::HostProfile MainWindow::RecommendedHost(QString& host_text) {
 #else
     host.windows = false;
 #endif
+    host.steam_deck = IsSteamDeck();
     QString gpu_name = tr("Unknown graphics card");
     if (vk_device_records.empty()) {
         VkDeviceInfo::PopulateRecords(vk_device_records, this->window()->windowHandle());
@@ -5114,6 +5159,9 @@ Settings::HostProfile MainWindow::RecommendedHost(QString& host_text) {
         host.integrated = record.integrated;
         host.vram_bytes = record.vram_bytes;
         gpu_name = QString::fromStdString(record.name);
+    }
+    if (host.steam_deck) {
+        gpu_name = tr("Steam Deck (%1)").arg(gpu_name);
     }
     host_text =
         tr("%1, %2 GB of video memory, %3 GB of RAM.")
@@ -5149,11 +5197,13 @@ void MainWindow::OfferRecommendedSettings() {
         }
         return;
     }
-    if (emulation_running || boot_in_progress || close_pending ||
-        Settings::values.recommended_settings_prompt_shown.GetValue()) {
+    if (emulation_running || boot_in_progress || close_pending) {
         return;
     }
-    OnApplyRecommendedSettings();
+    if (!Settings::values.recommended_settings_prompt_shown.GetValue()) {
+        OnApplyRecommendedSettings();
+    }
+    OfferSteamDeckTips();
 }
 
 void MainWindow::OnApplyRecommendedSettings() {

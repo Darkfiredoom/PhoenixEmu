@@ -23,6 +23,7 @@ layout (push_constant) uniform Params {
     uint premultiplied;    // colour is premultiplied by alpha
     uint tonemapper;       // 0: native, 1: RenoDX PsychoV35 (HDR inputs only)
     float contrast;        // PsychoV35 contrast, 1 is neutral
+    uint sdr_to_hdr;       // expand an SDR picture's highlights to the HDR peak
 };
 
 const float PQ_M1 = 0.1593017578125;
@@ -217,7 +218,20 @@ vec3 Decode(vec3 c) {
     if (input_encoding == 2) {
         return c * nits_per_unit;
     }
-    return SrgbToLinear(clamp(c, 0.0, 1.0)) * reference_white;
+    vec3 linear = SrgbToLinear(clamp(c, 0.0, 1.0));
+    if (sdr_to_hdr != 0 && output_encoding != 0) {
+        // The inverse of the extended Reinhard an HDR picture gets on an SDR screen (Encode), on
+        // the brightest channel so hue holds: SDR white reaches the peak, shadows barely move.
+        float m = max(max(linear.r, linear.g), linear.b);
+        float w = max(peak / reference_white, 1.0);
+        if (m > 0.0 && w > 1.0) {
+            float a = 1.0 / (w * w);
+            float b = 1.0 - m;
+            float x = (-b + sqrt(b * b + 4.0 * a * m)) / (2.0 * a);
+            linear *= x / m;
+        }
+    }
+    return linear * reference_white;
 }
 
 vec3 Encode(vec3 nits) {

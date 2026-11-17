@@ -361,6 +361,8 @@ struct Values {
                                                     "hdr_tonemapper", Category::Renderer};
     SwitchableSetting<u16, true> hdr_contrast{linkage, 100, 50, 200, "hdr_contrast",
                                               Category::Renderer, Specialization::Scalar};
+    // An SDR game on an HDR display: its highlights expanded to HDR Peak Luminance.
+    SwitchableSetting<bool> hdr_sdr_to_hdr{linkage, false, "hdr_sdr_to_hdr", Category::Renderer};
     SwitchableSetting<RendererBackend, true> renderer_backend{linkage,
 #if defined(__sun__) || defined(__managarm__)
         RendererBackend::OpenGL_GLSL,
@@ -1087,6 +1089,9 @@ struct Values {
         linkage, false, "recommended_settings_prompt_shown", Category::Miscellaneous};
     Setting<std::string> recommended_settings_backup{
         linkage, {}, "recommended_settings_backup", Category::Miscellaneous};
+    // The Steam Deck memory tips (UMA frame buffer, swap) were shown once.
+    Setting<bool> steam_deck_tips_shown{linkage, false, "steam_deck_tips_shown",
+                                        Category::Miscellaneous};
 
     // Network
     Setting<std::string> network_interface{linkage, std::string(), "network_interface",

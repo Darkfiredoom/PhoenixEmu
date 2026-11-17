@@ -42,6 +42,7 @@ struct HdrConvertParams {
     bool premultiplied{}; ///< colour is premultiplied by alpha (kept so across the conversion)
     u32 tonemapper{};     ///< Settings::HdrTonemapper
     f32 contrast{1.0f};   ///< PsychoV35 contrast
+    bool sdr_to_hdr{};    ///< expand an SDR layer's highlights to the HDR peak
 };
 
 [[nodiscard]] HdrEncoding EncodingOf(Tegra::ColorSpace color_space);

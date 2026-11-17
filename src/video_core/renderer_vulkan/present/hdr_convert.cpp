@@ -27,6 +27,7 @@ struct PushConstants {
     u32 premultiplied;
     u32 tonemapper;
     f32 contrast;
+    u32 sdr_to_hdr;
 };
 
 } // Anonymous namespace
@@ -67,6 +68,7 @@ HdrConvertParams MakeHdrConvertParams(const Tegra::FramebufferConfig& framebuffe
         .premultiplied = framebuffer.blending == Tegra::BlendMode::Premultiplied,
         .tonemapper = static_cast<u32>(Settings::values.hdr_tonemapper.GetValue()),
         .contrast = static_cast<f32>(Settings::values.hdr_contrast.GetValue()) / 100.0f,
+        .sdr_to_hdr = Settings::values.hdr_sdr_to_hdr.GetValue(),
     };
 }
 
@@ -138,6 +140,7 @@ void HdrConvertPass::Record(const Device& device, Scheduler& scheduler, size_t i
         .premultiplied = params.premultiplied ? 1U : 0U,
         .tonemapper = params.tonemapper,
         .contrast = params.contrast,
+        .sdr_to_hdr = params.sdr_to_hdr ? 1U : 0U,
     };
     const VkRenderPass renderpass{*m_renderpass};
     const VkPipeline pipeline{*m_pipeline};

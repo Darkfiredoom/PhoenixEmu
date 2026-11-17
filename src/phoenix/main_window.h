@@ -441,6 +441,8 @@ private slots:
     void OnAbout();
     void OnEdenDependencies();
     void OfferRecommendedSettings();
+    /// Once on a Steam Deck short of memory: the UMA frame buffer and swap size to change.
+    void OfferSteamDeckTips();
     void OnApplyRecommendedSettings();
     void OnRestorePreviousSettings();
     void OnDataDialog();

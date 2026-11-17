@@ -355,6 +355,12 @@ struct Values {
                                                   Category::Renderer, Specialization::Scalar};
     SwitchableSetting<u16, true> hdr_peak_luminance{linkage, 0, 0, 10000, "hdr_peak_luminance",
                                                  Category::Renderer, Specialization::Scalar};
+    // The game's HDR picture as shown: Native leaves it as the game tone mapped it, PsychoV35
+    // runs it through RenoDX's tonemapper for the output's peak and gamut.
+    SwitchableSetting<HdrTonemapper> hdr_tonemapper{linkage, HdrTonemapper::Native,
+                                                    "hdr_tonemapper", Category::Renderer};
+    SwitchableSetting<u16, true> hdr_contrast{linkage, 100, 50, 200, "hdr_contrast",
+                                              Category::Renderer, Specialization::Scalar};
     SwitchableSetting<RendererBackend, true> renderer_backend{linkage,
 #if defined(__sun__) || defined(__managarm__)
         RendererBackend::OpenGL_GLSL,

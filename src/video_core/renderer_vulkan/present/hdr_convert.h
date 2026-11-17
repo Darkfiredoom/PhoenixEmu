@@ -40,6 +40,8 @@ struct HdrConvertParams {
     f32 peak{};
     f32 nits_per_unit{};
     bool premultiplied{}; ///< colour is premultiplied by alpha (kept so across the conversion)
+    u32 tonemapper{};     ///< Settings::HdrTonemapper
+    f32 contrast{1.0f};   ///< PsychoV35 contrast
 };
 
 [[nodiscard]] HdrEncoding EncodingOf(Tegra::ColorSpace color_space);

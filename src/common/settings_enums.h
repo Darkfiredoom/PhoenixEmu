@@ -157,6 +157,7 @@ ENUM(OotFsrPreset, Native, Quality, Balanced, Performance, UltraPerformance, Nat
 ENUM(OotDockedOutput, Output4k, Output1440p);
 ENUM(HdrMode, Off, On, Auto);
 ENUM(HdrSwapchain, Hdr10, Scrgb);
+ENUM(HdrTonemapper, Native, PsychoV35);
 ENUM(AspectRatio, R16_9, R4_3, R21_9, R16_10, Stretch);
 ENUM(ConsoleMode, Handheld, Docked);
 ENUM(AppletMode, HLE, LLE, Disabled);

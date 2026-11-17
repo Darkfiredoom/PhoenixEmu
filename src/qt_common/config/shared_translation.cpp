@@ -170,6 +170,15 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
               "Switch 2 HDR calibration's starting value.\n"
               "Also the HDR10 metadata peak, and what an HDR image rolls off to on an SDR "
               "screen."));
+    INSERT(Settings, hdr_tonemapper, tr("HDR Tonemapper:"),
+           tr("How a game's HDR picture is shown.\nNative: as the game tone mapped it.\n"
+              "RenoDX PsychoV35: through RenoDX's PsychoV35 tonemapper, fitted to HDR Peak "
+              "Luminance and the display's colours, with natural hues in bright highlights. It "
+              "works on the game's finished HDR picture, not inside the game as the RenoDX "
+              "mods do.\nSDR games are not changed."));
+    INSERT(Settings, hdr_contrast, tr("HDR Contrast"),
+           tr("PsychoV35's contrast (100 is neutral). Higher deepens shadows and brightens "
+              "highlights; colour saturation is kept."));
     INSERT(Settings, renderer_backend, tr("API:"),
            tr("Changes the output graphics API.\nVulkan is recommended."));
     INSERT(Settings, vulkan_device, tr("Device:"),
@@ -724,6 +733,11 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                           {
                               PAIR(HdrSwapchain, Hdr10, tr("HDR10 (10-bit)")),
                               PAIR(HdrSwapchain, Scrgb, tr("scRGB (16-bit float)")),
+                          }});
+    translations->insert({Settings::EnumMetadata<Settings::HdrTonemapper>::Index(),
+                          {
+                              PAIR(HdrTonemapper, Native, tr("Native")),
+                              PAIR(HdrTonemapper, PsychoV35, tr("RenoDX PsychoV35")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::AspectRatio>::Index(),
                           {

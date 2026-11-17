@@ -244,6 +244,10 @@ void ConfigureGraphics::Setup(const ConfigurationShared::Builder& builder) {
                 return builder.BuildWidget(setting, apply_funcs,
                                            ConfigurationShared::RequestType::SpinBox, true, 1.0f,
                                            nullptr, tr("nits"));
+            } else if (setting->Id() == Settings::values.hdr_contrast.Id()) {
+                return builder.BuildWidget(setting, apply_funcs,
+                                           ConfigurationShared::RequestType::Slider, true, 1.0f,
+                                           nullptr, tr("%"));
             } else if (setting->Id() == Settings::values.fsr_sharpening_slider.Id()) {
                 // FSR needs a reversed slider and a 0.5 multiplier
                 return builder.BuildWidget(
@@ -269,7 +273,9 @@ void ConfigureGraphics::Setup(const ConfigurationShared::Builder& builder) {
         if (setting->Id() == Settings::values.hdr_mode.Id() ||
             setting->Id() == Settings::values.hdr_swapchain.Id() ||
             setting->Id() == Settings::values.hdr_reference_white.Id() ||
-            setting->Id() == Settings::values.hdr_peak_luminance.Id()) {
+            setting->Id() == Settings::values.hdr_peak_luminance.Id() ||
+            setting->Id() == Settings::values.hdr_tonemapper.Id() ||
+            setting->Id() == Settings::values.hdr_contrast.Id()) {
             hdr_widgets.push_back(widget);
         }
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "common/common_types.h"
+#include "common/settings.h"
 
 #include "video_core/host_shaders/fxaa_vert_spv.h"
 #include "video_core/host_shaders/vulkan_hdr_convert_frag_spv.h"
@@ -24,6 +25,8 @@ struct PushConstants {
     f32 peak;
     f32 nits_per_unit;
     u32 premultiplied;
+    u32 tonemapper;
+    f32 contrast;
 };
 
 } // Anonymous namespace
@@ -62,11 +65,18 @@ HdrConvertParams MakeHdrConvertParams(const Tegra::FramebufferConfig& framebuffe
                              ? static_cast<f32>(framebuffer.linear_unit_luminance)
                              : ScrgbNits,
         .premultiplied = framebuffer.blending == Tegra::BlendMode::Premultiplied,
+        .tonemapper = static_cast<u32>(Settings::values.hdr_tonemapper.GetValue()),
+        .contrast = static_cast<f32>(Settings::values.hdr_contrast.GetValue()) / 100.0f,
     };
 }
 
 bool NeedsHdrConvert(const HdrConvertParams& params) {
     if (params.input != params.output) {
+        return true;
+    }
+    // PsychoV35 tone maps an HDR picture even when it goes out as it came.
+    if (params.input != HdrEncoding::Srgb &&
+        params.tonemapper == static_cast<u32>(Settings::HdrTonemapper::PsychoV35)) {
         return true;
     }
     return params.input == HdrEncoding::Scrgb && params.nits_per_unit != ScrgbNits;
@@ -126,6 +136,8 @@ void HdrConvertPass::Record(const Device& device, Scheduler& scheduler, size_t i
         .peak = params.peak,
         .nits_per_unit = params.nits_per_unit,
         .premultiplied = params.premultiplied ? 1U : 0U,
+        .tonemapper = params.tonemapper,
+        .contrast = params.contrast,
     };
     const VkRenderPass renderpass{*m_renderpass};
     const VkPipeline pipeline{*m_pipeline};

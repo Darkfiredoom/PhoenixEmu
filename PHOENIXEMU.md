@@ -6,7 +6,24 @@ build 117 (`89440b2`) and is now its own emulator. Its main additions: compiled 
 (each shader is compiled once instead of every time you start the game), AMD FSR 4 and FSR 3.1
 upscaling, AMD frame generation, and the community's AMD performance work.
 
-## New in build 25
+## New in build 27
+
+- **RenoDX PsychoV35 HDR tonemapper** (Graphics > HDR Tonemapper, with HDR Contrast): a game's
+  HDR picture through the PsychoV35 tonemapper from [RenoDX](https://github.com/clshortfuse/renodx)
+  by Carlos Lopez (ShortFuse), fitted to HDR Peak Luminance and the display's colours. It works on
+  the game's finished HDR picture, not inside the game as the RenoDX mods do. Native (the
+  default) leaves the picture as before; SDR games are not changed.
+- **Ocarina of Time keeps AMD FSR 3.1/4 and your window filter.** While AMD FSR was starting,
+  the automatic FSR 1 for games without an upscaler mistook Ocarina for another game and
+  switched the window filter to FSR 1 at every launch (Bilinear came back only when the game
+  stopped). Ocarina is never switched now.
+- **Star Fox's docked opening cutscene** gets the upscale repair too (black rectangles;
+  [zortos293/Lichii#1684](https://github.com/zortos293/Lichii/pull/1684), port of #1295 by
+  myshadowww).
+- **No menu clicks from controller presses in a game.** The click now plays only when a menu or
+  dialog uses the press.
+
+Also in this build, from build 25 (which was not released):
 
 Less memory, so games are no longer closed on a Steam Deck (or other PCs with little RAM)
 while they load. Most of this is Tasa's work from [tasarren/Lichii](https://github.com/tasarren/Lichii).

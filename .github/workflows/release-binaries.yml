@@ -119,8 +119,8 @@ jobs:
           - platform: linux-aarch64-pgo
             runner: ubuntu-24.04-arm
             pgo: true
-          - platform: macos-arm64
-            runner: macos-15
+          # macOS (macos-15 runner) is left out: no runner was ever assigned on this account, so
+          # every run waited for it and ended cancelled. Its steps below stay for when it returns.
 
     steps:
       - name: Check out source
@@ -799,10 +799,6 @@ jobs:
           $({
             row "amd64 / x86_64" "$(link zip phoenixemu-windows-x86_64.zip)" "$(link "PGO zip" phoenixemu-windows-x86_64-pgo.zip)" "Both built with clang-cl and ThinLTO; the PGO zip adds a profile trained on Ocarina of Time"
           } | table)
-
-          ## macOS
-
-          $(row "arm64 (Apple Silicon)" "$(link zip phoenixemu-macos-arm64.zip)" "" "macOS 15 or newer. Not notarized: right-click and choose Open the first time, or run \`xattr -dr com.apple.quarantine phoenixemu.app\`. \`phoenixemu-cli\` is inside the app, in \`Contents/MacOS\`" | table)
 
           ${pgo_note}
           EOF

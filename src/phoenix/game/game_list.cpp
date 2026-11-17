@@ -264,6 +264,8 @@ std::vector<std::pair<QString, QString>> ListIconPack() {
     if (const QString appimage = qEnvironmentVariable("APPIMAGE"); !appimage.isEmpty()) {
         folders.append(QFileInfo(appimage).absolutePath() + QStringLiteral("/icon_pack"));
     }
+    // The pack built into the program comes last: the player's own pictures win.
+    folders.append(QStringLiteral(":/icon_pack"));
     for (const QString& folder : folders) {
         const QDir dir{folder};
         for (const QFileInfo& file :

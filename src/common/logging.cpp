@@ -276,7 +276,10 @@ struct FileBackend final : public Backend {
         if (mode == FS::FileAccessMode::Append)
             bytes_written = file->GetSize();
     }
-    ~FileBackend() noexcept override = default;
+    ~FileBackend() noexcept override {
+        stop_flusher = true;
+        flusher.join();
+    }
 
     void Write(const Entry& entry) noexcept override {
         if (!enabled)
@@ -305,12 +308,6 @@ struct FileBackend final : public Backend {
         // Option to log each line rather than 4k buffers
         if (Settings::values.log_flush_line.GetValue())
             file->Flush();
-        // A process killed from outside (out of memory) cannot flush: stay under a second behind.
-        if (entry.timestamp - last_flush >= std::chrono::seconds{1}) {
-            last_flush = entry.timestamp;
-            file->Flush();
-        }
-
         using namespace Common::Literals;
         // Prevent logs from exceeding a set maximum size in the event that log entries are spammed.
         const auto write_limit = Settings::values.extended_logging.GetValue() ? 1_GiB : 100_MiB;
@@ -330,7 +327,16 @@ struct FileBackend final : public Backend {
 private:
     std::optional<FS::IOFile> file;
     std::size_t bytes_written = 0;
-    std::chrono::microseconds last_flush{};
+    // A process killed from outside cannot flush: the file stays under a second behind.
+    std::atomic_bool stop_flusher{};
+    std::thread flusher{[this] {
+        while (!stop_flusher) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{500});
+            if (file) {
+                file->Flush();
+            }
+        }
+    }};
     bool enabled = true;
 };
 #endif

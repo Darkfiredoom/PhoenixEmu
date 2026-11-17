@@ -35,6 +35,7 @@
 #include "phoenix/user_data_migration.h"
 
 #ifdef __unix__
+#include <csignal>
 #include <QDBusObjectPath>
 #include <QSocketNotifier>
 #include <QVariant>
@@ -362,7 +363,7 @@ private:
 
 #ifdef __unix__
     void SetupSigInterrupts();
-    static void HandleSigInterrupt(int);
+    static void HandleSigInterrupt(int, siginfo_t*, void*);
     void OnSigInterruptNotifierActivated();
 #endif
     void SetGamemodeEnabled(bool state);

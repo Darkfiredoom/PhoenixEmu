@@ -2035,6 +2035,8 @@ void MainWindow::ConnectMenuEvents() {
         connect(add_folder, &QAction::triggered, this, &MainWindow::OnGameListAddDirectory);
     }
     connect_menu(ui->action_Exit, &QMainWindow::close);
+    connect(ui->action_Exit, &QAction::triggered, this,
+            [] { LOG_INFO(Frontend, "Exit chosen (menu or hotkey)"); });
     connect_menu(ui->action_Load_Amiibo, &MainWindow::OnLoadAmiibo);
 
     // Emulation
@@ -2391,9 +2393,9 @@ void MainWindow::SetupSigInterrupts() {
     sig_interrupt_fds[2] = 1;
 
     struct sigaction sa;
-    sa.sa_handler = &MainWindow::HandleSigInterrupt;
+    sa.sa_sigaction = &MainWindow::HandleSigInterrupt;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESETHAND;
+    sa.sa_flags = SA_RESETHAND | SA_SIGINFO;
     sigaction(SIGINT, &sa, nullptr);
     sigaction(SIGTERM, &sa, nullptr);
 
@@ -2403,10 +2405,13 @@ void MainWindow::SetupSigInterrupts() {
     connect(this, &MainWindow::SigInterrupt, this, &MainWindow::close);
 }
 
-void MainWindow::HandleSigInterrupt(int sig) {
+static std::atomic<int> sig_interrupt_sender{};
+
+void MainWindow::HandleSigInterrupt(int sig, siginfo_t* info, void*) {
     if (sig == SIGINT) {
         _exit(1);
     }
+    sig_interrupt_sender = info ? static_cast<int>(info->si_pid) : 0;
 
     // Calling into Qt directly from a signal handler is not safe,
     // so wake up a QSocketNotifier with this hacky write call instead.
@@ -2423,6 +2428,27 @@ void MainWindow::OnSigInterruptNotifierActivated() {
     (void)ret;
 
     sig_interrupt_notifier->setEnabled(true);
+
+    // Who asked: a second SIGTERM ends the process at once, so this may be the last word.
+    const int sender = sig_interrupt_sender.load();
+    QFile comm{QStringLiteral("/proc/%1/comm").arg(sender)};
+    const QString name = comm.open(QFile::ReadOnly) ? QString::fromUtf8(comm.readAll()).trimmed()
+                                                    : QStringLiteral("?");
+    LOG_WARNING(Frontend, "SIGTERM from process {} ({}): closing", sender, name.toStdString());
+    // Memory at that moment: a low-memory daemon is the usual sender.
+    for (const char* const path : {"/proc/self/status", "/proc/meminfo"}) {
+        QFile status{QString::fromLatin1(path)};
+        if (!status.open(QFile::ReadOnly)) {
+            continue;
+        }
+        for (const QByteArray& line : status.readAll().split('\n')) {
+            if (line.startsWith("VmRSS") || line.startsWith("VmSwap") ||
+                line.startsWith("MemAvailable") || line.startsWith("SwapFree")) {
+                LOG_WARNING(Frontend, "  {}", line.simplified().toStdString());
+            }
+        }
+    }
+    Common::Log::Stop(); // flush
 
     emit SigInterrupt();
 }
@@ -6749,6 +6775,8 @@ bool MainWindow::ConfirmClose() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    LOG_INFO(Frontend, "Close requested: game running={} pending={} from the system={}",
+             emulation_running, close_pending, event->spontaneous());
     if (!close_pending && !ConfirmClose()) {
         event->ignore();
         return;

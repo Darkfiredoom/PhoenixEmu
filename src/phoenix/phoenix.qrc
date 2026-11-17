@@ -11,4 +11,34 @@ SPDX-License-Identifier: GPL-2.0-or-later
     <qresource prefix="/music">
         <file alias="pokopia_theme.wav">../../dist/menu_music/pokopia_theme.wav</file>
     </qresource>
+    <qresource prefix="/icon_pack">
+        <file alias="Donkey Kong Bananza.png">../../dist/icon_pack/00.png</file>
+        <file alias="Fast Fusion.png">../../dist/icon_pack/01.png</file>
+        <file alias="Fire Emblem Fortunes Weave.png">../../dist/icon_pack/02.png</file>
+        <file alias="Hyrule Warriors Age of Imprisonment.png">../../dist/icon_pack/03.png</file>
+        <file alias="Kirby Air Riders.png">../../dist/icon_pack/04.png</file>
+        <file alias="Kirby and the Forgotten Land - Nintendo Switch 2 Edition.png">../../dist/icon_pack/05.png</file>
+        <file alias="Mario Kart World.png">../../dist/icon_pack/06.png</file>
+        <file alias="Mario Tennis Fever.png">../../dist/icon_pack/07.png</file>
+        <file alias="Metroid Prime 4 Beyond - Nintendo Switch 2 Edition.png">../../dist/icon_pack/08.png</file>
+        <file alias="Nintendo Switch 2 Welcome Tour.png">../../dist/icon_pack/09.png</file>
+        <file alias="Nintendo Switch Sports Resort.png">../../dist/icon_pack/10.png</file>
+        <file alias="Pokémon Legends Z-A - Nintendo Switch 2 Edition.png">../../dist/icon_pack/11.png</file>
+        <file alias="Pokémon Pokopia.png">../../dist/icon_pack/12.png</file>
+        <file alias="Sonic Frontiers DE.png">../../dist/icon_pack/13.png</file>
+        <file alias="Splatoon Raiders.png">../../dist/icon_pack/14.png</file>
+        <file alias="Star Fox.png">../../dist/icon_pack/15.png</file>
+        <file alias="Super Mario Bros. Wonder - Nintendo Switch 2 Edition + Meetup in Bellabel Park.png">../../dist/icon_pack/16.png</file>
+        <file alias="Super Mario Galaxy + Super Mario Galaxy 2.png">../../dist/icon_pack/17.png</file>
+        <file alias="Super Mario Galaxy 2.png">../../dist/icon_pack/18.png</file>
+        <file alias="Super Mario Galaxy.png">../../dist/icon_pack/19.png</file>
+        <file alias="The Legend of Zelda Breath of the Wild - Nintendo Switch 2 Edition.png">../../dist/icon_pack/20.png</file>
+        <file alias="The Legend of Zelda Ocarina of Time.png">../../dist/icon_pack/21.png</file>
+        <file alias="The Legend of Zelda Tears of the Kingdom - Nintendo Switch 2 Edition.png">../../dist/icon_pack/22.png</file>
+        <file alias="Xenoblade Chronicles 2 - Nintendo Switch 2 Edition.png">../../dist/icon_pack/23.png</file>
+        <file alias="Xenoblade Chronicles 3 - Nintendo Switch 2 Edition.png">../../dist/icon_pack/24.png</file>
+        <file alias="Xenoblade Chronicles X Definitive Edition - Nintendo Switch 2 Edition.png">../../dist/icon_pack/25.png</file>
+        <file alias="Xenoblade Chronicles Definitive Edition - Nintendo Switch 2 Edition.png">../../dist/icon_pack/26.png</file>
+        <file alias="Yoshi and the Mysterious Book.png">../../dist/icon_pack/27.png</file>
+    </qresource>
 </RCC>

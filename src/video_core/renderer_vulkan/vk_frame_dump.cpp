@@ -439,7 +439,7 @@ bool FrameDump::RecordSampled(const Sampled& texture, u32 index, std::string nam
     // drawn.
     const size_t size =
         size_t{target->width} * target->height * target->depth * TexelBytes(*target);
-    if (size > size_cap / 16 || sampled_bytes + size > size_cap / 2) {
+    if (size > SIZE_CAP / 16 || sampled_bytes + size > SIZE_CAP / 2) {
         return skip("size");
     }
     if (!Record(*target, std::move(name), std::move(tags))) {

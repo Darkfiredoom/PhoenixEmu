@@ -22,6 +22,25 @@ upscaling, AMD frame generation, and the community's AMD performance work.
   myshadowww).
 - **No menu clicks from controller presses in a game.** The click now plays only when a menu or
   dialog uses the press.
+- **SDR games in HDR** (Graphics, next to the HDR settings): an SDR game's bright parts are
+  expanded up to HDR Peak Luminance on an HDR display. Off by default.
+- **First starts no longer wait for every shader.** After two minutes of building shaders the
+  game starts and the rest build while you play. Ocarina's bundled recipe kept a first start on
+  the loading screen for 15 minutes.
+- **Steam Deck and PCs with little RAM:** Find Best Settings picks RAM Usage Mode Low, asks before
+  building every shader, and leaves frame generation off there. A Steam Deck short of memory gets
+  a one-time note on the UMA frame buffer (BIOS) and swap size.
+- **Fire Emblem: Fortune's Weave no longer faults on AMD** about 8 seconds after boot
+  ([zortos293/Lichii#1752](https://github.com/zortos293/Lichii/pull/1752)).
+- **55 fixes from Lichii build 341**, among them: Ocarina clothes and hair at real speed above
+  60 fps (#1793), no device loss in Ocarina's Castle Town at 1.5x/2x on AMD (#1890), Kirby NS2E
+  fonts and flipped presents (#1930), padded depth targets drawn square (#1868), command lists
+  read from a current copy (#2007), storage buffers capped at the per-stage limit (#1899),
+  Orbitals' compute shader (#2083), safer game file loading (NSO, KIP, NPDM, NCZ, keyblobs) and
+  socket fixes.
+- **The log is now `phoenixemu_log.txt`** (it was `eden_log.txt`), and the Android app is named
+  PhoenixEmu.
+- Release builds are Linux and Windows only: the macOS build never got a machine.
 
 Also in this build, from build 25 (which was not released):
 

@@ -6,6 +6,41 @@ build 117 (`89440b2`) and is now its own emulator. Its main additions: compiled 
 (each shader is compiled once instead of every time you start the game), AMD FSR 4 and FSR 3.1
 upscaling, AMD frame generation, and the community's AMD performance work.
 
+## New in build 25
+
+Less memory, so games are no longer closed on a Steam Deck (or other PCs with little RAM)
+while they load. Most of this is Tasa's work from [tasarren/Lichii](https://github.com/tasarren/Lichii).
+
+- **One CPU code cache shared by all emulated cores** (tasarren/Lichii `29c5fcbd03`,
+  `c200b48613`, with `82445f1a70` and `d64fac954d`). Each of the six cores compiled the game's
+  code into a cache of its own, and about three quarters of it was the same code. Tasa measured
+  800 to 900 MiB less memory in Ocarina of Time, the same or a higher frame rate, and fewer
+  stutters on first loads. It needs the faster x86-64 code generation from
+  [zortos293/Lichii#1531](https://github.com/zortos293/Lichii/pull/1531) (ported from #717 by
+  stephenjayakar), the JIT fault reporting from zortos293/Lichii#1751 and the register
+  allocator from zortos293/Lichii#1517, which come with it. A Paranoid CPU accuracy keeps one
+  cache per core.
+- **Fewer memory pools on Linux** (tasarren/Lichii `82365da10d`): the C library made 8 per CPU
+  core; now 8 in all. 130 to 195 MiB less in Ocarina, same frame rate. Setting
+  `MALLOC_ARENA_MAX` yourself still wins.
+- **Freed memory goes back to the system on Linux** (after tasarren/Lichii `abb0ee2b72`): a
+  minute into a game and every five minutes after, instead of the emulator keeping it.
+- **RAM Usage Mode** (Graphics > Advanced; after tasarren/Lichii `4428bc4683`): how many built
+  shaders stay in memory. Auto picks by installed RAM: High from 32 GB (4,000), Balanced from
+  16 GB (2,000), Low below (1,200, so a Steam Deck). Fewer means less memory, but a place you
+  return to may show brief pop-in while its shaders rebuild.
+- **Shader cache packs made on other GPUs take far less memory while loading.** Ocarina's
+  3.5 GiB pack kept 2.6 GiB of duplicate copies in memory at once; now at most two copies of
+  each shader are kept, and the shader precache holds a quarter as much on PCs with under 16 GB.
+- **Steam Deck: the log says why the emulator closed.** A low-memory watchdog such as earlyoom
+  asks it to quit; the log now names the sender and the memory in use, every close request is
+  logged, and the log no longer loses its last lines. A crash on Linux writes `crash_report.txt`
+  in the log folder, which the next start copies into `eden_log.txt`.
+- **The icon pack and Pokémon Pokopia's title theme are built in**, and pictures for games
+  missing one also download on SteamOS.
+- **Ocarina of Time on RADV** (Steam Deck): mesh-emulation buffers stay alive until the GPU has
+  written them ([zortos293/Lichii#1452](https://github.com/zortos293/Lichii/pull/1452)).
+
 ## New in build 12
 
 - **Dark boxes on water and walls are gone.** Blocky dark (or clear) patches with hard edges
@@ -582,6 +617,9 @@ FSR 4 and FSR frame generation are AMD's
 [FidelityFX SDK 2.4](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) (MIT); the
 shader cache repair is zortos293/Lichii#815 by zortos293 and jpkto; the Ocarina freeze fix and
 the RX 580 thread limit are from [Spikol02/Nyamu](https://github.com/Spikol02/Nyamu); turning
-off the stale upload skip follows [Frizti/Fritchii](https://github.com/Frizti/Fritchii).
+off the stale upload skip follows [Frizti/Fritchii](https://github.com/Frizti/Fritchii); the
+shared CPU code cache, the malloc arena cap, the memory release after loading and RAM Usage Mode
+are by Tasa ([tasarren/Lichii](https://github.com/tasarren/Lichii)), and the x86-64 code
+generation they build on is from stephenjayakar's work, ported in zortos293/Lichii#1531.
 PhoenixEmu started from [Lichii](https://github.com/zortos293/Lichii) by zortos293 and contributors,
 itself built on CheezyEmu by CheezyWheezer, Eglantine, Eden and Sudachi.

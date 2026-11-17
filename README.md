@@ -79,6 +79,8 @@ notices and licenses:
 - Eglantine (original developer Camille LaVey), Eden and Sudachi;
 - [conongnang](https://github.com/conongnang/Lichii)'s AMD performance work,
   [Fritchii](https://github.com/Frizti/Fritchii) and [Nyamu](https://github.com/Spikol02/Nyamu);
+- Tasa's memory work from [tasarren/Lichii](https://github.com/tasarren/Lichii): the shared CPU
+  code cache, the malloc arena cap, the memory release after loading and RAM Usage Mode;
 - AMD's [FidelityFX SDK](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) for FSR and
   frame generation.
 

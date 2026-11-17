@@ -2736,6 +2736,24 @@ void PipelineCache::TickFrame() {
     if (frame_count % EvictCheckFrames == 0) {
         EvictUnusedPipelines();
     }
+#if defined(__linux__) && defined(__GLIBC__)
+    // From tasarren/Lichii abb0ee2b72: the boot load, prebuild and evictions free GBs of
+    // translation data that glibc keeps in its arenas; hand the free pages back. That fork trims
+    // once when its prebuild ends; this prebuild has no end to wait for, so trim a minute in and
+    // every five minutes after. Off the GPU thread: a trim walks every arena.
+    static std::atomic_bool trimming{};
+    if (frame_count >= 3600 && frame_count % 18000 == 3600 && !trimming.exchange(true)) {
+        std::thread([] {
+            const auto start = std::chrono::steady_clock::now();
+            const int released = malloc_trim(0);
+            LOG_INFO(Render_Vulkan, "malloc_trim: released={} in {} ms", released,
+                     std::chrono::duration_cast<std::chrono::milliseconds>(
+                         std::chrono::steady_clock::now() - start)
+                         .count());
+            trimming = false;
+        }).detach();
+    }
+#endif
 }
 
 void PipelineCache::EvictUnusedPipelines() {
@@ -2765,19 +2783,31 @@ void PipelineCache::EvictUnusedPipelines() {
         const char* const value = std::getenv("EDEN_NX2_EVICT_PIPELINES");
         return value && value[0] == '1';
     }();
-    // A PC with 16 GB of RAM keeps half as many: Ocarina with its game memory, video memory
-    // and these leaves it nothing (whole-PC freezes on scene loads, error 1455 crashes), and
-    // 2000 fewer pipelines are about 0.9 GB. The price is a few more 2-3 ms rebuilds on the way
-    // back to a place.
-    static const bool low_memory = Common::GetMemInfo().TotalPhysicalMemory <= (17ULL << 30);
-    static const size_t KeepPipelinesUpTo = low_memory ? 2000 : 4000;
+    // RAM Usage Mode (tasarren/Lichii 4428bc4683, on this cache's own limit): how many stay.
+    // 16 GB with Ocarina's game and video memory left nothing at 4000 (whole-PC freezes on scene
+    // loads, error 1455 crashes); a Steam Deck's 11.5 GiB was ended by its low-memory daemon.
+    // Each is ~0.45 MB; the price of fewer is more 2-3 ms rebuilds on the way back to a place.
+    static const auto [KeepPipelinesUpTo, MaxUnusedPrebuiltPipelines] = [] {
+        const u64 total = Common::GetMemInfo().TotalPhysicalMemory;
+        auto mode = Settings::values.ram_usage_mode.GetValue();
+        if (mode == Settings::RamUsageMode::Auto) {
+            // A "32 GB" PC reports a bit less, so the bounds sit below the nominal sizes.
+            mode = total >= (28ULL << 30)   ? Settings::RamUsageMode::High
+                   : total >= (14ULL << 30) ? Settings::RamUsageMode::Balanced
+                                            : Settings::RamUsageMode::Low;
+        }
+        const auto limits = mode == Settings::RamUsageMode::High       ? std::pair<size_t, size_t>{4000, 2000}
+                            : mode == Settings::RamUsageMode::Balanced ? std::pair<size_t, size_t>{2000, 1000}
+                                                                       : std::pair<size_t, size_t>{1200, 400};
+        LOG_INFO(Render_Vulkan, "RAM usage mode {}: keeping up to {} built graphics pipelines",
+                 Settings::CanonicalizeEnum(mode), limits.first);
+        return limits;
+    }();
     if (!evict_always && graphics_cache.size() <= KeepPipelinesUpTo) {
         return;
     }
     const u64 cutoff = frame_count - EvictAfterFrames;
     const u64 tick = scheduler.CurrentTick();
-    // ~0.9 GB of driver memory at ~0.45 MB each.
-    static const size_t MaxUnusedPrebuiltPipelines = low_memory ? 1000 : 2000;
     size_t kept_prebuilt = 0;
     size_t evicted = 0;
     for (auto it = graphics_cache.begin(); it != graphics_cache.end();) {

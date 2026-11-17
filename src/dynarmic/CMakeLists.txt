@@ -76,6 +76,7 @@ if (MSVC)
         /Zc:externConstexpr # Allows external linkage for variables declared "extern constexpr", as the standard permits.
         /Zc:inline          # Omits inline functions from object-file output.
         /Zc:throwingNew     # Assumes new (without std::nothrow) never returns null.
+        /Zc:preprocessor    # Standard preprocessor (__VA_OPT__ in the x64 A64 emitter).
         /volatile:iso       # Use strict standard-abiding volatile semantics
         /bigobj             # Increase number of sections in .obj files
         /DNOMINMAX

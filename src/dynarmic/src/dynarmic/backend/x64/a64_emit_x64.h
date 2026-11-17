@@ -27,6 +27,12 @@
 
 namespace Dynarmic::Backend::X64 {
 
+/// UserConfig::host_call_return in effect: it needs rsp-free blocks (no %rbp frame, no cycle
+/// counter on the stack).
+inline bool HostCallReturn(const A64::UserConfig& conf) {
+    return conf.host_call_return && conf.omit_block_frame && !conf.enable_cycle_counting;
+}
+
 struct A64EmitContext final : public EmitContext {
     A64EmitContext(const A64::UserConfig& conf, RegAlloc& reg_alloc, IR::Block& block, boost::container::stable_vector<Xbyak::Label>& shared_labels);
 
@@ -52,7 +58,8 @@ public:
 
     void ClearCache() override;
 
-    void InvalidateCacheRanges(const boost::icl::interval_set<u64>& ranges);
+    /// Returns whether a block was dropped.
+    bool InvalidateCacheRanges(const boost::icl::interval_set<u64>& ranges);
 
 //protected:
     struct FastDispatchEntry {
@@ -60,10 +67,10 @@ public:
         const void* code_ptr = nullptr;
     };
     static_assert(sizeof(FastDispatchEntry) == 0x10);
-    static constexpr u64 fast_dispatch_table_mask = 0xFFFFF0;
-    static constexpr size_t fast_dispatch_table_size = 0x100000;
+    static constexpr size_t default_fast_dispatch_table_bits = 20;
+    /// Entries per set when conf.fast_dispatch_set_associative (one 64-byte cache line).
+    static constexpr size_t fast_dispatch_ways = 4;
 
-    void ClearFastDispatchTable();
     void GenMemory128Accessors();
     void GenFastmemFallbacks();
     void GenTerminalHandlers();
@@ -94,7 +101,13 @@ public:
     };
     std::optional<DoNotFastmemMarker> ShouldFastmem(A64EmitContext& ctx, IR::Inst* inst) const;
     void AddFastmemPatch(CodePtr location, CodePtr resume_location, void (*callback)(), const DoNotFastmemMarker& marker, bool recompile);
-    FakeCall FastmemCallback(u64 rip);
+    std::optional<FakeCall> FastmemCallback(u64 rip);
+
+    // The running Jit's objects, loaded from the JIT state so the code serves every Jit
+    ArgCallback JitCallback(const ArgCallback& cb) const;
+    void EmitUserConfigPointer(Xbyak::Reg64 reg);
+    void EmitExclusiveAddressPointer(Xbyak::Reg64 reg);
+    void EmitExclusiveValuePointer(Xbyak::Reg64 reg);
 
     // Memory access helpers
     void EmitCheckMemoryAbort(A64EmitContext& ctx, IR::Inst* inst, Xbyak::Label* end = nullptr);
@@ -116,7 +129,6 @@ public:
     bool EmitTerminal(IR::Term::Terminal const& terminal, IR::LocationDescriptor initial_location, bool is_single_step) noexcept override;
 
     // Patching
-    void Unpatch(const IR::LocationDescriptor& target_desc) override;
     void EmitPatchJg(const IR::LocationDescriptor& target_desc, CodePtr target_code_ptr = nullptr) override;
     void EmitPatchJz(const IR::LocationDescriptor& target_desc, CodePtr target_code_ptr = nullptr) override;
     void EmitPatchJmp(const IR::LocationDescriptor& target_desc, CodePtr target_code_ptr = nullptr) override;
@@ -126,7 +138,33 @@ public:
     const A64::UserConfig conf;
     RegAlloc reg_alloc; //reusable reg alloc
     BlockRangeInformation<u64> block_ranges;
-    std::array<FastDispatchEntry, fast_dispatch_table_size> fast_dispatch_table;
+    /// Entries of each Jit's fast dispatch table (A64JitState::fast_dispatch_table). A Jit clears
+    /// its own when the code cache's epoch moves, so invalidation does not touch them.
+    size_t fast_dispatch_table_size = 0;
+    /// Byte offset mask of a set (or entry) in fast_dispatch_table.
+    u32 fast_dispatch_table_mask = 0;
+    size_t fast_dispatch_set_size = 1;
+    /// EmitA64SetCheckBit left the check bit in ZF for the CheckBit terminal.
+    bool check_bit_in_zf = false;
+    /// host_call_return: the guest return address of the block's BL/BLR, pushed as a host call
+    /// frame right before the terminal.
+    std::optional<IR::LocationDescriptor> call_return_target;
+    void EmitHostCall(const IR::LocationDescriptor& return_target);
+    /// Where the check bit lives: the JIT state with host_call_return, else the stack.
+    Xbyak::Address CheckBitAddress() const;
+
+    // Compact block exits (conf.compact_block_exits): one shared unlinked-exit stub per target
+    // descriptor, created while a block that links to it is emitted, and kept until ClearCache.
+    ::Common::unordered_map<u64, CodePtr> exit_stubs;
+    std::vector<std::pair<u64, Xbyak::Label*>> pending_exit_stubs;
+    bool emitting_block = false;
+    Xbyak::Label* PendingExitStub(const IR::LocationDescriptor& target);
+    void EnsureExitStub(const IR::LocationDescriptor& target);
+    void FlushPendingExitStubs();
+    /// Leaves the block for `target` without linking: stores the PC and returns to the dispatcher.
+    void EmitUnlinkedExit(const IR::LocationDescriptor& target);
+    /// Points the compact exit whose rel32 is at `displacement` to the block, or its exit stub.
+    void RelinkCompactPatch(const u8* displacement, const IR::LocationDescriptor& target_desc, CodePtr target_code_ptr);
     std::vector<FastmemPatchInfo> fastmem_patch_info;  // sorted by rip
     ::Common::unordered_map<std::tuple<bool, size_t, int, int>, void (*)()> read_fallbacks;
     ::Common::unordered_map<std::tuple<bool, size_t, int, int>, void (*)()> write_fallbacks;
@@ -135,7 +173,6 @@ public:
     boost::container::stable_vector<Xbyak::Label> shared_labels;
     const void* terminal_handler_pop_rsb_hint = nullptr;
     const void* terminal_handler_fast_dispatch_hint = nullptr;
-    FastDispatchEntry& (*fast_dispatch_table_lookup)(u64) = nullptr;
     A64::Jit* jit_interface = nullptr;
     void (*memory_read_128)() = nullptr;
     void (*memory_write_128)() = nullptr;

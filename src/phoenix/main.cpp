@@ -20,6 +20,10 @@
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
+#ifdef __GLIBC__
+#include <cstdlib>
+#include <malloc.h>
+#endif
 
 #if defined(__APPLE__)
 #include <climits>
@@ -83,6 +87,13 @@ static Qt::HighDpiScaleFactorRoundingPolicy GetHighDpiRoundingPolicy() {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef __GLIBC__
+    // From tasarren/Lichii 82365da10d: 8 malloc arenas before any thread starts (OoT: 130-195 MiB
+    // less memory, same fps); glibc otherwise makes 8 per core. A player's MALLOC_ARENA_MAX wins.
+    if (!std::getenv("MALLOC_ARENA_MAX")) {
+        mallopt(M_ARENA_MAX, 8);
+    }
+#endif
     LoadNx2Switches(argv[0]);
 #if PHOENIX_ROOM
     bool launch_room = false;

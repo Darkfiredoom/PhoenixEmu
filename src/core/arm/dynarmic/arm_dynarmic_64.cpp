@@ -22,6 +22,11 @@ namespace Core {
 
 using namespace Common::Literals;
 
+namespace {
+// Code invalidations of any core: each core's cached code page is stale after one.
+std::atomic<u64> g_code_invalidations{0};
+} // Anonymous namespace
+
 DynarmicCallbacks64::DynarmicCallbacks64(ArmDynarmic64& parent, Kernel::KProcess* process)
     : m_parent{parent}, m_memory(process->GetMemory())
     , m_process(process), m_debugger_enabled{parent.m_system.DebuggerEnabled()}
@@ -58,9 +63,11 @@ std::optional<u32> DynarmicCallbacks64::MemoryReadCode(u64 vaddr) {
     if (!m_memory.IsValidVirtualAddressRange(vaddr, sizeof(u32)))
         return std::nullopt;
     auto const aligned_vaddr = vaddr & ~Core::Memory::PHOENIX_PAGEMASK;
-    if (last_code_addr != aligned_vaddr) {
+    const u64 invalidations = g_code_invalidations.load(std::memory_order_acquire);
+    if (last_code_addr != aligned_vaddr || code_invalidations != invalidations) {
         m_memory.ReadBlock(aligned_vaddr, &cached_code_page, sizeof(cached_code_page));
         last_code_addr = aligned_vaddr;
+        code_invalidations = invalidations;
     }
     const u32 instruction = cached_code_page.inst[(vaddr & Core::Memory::PHOENIX_PAGEMASK) / sizeof(u32)];
     if (WindowTrace::Enabled() && m_process->GetProgramId() == WindowTrace::ProgramId) {
@@ -456,6 +463,54 @@ void ArmDynarmic64::MakeJit(Common::PageTable* page_table, std::size_t address_s
         config.fastmem_pointer = std::nullopt;
         config.fastmem_exclusive_access = false;
     }
+#if defined(ARCHITECTURE_x86_64)
+    // x86-64 host code generation options; Paranoid keeps dynarmic's defaults.
+    if (Settings::values.cpu_accuracy.GetValue() != Settings::CpuAccuracy::Paranoid) {
+        // The JIT spilled ~9% of its instructions to stack slots in Ocarina of Time's hot code
+        // while callee-saved GPRs sat empty: evictions go to a free callee-saved GPR first, and an
+        // operand that is overwritten but still needed is copied to a free register instead.
+        config.spill_to_free_gpr = true;
+        config.scratch_copy_to_free_reg = true;
+        // W-register writes and zero-extends of values a 32-bit instruction produced skip the
+        // second `mov r32, r32`.
+        config.elide_redundant_zext = true;
+        // ldr/str [xN, #imm]: the immediate goes into the fastmem addressing mode instead of a
+        // separate LEA (and often a register copy).
+        config.fold_address_offsets = true;
+        // The per-block %rbp frame is three instructions per block that nothing reads.
+        config.omit_block_frame = true;
+        // Fast dispatch table of 2^16 entries, 4-way set associative: 1 MiB per core instead of
+        // the 16 MiB direct-mapped 2^20 table.
+        config.fast_dispatch_table_bits = 16;
+        config.fast_dispatch_set_associative = true;
+        // A 32-entry return stack buffer: returns from deeper call chains skip the dispatcher.
+        config.rsb_size = 32;
+        // Unlinked exits jump to one shared stub per target: 5/6-byte patch sites instead of
+        // 22/23 bytes plus an inline exit stub.
+        config.compact_block_exits = true;
+        // Fault/abort paths, atomic fallbacks and exit stubs go to a cold region at the end of
+        // the code cache, so hot blocks sit densely.
+        config.far_code = true;
+        // Branches, CSEL and CBZ/TBZ read the host flags left by the instruction before them
+        // instead of reloading NZCV from the guest state.
+        config.reuse_host_flags = !config.enable_cycle_counting;
+        // Halt checks on links to lower PCs and on indirect branches instead of every linked
+        // branch (multicore only: dynarmic counts no cycles there).
+        config.halt_check_on_back_edges = !config.enable_cycle_counting;
+        // BL/BLR as host calls and RET as a host return checked against the guest return
+        // address: the CPU's return predictor predicts guest returns instead of one shared
+        // indirect jump through the return stack buffer (multicore only, no cycle counter).
+        config.host_call_return = !config.enable_cycle_counting;
+        // One code cache for all cores of the process: a block is compiled once, not per core
+        // (72-74% of the six caches' code was duplicated in Ocarina of Time). 1 GiB of address
+        // space, committed as used.
+        if (m_shared_code_cache && config.host_call_return && page_table &&
+            !config.check_halt_on_memory_access) {
+            config.shared_code_cache = m_shared_code_cache;
+            config.code_cache_size = std::uint32_t(1_GiB);
+        }
+    }
+#endif
     m_jit.emplace(config);
 }
 
@@ -493,10 +548,11 @@ void ArmDynarmic64::RewindBreakpointInstruction() {
     this->SetContext(m_breakpoint_context);
 }
 
-ArmDynarmic64::ArmDynarmic64(System& system, bool uses_wall_clock, Kernel::KProcess* process, DynarmicExclusiveMonitor& exclusive_monitor, std::size_t core_index)
+ArmDynarmic64::ArmDynarmic64(System& system, bool uses_wall_clock, Kernel::KProcess* process, DynarmicExclusiveMonitor& exclusive_monitor, std::size_t core_index, std::shared_ptr<Dynarmic::A64::SharedCodeCache> shared_code_cache)
     : ArmInterface{uses_wall_clock}, m_system{system}, m_exclusive_monitor{exclusive_monitor}
     , m_cb(std::make_optional<DynarmicCallbacks64>(*this, process))
     , m_core_index{core_index}
+    , m_shared_code_cache{std::move(shared_code_cache)}
 {
     auto& page_table = process->GetPageTable().GetBasePageTable();
     auto& page_table_impl = page_table.GetImpl();
@@ -551,6 +607,7 @@ void ArmDynarmic64::SignalInterrupt(Kernel::KThread* thread) {
 
 void ArmDynarmic64::ClearInstructionCache() {
     m_cb->last_code_addr = u64(-1);
+    g_code_invalidations.fetch_add(1, std::memory_order_release);
     m_jit->ClearCache();
 }
 
@@ -559,6 +616,7 @@ void ArmDynarmic64::InvalidateCacheRange(u64 addr, std::size_t size) {
     // otherwise still decode the old instructions (e.g. a gdbstub breakpoint written
     // into or removed from that page).
     m_cb->last_code_addr = u64(-1);
+    g_code_invalidations.fetch_add(1, std::memory_order_release);
     m_jit->InvalidateCacheRange(addr, size);
 }
 

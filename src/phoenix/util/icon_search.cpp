@@ -216,6 +216,19 @@ HttpResult HttpGet(const std::string& full_url, std::chrono::steady_clock::time_
         client.set_follow_location(true);
 #ifdef PHOENIX_BUNDLED_OPENSSL
         client.load_ca_cert_store(kCert, sizeof(kCert));
+#elif !defined(_WIN32)
+        // As in Common::Net::Fetch: an AppImage's OpenSSL looks for certificates where the build
+        // machine kept them, so SteamOS failed with "SSL server verification failed".
+        for (const char* const bundle : {"/etc/ssl/certs/ca-certificates.crt",
+                                         "/etc/pki/tls/certs/ca-bundle.crt",
+                                         "/etc/ssl/ca-bundle.pem", "/etc/ssl/cert.pem",
+                                         "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"}) {
+            std::error_code error;
+            if (std::filesystem::exists(bundle, error)) {
+                client.set_ca_cert_path(bundle);
+                break;
+            }
+        }
 #endif
         httplib::Headers headers{{"User-Agent", "PhoenixEmu"}};
         if (!bearer_token.empty()) {

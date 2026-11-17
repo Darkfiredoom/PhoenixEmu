@@ -258,8 +258,13 @@ std::vector<std::pair<QString, QString>> ListIconPack() {
     std::vector<std::pair<QString, QString>> pack;
     const QString user_dir = QString::fromStdString(Common::FS::PathToUTF8String(
         Common::FS::GetEdenPath(Common::FS::EdenPath::EdenDir) / "icon_pack"));
-    for (const QString& folder :
-         {user_dir, QString{QCoreApplication::applicationDirPath() + QStringLiteral("/icon_pack")}}) {
+    QStringList folders{
+        user_dir, QString{QCoreApplication::applicationDirPath() + QStringLiteral("/icon_pack")}};
+    // An AppImage runs from a read-only mount: the folder next to the .AppImage file counts.
+    if (const QString appimage = qEnvironmentVariable("APPIMAGE"); !appimage.isEmpty()) {
+        folders.append(QFileInfo(appimage).absolutePath() + QStringLiteral("/icon_pack"));
+    }
+    for (const QString& folder : folders) {
         const QDir dir{folder};
         for (const QFileInfo& file :
              dir.entryInfoList({QStringLiteral("*.png"), QStringLiteral("*.jpg"),

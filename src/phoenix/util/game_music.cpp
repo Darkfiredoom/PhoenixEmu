@@ -666,25 +666,44 @@ std::mutex song_pool_mutex;
 SongPool song_pool;
 
 std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program_id) {
-    if (auto cached = ReadCache(program_id)) {
-        return cached;
-    }
-    auto track = std::make_shared<Track>();
-    track->program_id = program_id;
-
     // Check for custom user-provided theme file first (.bwav or .wav)
     const auto music_dir = Common::FS::GetEdenPath(Common::FS::EdenPath::CacheDir) / "menu_music";
     const auto custom_bwav = music_dir / fmt::format("{:016X}.bwav", program_id);
     const auto custom_wav = music_dir / fmt::format("{:016X}.wav", program_id);
     std::error_code ec;
+#ifdef _WIN32
+    const auto app_dir = Common::FS::GetExeDirectory();
+#else
+    // An AppImage runs from a read-only mount: the folder of the .AppImage file counts.
+    const char* const appimage = std::getenv("APPIMAGE");
+    const auto app_dir = std::filesystem::path{appimage ? appimage : ""}.parent_path();
+#endif
+    const auto pokopia_theme = app_dir / "pokopia_theme.wav";
+
+    // A theme file added after the track was cached replaces the cached track.
+    const auto newer_than_cache = [&](const std::filesystem::path& file) {
+        const auto added = std::filesystem::last_write_time(file, ec);
+        if (ec) {
+            return false;
+        }
+        const auto cached = std::filesystem::last_write_time(CachePath(program_id), ec);
+        return ec || added > cached;
+    };
+    const bool user_file = newer_than_cache(custom_bwav) || newer_than_cache(custom_wav) ||
+                           (program_id == 0x0400A3A01EE4C000 && newer_than_cache(pokopia_theme));
+    if (!user_file) {
+        if (auto cached = ReadCache(program_id)) {
+            return cached;
+        }
+    }
+    auto track = std::make_shared<Track>();
+    track->program_id = program_id;
 
     // Check specific OST file sources for Pokémon Pokopia
     if (program_id == 0x0400A3A01EE4C000) {
         const std::vector<std::filesystem::path> pokopia_candidates = {
             custom_wav,
-#ifdef _WIN32
-            Common::FS::GetExeDirectory() / "pokopia_theme.wav",
-#endif
+            pokopia_theme,
             std::filesystem::current_path(ec) / "pokopia_theme.wav",
             std::filesystem::path("C:/Users/16789/Downloads/Title Screen Theme - Pokémon Pokopia [OST].mp3"),
         };

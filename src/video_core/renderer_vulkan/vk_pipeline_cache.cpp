@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <atomic>
+#if defined(__linux__) && defined(__GLIBC__)
+#include <malloc.h>
+#endif
 #include <chrono>
 #include <cstddef>
 #include <fstream>
@@ -812,8 +815,15 @@ std::unordered_map<u64, u8> LoadUsedPipelines(const std::filesystem::path& path,
 constexpr size_t MaxPipelinesWithoutUsedList = 3000;
 
 // Captured environments the shader precache holds for skipped graphics pipelines; the rest wait
-// for a later precache.
-constexpr size_t PrecacheCaptureLimit = size_t{1} << 30;
+// for a later precache. A quarter of that under 16 GiB of RAM (a Steam Deck's low-memory daemon
+// ended the program while a game loaded).
+const size_t PrecacheCaptureLimit =
+    Common::GetMemInfo().TotalPhysicalMemory < (u64{15} << 30) ? size_t{256} << 20 : size_t{1} << 30;
+
+// Records of one pipeline kept at load. A shader pack made on other drivers stores each pipeline
+// under many keys: Ocarina's 3.5 GiB cache held 2.6 GiB of such copies in memory at once. They are
+// only fallbacks for a newer record that fails to load.
+constexpr size_t MaxRecordsPerPipeline = 2;
 
 // EDEN_NX2_PRELOAD_ALL_PIPELINES=1 builds every cached pipeline at boot, as before.
 bool PreloadAllPipelines() {
@@ -1272,7 +1282,12 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
             ++shared_pipeline_records;
             shared_pipeline_bytes += record.end - record.begin;
         }
-        graphics_records[it->second].second.push_back(std::move(envs));
+        GraphicsRecords& records = graphics_records[it->second].second;
+        if (records.size() >= MaxRecordsPerPipeline) {
+            // Read oldest first: the oldest goes.
+            records.erase(records.begin());
+        }
+        records.push_back(std::move(envs));
     }};
     const auto queue_graphics{[&](const GraphicsPipelineCacheKey& key, GraphicsRecords records) {
         const u64 hash = key.Hash();
@@ -1335,6 +1350,10 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
     }
     graphics_records.clear();
     graphics_record_index.clear();
+#if defined(__linux__) && defined(__GLIBC__)
+    // The records just dropped were many small blocks, which glibc keeps for itself otherwise.
+    malloc_trim(0);
+#endif
     for (auto& [key, candidates] : compute_envs) {
         OrderComputeTranslations(candidates);
         queue_compute(key, std::move(candidates));

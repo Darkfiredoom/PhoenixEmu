@@ -2443,7 +2443,9 @@ void MainWindow::OnSigInterruptNotifierActivated() {
         }
         for (const QByteArray& line : status.readAll().split('\n')) {
             if (line.startsWith("VmRSS") || line.startsWith("VmSwap") ||
-                line.startsWith("MemAvailable") || line.startsWith("SwapFree")) {
+                line.startsWith("Rss") || line.startsWith("MemTotal") ||
+                line.startsWith("MemAvailable") || line.startsWith("Shmem:") ||
+                line.startsWith("SwapTotal") || line.startsWith("SwapFree")) {
                 LOG_WARNING(Frontend, "  {}", line.simplified().toStdString());
             }
         }

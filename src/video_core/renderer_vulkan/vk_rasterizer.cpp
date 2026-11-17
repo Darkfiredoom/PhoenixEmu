@@ -2910,7 +2910,7 @@ void RasterizerVulkan::InnerInvalidation(std::span<const std::pair<DAddr, std::s
             texture_cache.WriteMemory(addr, size);
         }
     }
-    if (Settings::values.skip_cpu_inner_invalidation.GetValue()) {
+    if (Settings::SkipCpuInnerInvalidation()) {
         return;
     }
     {

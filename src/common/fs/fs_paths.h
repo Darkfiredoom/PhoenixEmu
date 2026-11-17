@@ -44,6 +44,6 @@
 #define RYUJINX_DIR "Ryujinx"
 
 // phoenix-specific files
-#define LOG_FILE "eden_log.txt"
+#define LOG_FILE "phoenixemu_log.txt"
 #define LOSSLESS_DLL_FILE "Lossless.dll"
 #define LOSSLESS_CACHE_FILE "lsfg_spirv.cache"

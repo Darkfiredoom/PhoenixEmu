@@ -3277,16 +3277,16 @@ std::pair<const char*, const char*> RasterizerVulkan::UpscalerIdleReason() const
     if (why.find("camera") != std::string_view::npos) {
         return {"NO CAMERA", "FSR found no 3D camera in the game's frames, so it can't upscale "
                              "them. Normal in menus, cutscenes and loading screens. If it stays "
-                             "during gameplay, please send eden_log.txt: its \"Ocarina FSR: no "
+                             "during gameplay, please send phoenixemu_log.txt: its \"Ocarina FSR: no "
                              "scene camera\" lines say why."};
     }
     if (why.find("depth") != std::string_view::npos) {
         return {"NO DEPTH", "FSR found no depth image for the game's 3D scene this frame. If it "
-                            "stays during gameplay, please send eden_log.txt."};
+                            "stays during gameplay, please send phoenixemu_log.txt."};
     }
     if (why == "FSR preset pass sizes didn't fit") {
         return {"PRESET SIZE", "The FSR preset's scene didn't fit the image FSR writes. Try "
-                               "another preset, and please send eden_log.txt (its \"FSR preset: "
+                               "another preset, and please send phoenixemu_log.txt (its \"FSR preset: "
                                "pass not taken\" lines give the sizes)."};
     }
     return {"WAITING", "Waiting for gameplay: menus, cutscenes and loading screens are drawn "

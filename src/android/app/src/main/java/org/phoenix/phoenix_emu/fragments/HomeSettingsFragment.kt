@@ -472,14 +472,14 @@ class HomeSettingsFragment : Fragment() {
             mainActivity,
             DocumentsContract.buildDocumentUri(
                 DocumentProvider.AUTHORITY,
-                "${DocumentProvider.ROOT_ID}/log/eden_log.txt"
+                "${DocumentProvider.ROOT_ID}/log/phoenixemu_log.txt"
             )
         )!!
         val oldLog = DocumentFile.fromSingleUri(
             mainActivity,
             DocumentsContract.buildDocumentUri(
                 DocumentProvider.AUTHORITY,
-                "${DocumentProvider.ROOT_ID}/log/eden_log.txt.old.txt"
+                "${DocumentProvider.ROOT_ID}/log/phoenixemu_log.txt.old.txt"
             )
         )!!
 

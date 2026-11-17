@@ -1069,7 +1069,7 @@ void Device::ReportLoss() const {
     if (GetDriverID() == VK_DRIVER_ID_MESA_RADV) {
         LOG_CRITICAL(Render_Vulkan, "Linux (RADV): to capture this GPU hang, start PhoenixEmu with "
                                     "RADV_DEBUG=hang and share the folder it writes "
-                                    "(~/radv_dumps_*) with eden_log.txt");
+                                    "(~/radv_dumps_*) with phoenixemu_log.txt");
     }
     Common::Log::Stop(); // flush before the driver takes the process down
 

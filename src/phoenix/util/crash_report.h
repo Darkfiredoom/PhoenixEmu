@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Windows crash report: when PhoenixEmu crashes, eden_log.txt gets the exception and the module and
+// Windows crash report: when PhoenixEmu crashes, phoenixemu_log.txt gets the exception and the module and
 // offset it happened at (match the offset with the release's phoenixemu-*-map.zip), and a minidump
 // goes to <data>/crash_dumps. Without it a crash just ended the log mid-line.
 //
 // Linux: a fatal signal writes the signal, fault address, memory use and a backtrace (module and
 // offset per frame) to <log dir>/crash_report.txt and flushes the log. The next start copies the
-// report into eden_log.txt. A run that ended with neither was killed from outside (out of memory).
+// report into phoenixemu_log.txt. A run that ended with neither was killed from outside (out of memory).
 
 #pragma once
 

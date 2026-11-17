@@ -739,22 +739,32 @@ jobs:
           if [[ -n "$has_pgo" ]]; then
             pgo_note="The PGO builds are the same programs compiled with profile-guided optimization. Linux uses clang with Eglantine's profile; Windows uses clang-cl and ThinLTO with a profile trained in PhoenixEmu on Ocarina of Time, so other games gain less. Prefer them when your CPU supports it."
           fi
-          # "What's new": the commits since the newest earlier release built from another commit
-          # (a main build and a test build of the same commit would otherwise list nothing).
+          # "What's new": the commits since the nearest earlier build. Older releases are deleted
+          # but their tags stay, so this goes by tags: the build or test tag this commit is the
+          # fewest commits ahead of (a tag on this same commit is 0 ahead and does not count).
           whats_new=""
           : > changes.md
-          for prev in $(gh release list --repo "${GITHUB_REPOSITORY}" --limit 10 \
-                          --json tagName --jq '.[].tagName' || true); do
+          best=""
+          best_ahead=0
+          for prev in $(gh api "repos/${GITHUB_REPOSITORY}/tags?per_page=60" --jq '.[].name' || true); do
+            case "$prev" in test-*|build-*) ;; *) continue ;; esac
             [ "$prev" = "$tag" ] && continue
-            changes=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${prev}...${GITHUB_SHA}" \
+            ahead=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${prev}...${GITHUB_SHA}" \
+                --jq 'if .status == "ahead" then .ahead_by else 0 end' || echo 0)
+            if [ "${ahead:-0}" -gt 0 ] && { [ -z "$best" ] || [ "$ahead" -lt "$best_ahead" ]; }; then
+              best="$prev"
+              best_ahead="$ahead"
+            fi
+          done
+          if [ -n "$best" ]; then
+            changes=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${best}...${GITHUB_SHA}" \
                 --jq '.commits[] | "- " + (.commit.message | split("\n")[0]) + " (" + .sha[0:7] + ")"' |
               grep -v '^- Merge ' | tail -n 40 || true)
             if [ -n "$changes" ]; then
               echo "$changes" > changes.md
-              whats_new="## What's new since ${prev}"$'\n\n'"${changes}"
-              break
+              whats_new="## What's new since ${best}"$'\n\n'"${changes}"
             fi
-          done
+          fi
 
           cat > notes.md <<EOF
           Automatic build of \`${GITHUB_REF_NAME}\` at ${GITHUB_SHA}.

@@ -22,6 +22,7 @@
 #include "phoenix/applets/qt_profile_select.h"
 #include "phoenix/main_window.h"
 #include "phoenix/util/controller_navigation.h"
+#include "phoenix/util/menu_sounds.h"
 
 namespace {
 QString FormatUserEntryText(const QString& username, Common::UUID uuid) {
@@ -104,6 +105,7 @@ QtProfileSelectionDialog::QtProfileSelectionDialog(
                 if (!this->isActiveWindow()) {
                     return;
                 }
+                MenuSounds::Click();
                 QKeyEvent* event = new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier);
                 QCoreApplication::postEvent(tree_view, event);
                 SelectUser(tree_view->currentIndex());

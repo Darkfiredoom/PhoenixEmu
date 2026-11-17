@@ -27,6 +27,7 @@
 #include "phoenix/configuration/input_profiles.h"
 #include "phoenix/main_window.h"
 #include "phoenix/util/controller_navigation.h"
+#include "phoenix/util/menu_sounds.h"
 
 namespace {
 
@@ -221,6 +222,10 @@ QtControllerSelectorDialog::QtControllerSelectorDialog(
 
     connect(controller_navigation, &ControllerNavigation::TriggerKeyboardEvent,
             [this](Qt::Key key) {
+                if (!this->isActiveWindow()) {
+                    return;
+                }
+                MenuSounds::Click();
                 QKeyEvent* event = new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier);
                 QCoreApplication::postEvent(this, event);
             });

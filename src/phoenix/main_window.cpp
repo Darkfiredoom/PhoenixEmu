@@ -4948,6 +4948,10 @@ bool MainWindow::question(QWidget* parent, const QString& title, const QString& 
         new ControllerNavigation(QtCommon::system->HIDCore(), box_dialog);
     connect(controller_navigation, &ControllerNavigation::TriggerKeyboardEvent,
             [box_dialog](Qt::Key key) {
+                if (!box_dialog->isActiveWindow()) {
+                    return;
+                }
+                MenuSounds::Click();
                 QKeyEvent* event = new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier);
                 QCoreApplication::postEvent(box_dialog, event);
             });

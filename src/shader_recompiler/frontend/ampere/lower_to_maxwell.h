@@ -2501,8 +2501,9 @@ inline LoweredProgram LowerToMaxwellWith(std::span<const Instruction> code, u32 
             const u32 source_a = insn.Bits(24, 8), source_b = insn.Bits(32, 8);
             const u32 binding = insn.Bits(54, 5), dimension = insn.Bits(61, 3);
             // Coordinates: all from Ra when Rb is RZ, else split as for TEX (2D: Ra, Rb).
-            constexpr std::array<u32, 4> coordinate_count{1, 2, 3, 3};
-            const u32 coordinates = dimension < 4 ? coordinate_count[dimension] : 0;
+            constexpr std::array<u32, 8> coordinate_count{1, 2, 3, 3, 2, 3, 4, 0};
+            constexpr std::array<u32, 8> maxwell_type{0, 2, 4, 6, 1, 3, 7, 0};
+            const u32 coordinates = dimension < 7 ? coordinate_count[dimension] : 0;
             const u32 in_a = source_b == 255 || opcode == 0x36a ? coordinates : (coordinates + 1) / 2;
             if (coordinates == 0 || insn.Bits(76, 4) || insn.Bits(80, 10) || mask == 0 ||
                 insn.Bits(59, 1) != (opcode == 0x36a ? 1U : 0U) || source_a + in_a > 246 ||
@@ -2518,7 +2519,7 @@ inline LoweredProgram LowerToMaxwellWith(std::span<const Instruction> code, u32 
                      (u64{i < in_a ? source_a + i : source_b + (i - in_a)} << 20));
             if (bindless) emit(0x5c98000000000000ULL | predicate | 246 | (u64{15} << 39) | (u64{handle} << 20));
             emit((bindless ? 0xdf60000000000000ULL : 0xdf58000000000000ULL) | predicate | 250 | (u64{250} << 8) |
-                 (u64{bindless ? 246U : 255U} << 20) | (u64{dimension * 2} << 28) | (u64{mask} << 31) |
+                 (u64{bindless ? 246U : 255U} << 20) | (u64{maxwell_type[dimension]} << 28) | (u64{mask} << 31) |
                  (u64{bindless ? 0U : insn.Bits(40, 14)} << 36) | (u64{insn.Bits(90, 1)} << 49));
             const u32 components = static_cast<u32>(std::popcount(mask));
             const bool split = second_dest != 255;
@@ -3041,6 +3042,14 @@ inline LoweredProgram LowerToMaxwellWith(std::span<const Instruction> code, u32 
             // a[0x5c] has no Maxwell meaning (Ampere uses it for a per-primitive hint such as the
             // shading rate). Nothing reads it back; dropping the store keeps full-rate shading.
             if (opcode == 0x322 && address == 0x5c && components == 1) break;
+            if (opcode == 0x321 && address == 0x5c) {
+                for (u32 i = 0; i < components; ++i) {
+                    if (dest != 255) {
+                        mov_imm(static_cast<u32>(dest) + i, 0);
+                    }
+                }
+                break;
+            }
             u32 value_reg = opcode == 0x321 ? static_cast<u32>(dest) : insn.Bits(32, 8);
             if (value_reg == 255) {
                 if (opcode == 0x321) break; // load into RZ: nothing to do
@@ -3695,7 +3704,7 @@ inline LoweredProgram LowerToMaxwellWith(std::span<const Instruction> code, u32 
                 const bool carry_in = insn.Bits(74, 1) != 0;
                 const u32 carry_out = insn.Bits(81, 3);
                 const u32 a = insn.Bits(24, 8);
-                if ((carry_in && carry_out != 7) || (opcode == 0x210 && (insn.words[1] & ~0xffU)))
+                if ((!rewritten_uniform && opcode == 0x210 && (insn.words[1] & ~0xffU)))
                     return fail(index, "native integer carry mode");
                 if (opcode == 0x810) {
                     emit(0x1c00000000000000ULL | predicate | 250 | (u64{a} << 8) | (u64{insn.words[1]} << 20));
@@ -3729,7 +3738,23 @@ inline LoweredProgram LowerToMaxwellWith(std::span<const Instruction> code, u32 
                 emit(0x5ca0000000000000ULL | predicate | 251 | (u64{252} << 8) | (u64{255} << 20) |
                      (u64{source} << 39) | (u64{insn.Bits(90, 1)} << 42));
                 if (rewritten_uniform && condition != 7) restore(mask);
-                emit(base(0x5c10000000000000ULL) | (u64{250} << 8) | (u64{251} << 20));
+                if (carry_out == 7) {
+                    emit(base(0x5c10000000000000ULL) | (u64{250} << 8) | (u64{251} << 20));
+                    break;
+                }
+                const u32 target = rewritten_uniform ? 6 - carry_out : carry_out;
+                const u32 out_mask = 1U << target;
+                if (rewritten_uniform) save(out_mask);
+                emit(0x5b60000000000000ULL | predicate | 7 | (u64{target} << 3) | (u64{250} << 8) |
+                     (u64{a} << 20) | (u64{7} << 39) | (u64{1} << 49));
+                emit(0x5c10000000000000ULL | predicate | 252 | (u64{250} << 8) | (u64{251} << 20));
+                emit(0x5b60000000000000ULL | predicate | 7 | (u64{target} << 3) | (u64{252} << 8) |
+                     (u64{250} << 20) | (u64{target} << 39) | (u64{1} << 45) | (u64{1} << 49));
+                if (rewritten_uniform) {
+                    emit(0x38e8000000070000ULL | 239 | (u64{239} << 8) | (u64{out_mask} << 20));
+                    restore(out_mask);
+                }
+                emit(base(0x5c98000000000000ULL) | (u64{15} << 39) | (u64{252} << 20));
                 break;
             }
             // Three sources, negations or two carries: the sum builds up in R253 (.CC) with the carry

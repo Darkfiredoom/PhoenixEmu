@@ -220,6 +220,8 @@ private:
     void SaveOcarinaHudless();
     void SaveOcarinaPreHud(VkImage source, VkFormat format, VkExtent2D extent);
 #endif
+    /// Remembers render target 0 of a draw that can hold Ocarina of Time's tonemapped image.
+    void TrackOotTonemappedImage();
     bool TryNx2IndirectReset(bool is_indexed, u32 instance_count);
 
     void FlushWork();

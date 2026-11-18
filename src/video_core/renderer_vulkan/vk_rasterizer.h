@@ -216,8 +216,6 @@ private:
     void CaptureIndirectTrace();
     void CollectIndirectTrace();
     void TraceDrawFailure(std::string_view reason);
-    /// Remembers render target 0 of a draw with one of Ocarina of Time's tonemap shaders.
-    void TrackOotTonemappedImage(const GraphicsPipeline& pipeline);
 #ifdef NX2_OCARINA_UPSCALE
     void SaveOcarinaHudless();
     void SaveOcarinaPreHud(VkImage source, VkFormat format, VkExtent2D extent);

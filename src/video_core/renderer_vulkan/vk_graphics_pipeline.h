@@ -458,9 +458,9 @@ private:
 
 private:
 
-    vk::DescriptorSetLayout descriptor_set_layout;
+    VkDescriptorSetLayout descriptor_set_layout{}; ///< Owned by the PipelineLayoutCache
     DescriptorAllocator descriptor_allocator;
-    vk::PipelineLayout pipeline_layout;
+    VkPipelineLayout pipeline_layout{}; ///< Owned by the PipelineLayoutCache
     vk::DescriptorUpdateTemplate descriptor_update_template;
     vk::Pipeline pipeline;
 

@@ -194,6 +194,14 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
     m_addButton->setCursor(Qt::PointingHandCursor);
     m_addButton->setToolTip(tr("Add a folder with games"));
     connect(m_addButton, &QPushButton::clicked, this, &GameCarousel::AddDirectoryRequested);
+    m_userButton = new QPushButton(viewport());
+    m_userButton->setObjectName(QStringLiteral("HomeUserButton"));
+    m_userButton->setCursor(Qt::PointingHandCursor);
+    m_userButton->setToolTip(tr("Switch user"));
+    m_userButton->setVisible(false);
+    connect(m_userButton, &QPushButton::clicked, this, [this] {
+        emit UserMenuRequested(m_userButton->mapToGlobal(QPoint(0, m_userButton->height())));
+    });
     // Console hero play button: launches the picked game directly
     m_playButton = new QPushButton(tr("▶  Play Game"), viewport());
     m_playButton->setObjectName(QStringLiteral("HomeHeroPlayButton"));
@@ -295,6 +303,15 @@ void GameCarousel::resizeEvent(QResizeEvent* event) {
     }
 }
 
+void GameCarousel::SetUserName(const QString& name) {
+    if (m_userButton == nullptr) {
+        return;
+    }
+    m_userButton->setText(QStringLiteral("☺  %1  ▾").arg(name));
+    m_userButton->setVisible(!name.isEmpty());
+    PlaceAddButton();
+}
+
 void GameCarousel::PlaceAddButton() {
     if (m_addButton == nullptr) {
         return;
@@ -305,6 +322,13 @@ void GameCarousel::PlaceAddButton() {
     const QPoint place{viewport()->width() - 40 - m_addButton->width(), clock_bottom};
     if (m_addButton->pos() != place) {
         m_addButton->move(place);
+    }
+    if (m_userButton != nullptr && m_userButton->isVisible()) {
+        m_userButton->adjustSize();
+        const QPoint user_place{place.x() - 10 - m_userButton->width(), clock_bottom};
+        if (m_userButton->pos() != user_place) {
+            m_userButton->move(user_place);
+        }
     }
     if (m_playButton != nullptr) {
         const bool has_game = currentIndex().isValid();

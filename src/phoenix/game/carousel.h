@@ -26,12 +26,16 @@ public:
     void SetModel(GameListModel* model);
     void ApplyFilter(const QString& edit_filter_text, GameListModel* model);
     void UpdateIconSize();
+    /// The name on the home view's user button.
+    void SetUserName(const QString& name);
 
     QModelIndex indexAt(const QPoint& point) const override;
 
 signals:
     /// The home view's "+ Add games" button.
     void AddDirectoryRequested();
+    /// The home view's user button: the user menu opens at this global position.
+    void UserMenuRequested(const QPoint& global_pos);
 
 protected:
     /// The warm background, a greeting and a clock, then the tiles.
@@ -60,6 +64,8 @@ private:
     class QSlider* m_sizeSlider = nullptr;
     class QVariantAnimation* m_liftAnimation = nullptr;
     class QPushButton* m_addButton = nullptr;
+    /// Left of "+ Add games": the current user, opens the user menu.
+    class QPushButton* m_userButton = nullptr;
     /// Bottom left: Console hero play button for the picked game.
     class QPushButton* m_playButton = nullptr;
     /// Bottom right, left to right: the speaker (mutes every menu sound, menu_muted), the

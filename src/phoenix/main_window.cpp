@@ -1863,6 +1863,81 @@ void MainWindow::ApplyCustomization() {
     }
 }
 
+void MainWindow::SetupUserMenu() {
+    auto* const menu = new QMenu(tr("&User"), this);
+    menuBar()->insertMenu(ui->menu_Help->menuAction(), menu);
+    connect(menu, &QMenu::aboutToShow, this, [this, menu] { FillUserMenu(menu); });
+    connect(game_list, &GameList::UserMenuRequested, this, [this](const QPoint& global_pos) {
+        QMenu popup(this);
+        FillUserMenu(&popup);
+        popup.exec(global_pos);
+    });
+    UpdateHomeUserName();
+}
+
+namespace {
+QString ProfileName(const Service::Account::ProfileManager& manager, std::size_t index) {
+    const auto uuid = manager.GetUser(index);
+    Service::Account::ProfileBase profile{};
+    if (!uuid || !manager.GetProfileBase(*uuid, profile)) {
+        return {};
+    }
+    return QString::fromStdString(Common::StringFromFixedZeroTerminatedBuffer(
+        reinterpret_cast<const char*>(profile.username.data()), profile.username.size()));
+}
+} // namespace
+
+void MainWindow::FillUserMenu(QMenu* menu) {
+    menu->clear();
+    const auto& manager = QtCommon::system->GetProfileManager();
+    const auto current = static_cast<std::size_t>(Settings::values.current_user.GetValue());
+    // A game keeps the user it started with.
+    if (emulation_running) {
+        menu->addAction(tr("Stop the game to switch users"))->setEnabled(false);
+        menu->addSeparator();
+    }
+    auto* const group = new QActionGroup(menu);
+    for (std::size_t i = 0; i < manager.GetUserCount(); ++i) {
+        QString name = ProfileName(manager, i);
+        if (name.isEmpty()) {
+            name = tr("User %1").arg(i + 1);
+        }
+        auto* const action = menu->addAction(name);
+        action->setCheckable(true);
+        action->setChecked(i == current);
+        action->setEnabled(!emulation_running);
+        group->addAction(action);
+        connect(action, &QAction::triggered, this,
+                [this, i] { SwitchUser(static_cast<int>(i)); });
+    }
+    menu->addSeparator();
+    connect(menu->addAction(tr("Manage Users...")), &QAction::triggered, this, [this] {
+        OnConfigure();
+        UpdateHomeUserName();
+    });
+}
+
+void MainWindow::SwitchUser(int index) {
+    if (emulation_running ||
+        !QtCommon::system->GetProfileManager().UserExistsIndex(static_cast<std::size_t>(index))) {
+        return;
+    }
+    Settings::values.current_user = index;
+    config->SaveAllValues();
+    LOG_INFO(Frontend, "Switched to user {}", index);
+    UpdateHomeUserName();
+}
+
+void MainWindow::UpdateHomeUserName() {
+    const auto& manager = QtCommon::system->GetProfileManager();
+    QString name = ProfileName(manager, static_cast<std::size_t>(
+                                            Settings::values.current_user.GetValue()));
+    if (name.isEmpty() && manager.GetUserCount() > 0) {
+        name = tr("User %1").arg(Settings::values.current_user.GetValue() + 1);
+    }
+    game_list->SetUserName(name);
+}
+
 void MainWindow::FillCustomizeMenu(QMenu* menu) {
     menu->clear();
     const auto swatch = [](const QColor& color) {
@@ -2016,6 +2091,7 @@ void MainWindow::FillCustomizeMenu(QMenu* menu) {
 
 void MainWindow::ConnectMenuEvents() {
     SetupCustomizeMenu();
+    SetupUserMenu();
     const auto connect_menu = [&]<typename Fn>(QAction* action, const Fn& event_fn) {
         connect(action, &QAction::triggered, this, event_fn);
         // Add actions to this window so that hiding menus in fullscreen won't disable them
@@ -2046,6 +2122,8 @@ void MainWindow::ConnectMenuEvents() {
     connect_menu(ui->action_Open_UserHandbook, &MainWindow::OnOpenUserHandbook);
     connect_menu(ui->action_Restart, &MainWindow::OnRestartGame);
     connect_menu(ui->action_Configure, &MainWindow::OnConfigure);
+    // Configure > System > Profiles can change the user too (after OnConfigure's dialog closes).
+    connect(ui->action_Configure, &QAction::triggered, this, &MainWindow::UpdateHomeUserName);
     connect_menu(ui->action_Configure_Current_Game, &MainWindow::OnConfigurePerGame);
     {
         auto* const action_quick_menu = new QAction(tr("Quick Settings Menu (F10)"), this);

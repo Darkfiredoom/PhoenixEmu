@@ -300,6 +300,11 @@ private:
     /// The Customize menu (theme, accent and background colours, button shape).
     void SetupCustomizeMenu();
     void FillCustomizeMenu(QMenu* menu);
+    /// The User menu (menu bar and the home view's user button): pick the current user.
+    void SetupUserMenu();
+    void FillUserMenu(QMenu* menu);
+    void SwitchUser(int index);
+    void UpdateHomeUserName();
     void ApplyCustomization();
     void UpdateMenuState();
 

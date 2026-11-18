@@ -17,6 +17,16 @@ upscaling, AMD frame generation, and the community's AMD performance work.
   the automatic FSR 1 for games without an upscaler mistook Ocarina for another game and
   switched the window filter to FSR 1 at every launch (Bilinear came back only when the game
   stopped). Ocarina is never switched now.
+- **Ocarina of Time's FSR and DLSS keep running in Ganon's Castle** (and other scenes whose
+  shaders read only part of the camera): the camera is read from the game's own buffer
+  ([zortos293/Lichii#1659](https://github.com/zortos293/Lichii/pull/1659) by njmdietrich).
+- **Ocarina of Time's FSR Native AA is native 4K on a 4K display.** It drew 2560x1440 and
+  upscaled to 4K (the most the game draws docked). With 4K output and Resolution at 1x it now
+  runs at 1.5x resolution scale, so FSR reads 3840x2160 and writes 3840x2160. It is heavier on
+  the GPU; pick Quality for the old 1440p-to-4K look.
+- **Switch users from the menu bar or the home screen.** The new User menu, and the user button
+  next to "+ Add games" on the home screen, list your profiles; pick one to switch. Stop the game
+  first.
 - **Star Fox's docked opening cutscene** gets the upscale repair too (black rectangles;
   [zortos293/Lichii#1684](https://github.com/zortos293/Lichii/pull/1684), port of #1295 by
   myshadowww).

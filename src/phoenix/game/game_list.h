@@ -76,6 +76,9 @@ public:
                       MainWindow* parent = nullptr);
     ~GameList() override;
 
+    /// The current user's name on the home view.
+    void SetUserName(const QString& name);
+
     QString GetLastFilterResultItem() const;
     void ClearFilter();
     void SetFilterFocus();
@@ -128,6 +131,7 @@ signals:
     void RemoveFromNxRequested(const std::string& game_path);
     void EditNxMetadataRequested(const std::string& game_path);
     void CopyTIDRequested(u64 program_id);
+    void UserMenuRequested(const QPoint& global_pos);
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);
     void OpenPerGameGeneralRequested(const std::string& file);

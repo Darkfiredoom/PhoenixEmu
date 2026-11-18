@@ -507,6 +507,13 @@ void GameList::SetupViews() {
     grid_view->SetModel(item_model);
     carousel_view->SetModel(item_model);
     connect(carousel_view, &GameCarousel::AddDirectoryRequested, this, &GameList::AddDirectory);
+    connect(carousel_view, &GameCarousel::UserMenuRequested, this, &GameList::UserMenuRequested);
+}
+
+void GameList::SetUserName(const QString& name) {
+    if (carousel_view != nullptr) {
+        carousel_view->SetUserName(name);
+    }
 }
 
 QString GameList::GetLastFilterResultItem() const {

@@ -50,10 +50,24 @@ TEST_CASE("PhoenixEmu updates compare build numbers, not tag strings", "[updater
     CHECK_FALSE(UpdateChecker::SelectUpdate({}, "build-70", "windows-x86_64"));
 }
 
+TEST_CASE("PhoenixEmu orders point releases between builds", "[updater]") {
+    const auto releases = std::array{
+        MakeRelease("build-32", "phoenixemu-windows-x86_64.zip"),
+        MakeRelease("build-32.1", "phoenixemu-windows-x86_64.zip"),
+    };
+    const auto update = UpdateChecker::SelectUpdate(releases, "build-31", "windows-x86_64");
+    REQUIRE(update);
+    CHECK(update->tag == "build-32.1");
+    CHECK(UpdateChecker::SelectUpdate(releases, "build-32", "windows-x86_64")->tag == "build-32.1");
+    CHECK_FALSE(UpdateChecker::SelectUpdate(releases, "build-32.1", "windows-x86_64"));
+    CHECK_FALSE(UpdateChecker::SelectUpdate(releases, "build-33", "windows-x86_64"));
+}
+
 TEST_CASE("PhoenixEmu ignores dev builds and malformed release tags", "[updater]") {
     const std::string tag =
         GENERATE("", "nx2", "v0.2.0", "abc123-nx2", "nx2-build-71", "build-", "build-0", "build--1",
-                 "build-+71", "build-71junk", "build- 71", "build-18446744073709551616");
+                 "build-+71", "build-71junk", "build- 71", "build-18446744073709551616",
+                 "build-71.", "build-71.0", "build-71.+1", "build-71.1.1", "build-.1");
     const auto releases = std::array{MakeRelease("build-71", "phoenixemu-windows-x86_64.zip")};
     CHECK_FALSE(UpdateChecker::SelectUpdate(releases, tag, "windows-x86_64"));
     auto invalid = releases;

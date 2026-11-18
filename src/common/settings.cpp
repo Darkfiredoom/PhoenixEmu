@@ -403,8 +403,16 @@ void TranslateResolutionInfo(ResolutionSetup setup, ResolutionScalingInfo& info)
     info.active = info.up_scale != 1 || info.down_shift != 0;
 }
 
-void UpdateRescalingInfo() {
-    const auto setup = values.resolution_setup.GetValue();
+void UpdateRescalingInfo(u64 program_id) {
+    auto setup = values.resolution_setup.GetValue();
+    // Ocarina of Time draws at most 2560x1440 docked, so its FSR Native AA preset with 4K output
+    // gets 1.5x scaling: FSR then reads a 3840x2160 scene and writes 3840x2160.
+    if (program_id == 0x0400486024DEC000ULL && setup == ResolutionSetup::Res1X &&
+        values.oot_fsr_preset.GetValue() == OotFsrPreset::NativeAa && IsDockedMode() &&
+        values.oot_docked_output.GetValue() == OotDockedOutput::Output4k) {
+        setup = ResolutionSetup::Res3_2X;
+        LOG_INFO(Config, "Ocarina of Time FSR Native AA with 4K output: 1.5x resolution scale");
+    }
     auto& info = values.resolution_info;
     TranslateResolutionInfo(setup, info);
 }

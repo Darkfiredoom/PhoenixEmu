@@ -59,7 +59,7 @@ namespace VideoCore {
 
 /// @brief Creates an emulated GPU instance using the given system context.
 void CreateGPU(std::optional<Tegra::GPU>& gpu, Core::Frontend::EmuWindow& emu_window, Core::System& system) {
-    Settings::UpdateRescalingInfo();
+    Settings::UpdateRescalingInfo(system.GetApplicationProcessProgramID());
     VideoCommon::Nx2Profile::ReadSwitch();
     VideoCommon::StutterTrace::StartSession();
     Tegra::Nx2CmdPageDiag::ReadSwitch();

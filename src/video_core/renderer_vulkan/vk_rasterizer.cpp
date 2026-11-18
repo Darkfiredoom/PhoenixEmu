@@ -3420,18 +3420,26 @@ void RasterizerVulkan::TrackOcarinaCamera() {
         return;
     }
 
-    buffer_cache.ForEachBoundBuffer(false, [&](u32 stage, bool storage, u32 index, bool,
-                                                const auto& binding, u32 bound_size,
-                                                const auto*, u32) {
-        std::array<f32, 0x230 / sizeof(f32)> camera;
-        if (stage != 0 || storage || index != 3 || bound_size < sizeof(camera)) {
+    // The shader-visible view omits unused slots and truncates ranges to shader usage, so some
+    // scenes (Ganon's Castle, the Water Temple) lost the camera: read the guest binding
+    // (zortos293/Lichii#1659), up to the end of the previous view-projection matrix.
+    [&] {
+        std::array<f32, 0x1c0 / sizeof(f32)> camera;
+        const auto& binding = maxwell3d->state.shader_stages[0].const_buffers[3];
+        if (!binding.enabled || binding.address == 0 || binding.size < sizeof(camera) ||
+            !gpu_memory->IsFullyMappedRange(binding.address, sizeof(camera)) ||
+            !gpu_memory->IsContinuousRange(binding.address, sizeof(camera))) {
             return;
         }
-        if (buffer_cache.IsRegionGpuModified(binding.device_addr, sizeof(camera))) {
+        const auto device_address = gpu_memory->GpuToCpuAddress(binding.address);
+        if (!device_address) {
+            return;
+        }
+        if (buffer_cache.IsRegionGpuModified(*device_address, sizeof(camera))) {
             ++diag.gpu_written;
             return;
         }
-        device_memory.ReadBlockUnsafe(binding.device_addr, camera.data(), sizeof(camera));
+        device_memory.ReadBlockUnsafe(*device_address, camera.data(), sizeof(camera));
         constexpr size_t extent_offset = 0x120 / sizeof(f32);
         constexpr size_t projection_wz = 0xa8 / sizeof(f32);
         // With an FSR preset the game draws the scene at its own size into a target rounded up
@@ -3507,7 +3515,7 @@ void RasterizerVulkan::TrackOcarinaCamera() {
                                                 : oot_motion.extent;
         std::copy_n(values.begin() + 0x30 / sizeof(f32), 16, oot_motion.current.begin());
         std::copy_n(values.begin() + 0x180 / sizeof(f32), 16, oot_motion.previous.begin());
-    });
+    }();
 }
 
 /// Capture a solid object's transform (constant buffer 4: a 3x4 matrix, then an origin at 0x40).
@@ -4616,7 +4624,7 @@ bool RasterizerVulkan::TryOcarinaDlss(const ComputePipeline& pipeline, bool repl
     }
     auto& depth = texture_cache.GetImageView(depth_id);
     const auto* backing = depth.BackingImage();
-    if (!backing || depth.IsRescaled() || depth.format != VideoCore::Surface::PixelFormat::D32_FLOAT ||
+    if (!backing || depth.format != VideoCore::Surface::PixelFormat::D32_FLOAT ||
         depth.range != VideoCommon::SubresourceRange{} || backing->info.num_samples != 1) {
         return fail("unsupported scene depth");
     }
@@ -4643,28 +4651,32 @@ bool RasterizerVulkan::TryOcarinaDlss(const ComputePipeline& pipeline, bool repl
     const bool output_1440p = Settings::values.oot_docked_output.GetValue() ==
                               Settings::OotDockedOutput::Output1440p;
     const bool scene_fits = extent.width <= target.size.width && extent.height <= target.size.height;
+    // With resolution scaling (1.5x for Native AA with 4K output) the game's images are already
+    // the output size: FSR writes the game's image in place, as with 1440p output.
+    const bool rescaled = color.IsRescaled();
+    const bool in_place = output_1440p || rescaled;
     // With 1440p output a preset's own upscale pass may already have run FSR this frame and
     // written the 1440p image; the 1440p pass then reads that image, not the scene. Running FSR
     // again on it (wrong sizes, an image it also writes) is a likely cause of a tester's freeze
     // (docked, 1440p, Quality), so FSR runs once a frame here, on the scene only.
-    if (upscale_4k && output_1440p &&
+    if (upscale_4k && in_place &&
         (oot_dlss_frame == render_trace_frame ||
          !IsSceneSize(color.size.width, color.size.height, extent, OcarinaFsrPresetActive()))) {
         return false;
     }
-    const bool preset_scene_4k = upscale_4k && !output_1440p && OcarinaFsrPresetActive() &&
+    const bool preset_scene_4k = upscale_4k && !in_place && OcarinaFsrPresetActive() &&
                                  target_1440p && scene_fits && !same_size;
     const bool four_k =
-        upscale_4k && !output_1440p && target_1440p && (same_size || preset_scene_4k);
+        upscale_4k && !in_place && target_1440p && (same_size || preset_scene_4k);
     const bool valid_extents = upscale_4k
-        ? (output_1440p ? target_1440p && scene_fits : (same_size || preset_scene_4k))
+        ? (in_place ? target_1440p && scene_fits : (same_size || preset_scene_4k))
         : (target.size.width == extent.width * 4 / 3 &&
            target.size.height == extent.height * 4 / 3) ||
               // An FSR preset: a smaller scene, upscaled by another ratio.
               (OcarinaFsrPresetActive() && target.size.width >= extent.width &&
                target.size.height >= extent.height);
     if (!valid_extents || !color.BackingImage() || !target.BackingImage() ||
-        color.IsRescaled() || target.IsRescaled() ||
+        target.IsRescaled() != rescaled || depth.IsRescaled() != rescaled ||
         color.Samples() != VK_SAMPLE_COUNT_1_BIT || target.Samples() != VK_SAMPLE_COUNT_1_BIT ||
         color.range != VideoCommon::SubresourceRange{} || target.range != VideoCommon::SubresourceRange{} ||
         color.format != PixelFormat::E5B9G9R9_FLOAT || target.format != PixelFormat::B10G11R11_FLOAT ||
@@ -4712,7 +4724,12 @@ bool RasterizerVulkan::TryOcarinaDlss(const ComputePipeline& pipeline, bool repl
                 device, scheduler, descriptor_pool, compute_pass_descriptor_queue, memory_allocator,
                 staging_pool);
         }
-        const VkExtent2D target_extent{target.size.width, target.size.height};
+        const auto& scaling = Settings::values.resolution_info;
+        const auto host = [&](VkExtent2D guest) {
+            return rescaled ? VkExtent2D{scaling.ScaleUp(guest.width), scaling.ScaleUp(guest.height)}
+                            : guest;
+        };
+        const VkExtent2D target_extent = host({target.size.width, target.size.height});
         const VkExtent2D output_extent = four_k ? VkExtent2D{3840, 2160} : target_extent;
         // The HUD mask: the last frame's FSR 4 output before its HUD against the same image now,
         // which still holds that frame with its HUD until this Record overwrites it.
@@ -4724,8 +4741,8 @@ bool RasterizerVulkan::TryOcarinaDlss(const ComputePipeline& pipeline, bool repl
         // preset), else the whole image.
         const VkExtent2D camera_render =
             oot_motion.render_extent.width != 0 ? oot_motion.render_extent : extent;
-        const VkExtent2D render_extent{(std::min)(camera_render.width, color.size.width),
-                                       (std::min)(camera_render.height, color.size.height)};
+        const VkExtent2D render_extent = host({(std::min)(camera_render.width, color.size.width),
+                                               (std::min)(camera_render.height, color.size.height)});
         static VkExtent2D logged_render{};
         if (logged_render.width != render_extent.width ||
             logged_render.height != render_extent.height) {
@@ -5716,7 +5733,7 @@ void RasterizerVulkan::UpdateOcarinaJitter() {
         if (targets.depth_buffer_id) {
             const auto& depth = texture_cache.GetImageView(targets.depth_buffer_id);
             if (depth.size.width == oot_motion.extent.width &&
-                depth.size.height == oot_motion.extent.height && !depth.IsRescaled()) {
+                depth.size.height == oot_motion.extent.height) {
                 // Halton (2, 3) with AMD's phase count for the last FSR frame's scale.
                 const u32 index = static_cast<u32>(render_trace_frame % oot_jitter_phases) + 1;
                 want = {Halton(index, 2) - 0.5f, Halton(index, 3) - 0.5f};

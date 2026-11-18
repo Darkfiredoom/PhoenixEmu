@@ -1191,7 +1191,7 @@ std::string GetTimeZoneString(TimeZone time_zone);
 void LogSettings();
 
 void TranslateResolutionInfo(ResolutionSetup setup, ResolutionScalingInfo& info);
-void UpdateRescalingInfo();
+void UpdateRescalingInfo(u64 program_id = 0);
 
 // Restore the global state of all applicable settings in the Values struct
 void RestoreGlobalState(bool is_powered_on);

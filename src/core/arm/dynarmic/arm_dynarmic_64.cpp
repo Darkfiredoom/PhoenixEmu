@@ -606,7 +606,7 @@ void ArmDynarmic64::SignalInterrupt(Kernel::KThread* thread) {
 }
 
 void ArmDynarmic64::ClearInstructionCache() {
-    m_cb->last_code_addr = u64(-1);
+    // The counter alone: last_code_addr belongs to the core's own thread.
     g_code_invalidations.fetch_add(1, std::memory_order_release);
     m_jit->ClearCache();
 }
@@ -615,7 +615,7 @@ void ArmDynarmic64::InvalidateCacheRange(u64 addr, std::size_t size) {
     // Drop the cached code page too: blocks recompiled after the invalidation would
     // otherwise still decode the old instructions (e.g. a gdbstub breakpoint written
     // into or removed from that page).
-    m_cb->last_code_addr = u64(-1);
+    // The counter alone: last_code_addr belongs to the core's own thread.
     g_code_invalidations.fetch_add(1, std::memory_order_release);
     m_jit->InvalidateCacheRange(addr, size);
 }

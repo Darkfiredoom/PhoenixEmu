@@ -14,6 +14,8 @@ PhoenixEmu includes code from these projects, under their copyright and licenses
   - Eglantine, Eden Emulator Project, GPL-3.0-or-later
   - yuzu Emulator Project, GPL-2.0-or-later
   - Sudachi, citra and other projects named in the source files
+fsr4-vk (https://github.com/Astyyyyy/fsr4-vk, Astyyyyy and contributors) is shipped in the
+fsr4-vk folder under GPL-3.0-only, with its license, third-party notices and the source commit.
 Third-party libraries keep their own licenses: see the LICENSES folder and externals/.
 The Nunito font (The Nunito Project Authors) is used under the SIL Open Font License 1.1:
 dist/qt_themes/phoenix/fonts/Nunito-OFL.txt.

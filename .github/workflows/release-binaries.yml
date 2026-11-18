@@ -83,9 +83,71 @@ jobs:
               -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA"
           fi
 
+  # fsr4-vk (github.com/Astyyyyy/fsr4-vk, GPL-3.0-only): an open-source FSR 4 runtime, offered
+  # next to AMD's (Graphics > FSR 4 runtime). Built once per pinned commit and cached. Its assets
+  # come from the upscaler DLL in AMD's FidelityFX SDK 2.3.0 samples (MIT-licensed); the Windows
+  # DLL is cross-compiled with MinGW. If this job fails the builds go out without it.
+  fsr4-vk:
+    name: fsr4-vk
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      FSR4_VK_COMMIT: b0125ea9798633750f83ebabbc00279bcb49d8dd
+    steps:
+      - name: Restore fsr4-vk
+        id: fsr4-vk-cache
+        uses: actions/cache@v4
+        with:
+          path: fsr4-vk-out
+          key: fsr4-vk-${{ env.FSR4_VK_COMMIT }}-v1
+
+      - name: Build fsr4-vk
+        if: steps.fsr4-vk-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build llvm python3-zstandard \
+            libvulkan-dev unzip g++-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          git clone https://github.com/Astyyyyy/fsr4-vk.git fsr4-vk
+          git -C fsr4-vk checkout --detach "$FSR4_VK_COMMIT"
+          git -C fsr4-vk submodule update --init --recursive
+          curl -fsSL --retry 8 --retry-all-errors --retry-delay 20 -o sdk.zip \
+            https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/releases/download/v2.3.0/FidelityFX-Samples-v2.3.0-prebuilt.zip
+          mkdir sdk
+          unzip -q sdk.zip -d sdk
+          dll=$(find "$PWD/sdk" -path '*FidelityFX_FSR/dx12/x64/Release/amd_fidelityfx_upscaler_dx12.dll' | head -n 1)
+          test -n "$dll"
+          cd fsr4-vk
+          python3 tools/setup.py --dll "$dll"
+          FSR4_BUILD_JOBS=4 bash tools/build/linux.sh
+          FSR4_BUILD_JOBS=4 bash tools/build/windows.sh
+          cd ..
+          for platform in linux-x86_64 windows-x86_64; do
+            mkdir -p "fsr4-vk-out/$platform"
+            cp -r fsr4-vk/LICENSE fsr4-vk/LICENSES fsr4-vk/README.md fsr4-vk/THIRD_PARTY_NOTICES.md \
+              "fsr4-vk-out/$platform/"
+            printf 'fsr4-vk by Astyyyyy and contributors, GPL-3.0-only.\nSource: https://github.com/Astyyyyy/fsr4-vk/tree/%s\n' \
+              "$FSR4_VK_COMMIT" > "fsr4-vk-out/$platform/SOURCE.txt"
+          done
+          # Renamed so AMD's loader never takes it for its own amd_fidelityfx_upscaler_vk.
+          cp fsr4-vk/build/linux/amd_fidelityfx_upscaler_vk.so fsr4-vk-out/linux-x86_64/libphoenix_fsr4_vk.so
+          cp fsr4-vk/build/windows/amd_fidelityfx_upscaler_vk.dll fsr4-vk-out/windows-x86_64/phoenix_fsr4_vk.dll
+
+      - name: Upload fsr4-vk
+        uses: actions/upload-artifact@v7
+        with:
+          name: fsr4-vk-${{ github.sha }}
+          path: fsr4-vk-out/
+          if-no-files-found: error
+          retention-days: 7
+
   build:
     name: ${{ matrix.platform }} binary
-    needs: prepare-release
+    needs: [prepare-release, fsr4-vk]
+    if: ${{ !cancelled() && needs.prepare-release.result == 'success' }}
     runs-on: ${{ matrix.runner }}
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -445,6 +507,15 @@ jobs:
 
       # Plain tar.gz with the two programs and switch defaults. GitHub artifacts drop executable
       # bits, so a tar preserves them. This needs Qt 6 and the usual system libraries installed.
+      # fsr4-vk (the job above) goes in fsr4-vk/ next to the emulator.
+      - name: Fetch fsr4-vk
+        if: (startsWith(matrix.platform, 'windows') || startsWith(matrix.platform, 'linux-x86_64')) && needs.fsr4-vk.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: fsr4-vk-${{ github.sha }}
+          path: fsr4-vk-out
+
       - name: Package Linux tar.gz
         if: startsWith(matrix.platform, 'linux')
         shell: bash
@@ -454,9 +525,14 @@ jobs:
           test -x build/release/bin/phoenixemu-cli
           strip build/release/bin/phoenixemu build/release/bin/phoenixemu-cli
           cp README.txt PHOENIXEMU.md LICENSE.txt NOTICE.txt build/release/bin/
+          extra=()
+          if [ -d fsr4-vk-out/linux-x86_64 ]; then
+            cp -r fsr4-vk-out/linux-x86_64 build/release/bin/fsr4-vk
+            extra+=(fsr4-vk)
+          fi
           tar -czf "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz" \
             -C build/release/bin phoenixemu phoenixemu-cli nx2_switches.txt recipes README.txt \
-            PHOENIXEMU.md LICENSE.txt NOTICE.txt
+            PHOENIXEMU.md LICENSE.txt NOTICE.txt "${extra[@]}"
           ls -la "phoenixemu-${GITHUB_SHA}-${{ matrix.platform }}.tar.gz"
 
       # A self-contained AppImage: linuxdeploy bundles every library the two programs need except
@@ -498,6 +574,9 @@ jobs:
           mkdir -p AppDir/usr/bin
           cp build/release/bin/nx2_switches.txt AppDir/usr/bin/
           cp -r build/release/bin/recipes AppDir/usr/bin/
+          if [ -d build/release/bin/fsr4-vk ]; then
+            cp -r build/release/bin/fsr4-vk AppDir/usr/bin/
+          fi
           "$tools/linuxdeploy-$arch.AppImage" --appdir AppDir \
             --executable build/release/bin/phoenixemu \
             --executable build/release/bin/phoenixemu-cli \
@@ -520,6 +599,9 @@ jobs:
           windeployqt --release --no-translations build/release/bin/phoenixemu.exe
           # The player guide and the release notes, next to phoenixemu.exe.
           Copy-Item README.txt, PHOENIXEMU.md, LICENSE.txt, NOTICE.txt build/release/bin/
+          if (Test-Path fsr4-vk-out/windows-x86_64) {
+            Copy-Item -Recurse fsr4-vk-out/windows-x86_64 build/release/bin/fsr4-vk
+          }
           # Link maps (from /MAP) go in their own artifact and release asset, not the player zip:
           # with them a player's crash dump can be matched to functions.
           New-Item -ItemType Directory -Force build/release/maps | Out-Null

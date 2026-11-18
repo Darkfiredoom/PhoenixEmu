@@ -130,11 +130,18 @@ Which FSR you get:
   - FSR 3.1: every other GPU (older Radeon, NVIDIA, Intel), or with the FSR 4 option off while
     frame generation is on.
 
+Which library runs it ("FSR 4 runtime", in the same box):
+  - Auto (default): AMD's runtime when it offers FSR 4 for your GPU, else fsr4-vk.
+  - AMD: AMD's official FidelityFX runtime (Windows).
+  - fsr4-vk: the open-source fsr4-vk (github.com/Astyyyyy/fsr4-vk), in the fsr4-vk folder next
+    to the emulator. It runs AMD's FSR 4.1.1 network on Windows and Linux: FP8 on RX 9000, INT8
+    on other GPUs, so FSR 4 also works on Linux and on GPUs AMD's runtime gives only FSR 3.1.
+
 The log (%APPDATA%\phoenixemu\log\phoenixemu_log.txt) says which one runs:
     AMD FSR: upscaler 4.x.x running   (FSR 4)
     AMD FSR: upscaler 3.1.x running   (FSR 3.1)
 
-  - Windows only.
+  - AMD's runtime is Windows only; fsr4-vk also runs on Linux (the x86-64 builds).
   - Resolution must be 1X (Graphics > Resolution). At 0.75X, 2X and so on, FSR and AMD frame
     generation turn off and the game's own upscaler is used.
   - At the game's native resolution it works as anti-aliasing; when the game lowers its

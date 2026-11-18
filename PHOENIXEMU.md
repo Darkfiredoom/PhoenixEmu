@@ -24,6 +24,13 @@ upscaling, AMD frame generation, and the community's AMD performance work.
   upscaled to 4K (the most the game draws docked). With 4K output and Resolution at 1x it now
   runs at 1.5x resolution scale, so FSR reads 3840x2160 and writes 3840x2160. It is heavier on
   the GPU; pick Quality for the old 1440p-to-4K look.
+- **fsr4-vk, an open-source FSR 4, next to AMD's** (Graphics > FSR 4 runtime: Auto, AMD,
+  fsr4-vk). [fsr4-vk](https://github.com/Astyyyyy/fsr4-vk) by Astyyyyy runs AMD's FSR 4.1.1
+  network through Vulkan on Windows and Linux: FP8 on RX 9000, INT8 on other GPUs. Linux gets
+  FSR 4 in Ocarina of Time for the first time (it had FSR 3.1 only), and GPUs AMD's runtime
+  gives only FSR 3.1 can try FSR 4. Auto keeps AMD's runtime wherever it offers FSR 4. Shipped in
+  the `fsr4-vk` folder of the Windows and Linux x86-64 builds (GPL-3.0-only, with its source
+  commit).
 - **Switch users from the menu bar or the home screen.** The new User menu, and the user button
   next to "+ Add games" on the home screen, list your profiles; pick one to switch. Stop the game
   first.
@@ -34,9 +41,9 @@ upscaling, AMD frame generation, and the community's AMD performance work.
   dialog uses the press.
 - **SDR games in HDR** (Graphics, next to the HDR settings): an SDR game's bright parts are
   expanded up to HDR Peak Luminance on an HDR display. Off by default.
-- **First starts no longer wait for every shader.** After two minutes of building shaders the
-  game starts and the rest build while you play. Ocarina's bundled recipe kept a first start on
-  the loading screen for 15 minutes.
+- **The shader precache runs to the end unless you press Skip.** Build 27 pressed Skip by itself
+  after two minutes, so the game started at 12% as if the precache had failed. Skip still starts
+  the game and builds the rest while you play.
 - **Steam Deck and PCs with little RAM:** Find Best Settings picks RAM Usage Mode Low, asks before
   building every shader, and leaves frame generation off there. A Steam Deck short of memory gets
   a one-time note on the UMA frame buffer (BIOS) and swap size.

@@ -83,6 +83,8 @@ notices and licenses:
   (MIT);
 - Tasa's memory work from [tasarren/Lichii](https://github.com/tasarren/Lichii): the shared CPU
   code cache, the malloc arena cap, the memory release after loading and RAM Usage Mode;
+- [fsr4-vk](https://github.com/Astyyyyy/fsr4-vk) by Astyyyyy and contributors (GPL-3.0-only),
+  the open-source FSR 4 runtime shipped in `fsr4-vk/` and offered next to AMD's;
 - AMD's [FidelityFX SDK](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) for FSR and
   frame generation.
 

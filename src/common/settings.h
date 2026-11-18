@@ -438,6 +438,8 @@ struct Values {
     // AMD FSR 4 (FidelityFX SDK 2.4 on Vulkan) in place of a game's DLSS where AMD's runtime
     // offers it for the GPU; the built-in FSR 3.1 otherwise.
     SwitchableSetting<bool> amd_fsr4{linkage, true, "amd_fsr4", Category::Renderer};
+    SwitchableSetting<Fsr4Runtime> fsr4_runtime{linkage, Fsr4Runtime::Auto, "fsr4_runtime",
+                                                Category::Renderer};
     SwitchableSetting<AspectRatio, true> aspect_ratio{linkage,
                                                       AspectRatio::R16_9,
                                                       "aspect_ratio",

@@ -383,6 +383,7 @@ void ConfigureGraphics::Setup(const ConfigurationShared::Builder& builder) {
     // of spread through the list.
     const std::array fsr_fg_ids{
         Settings::values.amd_fsr4.Id(),
+        Settings::values.fsr4_runtime.Id(),
         Settings::values.oot_fsr_preset.Id(),
         Settings::values.oot_docked_output.Id(),
         Settings::values.oot_anti_aliasing.Id(),

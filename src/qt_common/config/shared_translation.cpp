@@ -214,8 +214,15 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
               "and RX 6000 with a recent driver. Other GPUs keep FSR 3.1.\nIn Ocarina of Time, AMD "
               "frame generation uses AMD's FSR 3.1 when FSR 4 is off or not offered, so it works on "
               "any GPU.\nNeeds Resolution 1X: at other resolutions the game's own upscaler is used."
-              "\nWindows only. NVIDIA DLSS, when it is on and available, is used first."
+              "\nAMD's runtime is Windows only; fsr4-vk (FSR 4 runtime) also runs on Linux. "
+              "NVIDIA DLSS, when it is on and available, is used first."
               "\nTakes effect when the game starts."));
+    INSERT(Settings, fsr4_runtime, tr("FSR 4 runtime:"),
+           tr("Which library runs FSR 4.\nAMD: AMD's official FidelityFX runtime (Windows; "
+              "downloaded on request).\nfsr4-vk: the open-source fsr4-vk by Astyyyyy, shipped "
+              "with PhoenixEmu, on Windows and Linux. It runs AMD's FSR 4.1.1 network (FP8 on "
+              "RX 9000, INT8 on other GPUs).\nAuto: AMD's when it offers FSR 4 for your GPU, else "
+              "fsr4-vk, else AMD's FSR 3.1.\nTakes effect when the game starts."));
     INSERT(Settings, nvidia_dlss, tr("Use NVIDIA DLSS in place of a game's DLSS (experimental)"),
            tr("Uses NVIDIA DLSS on GeForce RTX cards in place of a Switch 2 game's own DLSS, "
               "instead of AMD FSR 3.1.\nNeeds NVIDIA's Streamline loader, and NVIDIA DLSS unless "
@@ -742,6 +749,12 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                           {
                               PAIR(HdrTonemapper, Native, tr("Native")),
                               PAIR(HdrTonemapper, PsychoV35, tr("RenoDX PsychoV35")),
+                          }});
+    translations->insert({Settings::EnumMetadata<Settings::Fsr4Runtime>::Index(),
+                          {
+                              PAIR(Fsr4Runtime, Auto, tr("Auto")),
+                              PAIR(Fsr4Runtime, Amd, tr("AMD")),
+                              PAIR(Fsr4Runtime, Fsr4Vk, tr("fsr4-vk (open source)")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::AspectRatio>::Index(),
                           {

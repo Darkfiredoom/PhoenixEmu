@@ -25,13 +25,14 @@
 #include "video_core/vulkan_common/vulkan_device.h"
 #include "video_core/vulkan_common/vulkan_memory_allocator.h"
 
+#ifdef PHOENIX_FFX_RUNTIME
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#endif
 
-#include "api/include/ffx_api.h"
 #include "api/include/ffx_api_types.h"
 #include "api/include/vk/ffx_api_vk.h"
 #include "upscalers/include/ffx_upscale.h"
@@ -59,11 +60,12 @@ std::string Fsr4Upscaler::RunningVersion() {
     return running_version;
 }
 
-#ifdef _WIN32
+#ifdef PHOENIX_FFX_RUNTIME
 
 namespace {
 
 using Api = FfxRuntime::Api;
+using FfxRuntime::Source;
 
 // Set when FSR 4 drew black over a real picture: FSR 3.1 from then on, for this session.
 std::atomic<bool> fsr4_output_black{};
@@ -247,18 +249,61 @@ struct Fsr4Upscaler::Context {
 };
 
 namespace {
+bool IsFsr4Name(const std::string& name) {
+    return !name.empty() && name[0] >= '4' && name[0] <= '9';
+}
+
+struct Choice {
+    std::shared_ptr<const Api> runtime;
+    std::optional<Provider> provider;
+};
+
+/// The runtime by the fsr4_runtime setting. Auto: AMD's when it offers FSR 4 for this GPU, else
+/// fsr4-vk, else AMD's FSR 3.1.
+Choice ChooseRuntime(const Device& device) {
+    const auto with = [&device](Source source) {
+        Choice choice{FfxRuntime::Acquire(source), std::nullopt};
+        if (choice.runtime) {
+            choice.provider = FindFsr4(*choice.runtime, device);
+        }
+        return choice;
+    };
+    switch (Settings::values.fsr4_runtime.GetValue()) {
+    case Settings::Fsr4Runtime::Amd:
+        return with(Source::Amd);
+    case Settings::Fsr4Runtime::Fsr4Vk:
+        return with(Source::Fsr4Vk);
+    default:
+        break;
+    }
+    Choice amd = with(Source::Amd);
+    if (amd.provider && IsFsr4Name(amd.provider->name)) {
+        return amd;
+    }
+    Choice fsr4_vk = with(Source::Fsr4Vk);
+    if (fsr4_vk.provider) {
+        return fsr4_vk;
+    }
+    return amd;
+}
+
 struct ProbeResult {
     bool available{};
     bool fsr4{};
+    Source source{};
 };
 ProbeResult Probe(const Device& device) {
     static std::once_flag once;
     static ProbeResult result{};
     std::call_once(once, [&device] {
-        const auto runtime = FfxRuntime::Acquire();
-        const auto provider = runtime ? FindFsr4(*runtime, device) : std::nullopt;
-        result.available = provider.has_value();
-        result.fsr4 = provider && !provider->name.empty() && provider->name[0] >= '4';
+        const Choice choice = ChooseRuntime(device);
+        result.available = choice.provider.has_value();
+        result.fsr4 = choice.provider && IsFsr4Name(choice.provider->name);
+        result.source = choice.runtime ? choice.runtime->source : Source::Amd;
+        if (choice.provider) {
+            LOG_INFO(Render_Vulkan, "FSR: {} from the {} runtime", choice.provider->name,
+                     FfxRuntime::SourceName(result.source));
+        }
     });
     return result;
 }
@@ -280,7 +325,7 @@ Fsr4Upscaler::Fsr4Upscaler(const Device& device_, Scheduler& scheduler_,
                            MemoryAllocator& memory_allocator_)
     : device{device_}, scheduler{scheduler_}, memory_allocator{memory_allocator_},
       context{std::make_unique<Context>()} {
-    context->runtime = FfxRuntime::Acquire();
+    context->runtime = FfxRuntime::Acquire(Probe(device).source);
     context->api = context->runtime.get();
     if (!context->api) {
         throw vk::Exception(VK_ERROR_INITIALIZATION_FAILED);
@@ -792,7 +837,7 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
     return true;
 }
 
-#else // _WIN32
+#else // PHOENIX_FFX_RUNTIME
 
 struct Fsr4Upscaler::Context {};
 
@@ -801,7 +846,7 @@ bool Fsr4Upscaler::Failed() const noexcept {
 }
 
 bool Fsr4Upscaler::IsAvailable(const Device&) {
-    return false; // AMD ships the FSR 4 runtime for Windows only
+    return false; // no FidelityFX runtime on this platform
 }
 
 bool Fsr4Upscaler::IsFsr4(const Device&) {
@@ -828,6 +873,6 @@ bool Fsr4Upscaler::Upscale(const Inputs&) {
     return false;
 }
 
-#endif // _WIN32
+#endif // PHOENIX_FFX_RUNTIME
 
 } // namespace Vulkan

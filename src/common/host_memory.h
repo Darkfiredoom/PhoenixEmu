@@ -105,6 +105,10 @@ public:
     };
     [[nodiscard]] static CommitStats GetCommitStats();
 
+    /// True when no byte of backing [offset, offset + length) was ever written or was punched out
+    /// since (a hole of the memfd): it reads as zeros. False when unknown (not Linux, no memfd).
+    [[nodiscard]] bool IsHole(size_t offset, size_t length) const;
+
     [[nodiscard]] u8* BackingBasePointer() noexcept {
         return backing_base;
     }

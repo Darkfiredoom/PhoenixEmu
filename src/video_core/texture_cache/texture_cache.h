@@ -2684,6 +2684,16 @@ bool TextureCache<P>::UploadInChunks(Image& image) {
         MapSizeBytes(image) < min_size) {
         return false;
     }
+    // Memory the guest never wrote (a hole of the backing memfd) reads as zeros: clear instead of
+    // reading it, which also gave every page RAM (Ocarina of Time: a 288 MiB depth image per scene).
+    if (!Tegra::Nx2MayBeGpuWritten(image.cpu_addr, image.guest_size_bytes) &&
+        device_memory.IsHole(image.cpu_addr, image.guest_size_bytes)) {
+        if constexpr (requires { runtime.ClearImage(image); }) {
+            if (runtime.ClearImage(image)) {
+                return true;
+            }
+        }
+    }
     for (u64 offset = 0; offset < image.guest_size_bytes; offset += chunk_size) {
         const std::array range{
             std::pair<u64, u64>{offset, std::min<u64>(offset + chunk_size, image.guest_size_bytes)}};

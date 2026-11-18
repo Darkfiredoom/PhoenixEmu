@@ -208,6 +208,9 @@ public:
 
     void TransitionImageLayout(Image& image);
 
+    /// Clears every level and layer of an image to zero, for guest memory nobody wrote.
+    bool ClearImage(Image& image);
+
     bool HasBrokenTextureViewFormats() const noexcept {
         // No known Vulkan driver has broken image views
         return false;

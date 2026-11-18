@@ -28,6 +28,7 @@
 #include "common/fs/fs.h"
 #include "common/fs/path_util.h"
 #include "common/logging.h"
+#include "common/scope_exit.h"
 #include "common/settings.h"
 #include <ranges>
 #include "shader_recompiler/environment.h"
@@ -327,7 +328,7 @@ void GenericEnvironment::SetCachedSize(size_t size_bytes) {
     cached_lowest = start_address;
     cached_highest = start_address + static_cast<u32>(size_bytes);
     code.resize(CachedSizeWords());
-    gpu_memory->ReadBlock(program_base + cached_lowest, code.data(), code.size() * sizeof(u64));
+    ReadGuestBlock(program_base + cached_lowest, code.data(), code.size() * sizeof(u64));
 }
 
 size_t GenericEnvironment::CachedSizeWords() const noexcept {
@@ -361,7 +362,7 @@ bool FileEnvironment::HasNativeInstructions() const {
 u64 GenericEnvironment::CalculateHash() const {
     const size_t size{ReadSizeBytes()};
     const auto data{std::make_unique<char[]>(size)};
-    gpu_memory->ReadBlock(program_base + read_lowest, data.get(), size);
+    ReadGuestBlock(program_base + read_lowest, data.get(), size);
     return Common::CityHash64(data.get(), size);
 }
 
@@ -450,7 +451,7 @@ std::optional<u64> GenericEnvironment::TryFindSize() {
     size_t size{BLOCK_SIZE};
     while (size <= MAXIMUM_SIZE) {
         u64* const data = code.data() + offset / INST_SIZE;
-        gpu_memory->ReadBlock(guest_addr, data, BLOCK_SIZE);
+        ReadGuestBlock(guest_addr, data, BLOCK_SIZE);
         for (size_t index = 0; index < BLOCK_SIZE; index += INST_SIZE) {
             const u64 inst = data[index / INST_SIZE];
             if (inst == SELF_BRANCH_A || inst == SELF_BRANCH_B) {
@@ -465,6 +466,14 @@ std::optional<u64> GenericEnvironment::TryFindSize() {
         offset += BLOCK_SIZE;
     }
     return std::nullopt;
+}
+
+void GenericEnvironment::ReadGuestBlock(GPUVAddr address, void* dest, size_t size) const {
+    if (on_worker) {
+        gpu_memory->ReadBlockUnsafe(address, dest, size);
+    } else {
+        gpu_memory->ReadBlock(address, dest, size);
+    }
 }
 
 Tegra::Texture::TICEntry GenericEnvironment::ReadTextureInfo(GPUVAddr tic_addr, u32 tic_limit,
@@ -495,7 +504,7 @@ Tegra::Texture::TICEntry GenericEnvironment::ReadTextureInfo(GPUVAddr tic_addr, 
         return entry;
     }
     const GPUVAddr descriptor_addr{tic_addr + index * sizeof(Tegra::Texture::TICEntry)};
-    gpu_memory->ReadBlock(descriptor_addr, &entry, sizeof(entry));
+    ReadGuestBlock(descriptor_addr, &entry, sizeof(entry));
     if (entry.format.Value() == Tegra::Texture::TextureFormat{} &&
         std::getenv("EDEN_NX2_RENDER_TRACE")) {
         static std::atomic<u32> traces{};
@@ -610,7 +619,7 @@ std::shared_ptr<const LoweredNativeCode> GenericEnvironment::LowerNativeCode(u32
                 if (!native.empty()) break;
                 throw Shader::RuntimeError("Unmapped native shader instruction at {:#x}", address);
             }
-            gpu_memory->ReadBlock(address, &instruction, sizeof(instruction));
+            ReadGuestBlock(address, &instruction, sizeof(instruction));
         }
         native.push_back(instruction);
         const auto status = capture.Observe(instruction, index);
@@ -680,7 +689,7 @@ std::shared_ptr<const LoweredNativeCode> GenericEnvironment::LowerNativeCode(u32
             if (!std::filesystem::exists(header_path) &&
                 gpu_memory->IsFullyMappedRange(program_base, native_header_size)) {
                 std::vector<u8> header(native_header_size);
-                gpu_memory->ReadBlock(program_base, header.data(), header.size());
+                ReadGuestBlock(program_base, header.data(), header.size());
                 std::ofstream dump(header_path, std::ios::binary);
                 dump.write(reinterpret_cast<const char*>(header.data()), header.size());
                 dump.close();
@@ -711,7 +720,7 @@ std::shared_ptr<const LoweredNativeCode> GenericEnvironment::LowerNativeCode(u32
                 std::array<u8, 0x1000> block{};
                 for (u32 offset = 0; offset < 0x10000; offset += 0x1000) {
                     if (!gpu_memory->IsFullyMappedRange(program_base + offset, block.size())) break;
-                    gpu_memory->ReadBlock(program_base + offset, block.data(), block.size());
+                    ReadGuestBlock(program_base + offset, block.data(), block.size());
                     mapped.write(reinterpret_cast<const char*>(block.data()), block.size());
                 }
             }
@@ -734,7 +743,7 @@ std::shared_ptr<const LoweredNativeCode> GenericEnvironment::LowerNativeCode(u32
                         if (!gpu_memory->IsFullyMappedRange(program_base + native_header_size, source_bytes))
                             throw Shader::RuntimeError("Unmapped extended native shader source");
                         native.resize(source_bytes / sizeof(Shader::Ampere::Instruction));
-                        gpu_memory->ReadBlock(program_base + native_header_size, native.data(), source_bytes);
+                        ReadGuestBlock(program_base + native_header_size, native.data(), source_bytes);
                     }
                     lowered = Shader::Ampere::DecodeProgramOverride(bytes, native);
                     if (!lowered) throw Shader::RuntimeError("Native shader override rejected: {}", lowered.error);
@@ -995,9 +1004,18 @@ void GraphicsEnvironment::Detach() {
         state->replace = maxwell3d->replace_table;
     }
     detached = std::move(state);
+    // A worker translates with it from now on, and flushing a GPU write there crashed (build 29,
+    // Linux). What it read without the flush is checked again here in MatchesEngineState.
+    on_worker = true;
 }
 
 bool GraphicsEnvironment::MatchesEngineState() {
+    // On the GPU thread with the worker done: these reads flush. The environment goes on to the
+    // serialization thread afterwards, which may not.
+    const bool was_on_worker = std::exchange(on_worker, false);
+    SCOPE_EXIT {
+        on_worker = was_on_worker;
+    };
     const auto& regs{maxwell3d->regs};
     const bool via_header_index{regs.sampler_binding == Maxwell::SamplerBinding::ViaHeaderBinding};
     const auto entry = [&](u32 handle) {

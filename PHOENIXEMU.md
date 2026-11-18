@@ -44,6 +44,9 @@ upscaling, AMD frame generation, and the community's AMD performance work.
 - **The shader precache runs to the end unless you press Skip.** Build 27 pressed Skip by itself
   after two minutes, so the game started at 12% as if the precache had failed. Skip still starts
   the game and builds the rest while you play.
+- **Fixed a crash while building shaders in the background** (signal 11 on thread
+  VkPipelineBuild). A shader translated on a worker could read a texture descriptor the GPU had
+  just written, and flushing it from there broke the GPU thread's command recording.
 - **Steam Deck and PCs with little RAM:** Find Best Settings picks RAM Usage Mode Low, asks before
   building every shader, and leaves frame generation off there. A Steam Deck short of memory gets
   a one-time note on the UMA frame buffer (BIOS) and swap size.

@@ -129,8 +129,13 @@ protected:
     Tegra::Texture::TICEntry ReadTextureInfo(GPUVAddr tic_addr, u32 tic_limit,
                                              bool via_header_index, u32 raw);
 
+    /// Reads guest memory, flushing GPU writes first unless the environment is in a worker's
+    /// hands: only the GPU thread may flush, as that records commands on its scheduler.
+    void ReadGuestBlock(GPUVAddr address, void* dest, size_t size) const;
+
     Tegra::MemoryManager* gpu_memory{};
     GPUVAddr program_base{};
+    bool on_worker{};
 
     std::vector<u64> code;
     ::Common::unordered_map<u32, Shader::TextureType> texture_types;

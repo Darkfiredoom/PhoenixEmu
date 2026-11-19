@@ -422,7 +422,8 @@ TEST_CASE("GpuSplit CB batching respects device remaps within GPU big pages",
     for (auto* engine : {&f.slow, &f.fast}) {
         std::memset(backing, 0, 0x10000);
         std::memset(replacement, 0, 0x1000);
-        VideoCommon::GpuSplit split;
+        const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+        VideoCommon::GpuSplit& split = *split_owner;
         Access::Initialize(split, f.system);
         split.MacroWrite(engine, CbAddressHigh, 0);
         split.MacroWrite(engine, CbAddressLow, 0x100ffc);
@@ -498,7 +499,8 @@ TEST_CASE("GpuSplit dispatch preserves mapped uploads and macro boundaries",
         CAPTURE(wrap);
         std::vector<Snapshot> expected;
         for (auto* engine : {&f.slow, &f.fast}) {
-            VideoCommon::GpuSplit split;
+            const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+            VideoCommon::GpuSplit& split = *split_owner;
             struct ProbeEngine final : Tegra::Engines::EngineInterface {
                 u32 writes{};
                 void CallMethod(Core::System&, u32, u32, bool) override {
@@ -633,7 +635,8 @@ TEST_CASE("GpuSplit CB batching preserves words at the GPU address space end",
     f.memory.Map(0xfffff000, 0x10000, 0x1000, Tegra::PTEKind::PITCH, false);
     for (auto* engine : {&f.slow, &f.fast}) {
         std::memset(backing, 0, 0x1000);
-        VideoCommon::GpuSplit split;
+        const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+        VideoCommon::GpuSplit& split = *split_owner;
         Access::Initialize(split, f.system);
         split.MacroWrite(engine, CbAddressHigh, 0);
         split.MacroWrite(engine, CbAddressLow, 0xfffffffcu);
@@ -754,7 +757,8 @@ TEST_CASE("Full split drains preserve aliased uploads, partial coverage and queu
     f.memory.Map(alias, device_address, 0x1000, Tegra::PTEKind::PITCH, false);
     std::memset(backing, 0, 0x2000);
 
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Start(split, f.system);
     SCOPE_EXIT { split.Stop(); };
     const auto state = [&](u32 method, u32 value) {
@@ -796,7 +800,8 @@ TEST_CASE("Split consumption does not complete deferred downstream callbacks",
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Start(split, f.system);
     SCOPE_EXIT { split.Stop(); };
     std::vector<std::function<void()>> deferred;
@@ -821,7 +826,8 @@ TEST_CASE("Split back runs a requested tick while it waits for work and between 
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     std::atomic<u32> ticks{};
     std::atomic<bool> entered{};
     std::atomic<bool> release{};
@@ -875,7 +881,8 @@ TEST_CASE("Split command list fetches wait only for the writers before the last 
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     std::array<std::atomic<bool>, 3> release{};
     std::atomic<bool> done{};
     bool waited{};
@@ -994,7 +1001,8 @@ TEST_CASE("Split tells whether compute or copy work it was sent is still queued"
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     std::atomic<bool> release{};
     Access::Start(split, f.system);
     SCOPE_EXIT {
@@ -1028,7 +1036,8 @@ TEST_CASE("Split remembers the semaphore writes its back has not run yet",
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     std::atomic<bool> release{};
     Access::Start(split, f.system);
     SCOPE_EXIT {
@@ -1078,7 +1087,8 @@ TEST_CASE("Split counts a fenced semaphore write in memory once its fence ran, n
     using Landing = VideoCommon::GpuSplit::Landing;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Start(split, f.system);
     SCOPE_EXIT {
         split.Stop();
@@ -1136,7 +1146,8 @@ TEST_CASE("Split waits for a semaphore write's position, not for the work sent a
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     std::array<std::atomic<bool>, 2> release{};
     Access::Start(split, f.system);
     SCOPE_EXIT {
@@ -1199,7 +1210,8 @@ TEST_CASE("Split restart resets writer positions without replaying old releases"
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
     f.system.Initialize();
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     u32 released{};
     u32 release_count{};
     for (u32 session = 1; session <= 3; ++session) {
@@ -1229,7 +1241,8 @@ TEST_CASE("Maxwell3D takes its macros back from the split's front once the split
           "[video_core][gpu_split_dependencies]") {
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Initialize(split, f.system);
     auto& engine = f.fast;
     constexpr u32 StartAddressPointer = MAXWELL3D_REG_INDEX(load_mme.start_address_ptr);
@@ -1249,7 +1262,8 @@ TEST_CASE("Maxwell3D keeps state written after the split stops over the front's 
           "[video_core][gpu_split_dependencies]") {
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Initialize(split, f.system);
     auto& engine = f.fast;
     const u32 state = f.state_methods.front();
@@ -1267,7 +1281,8 @@ TEST_CASE("Maxwell3D's split front uploads macro code sent as one multi-method r
           "[video_core][gpu_split_dependencies]") {
     using Access = VideoCommon::GpuSplitTestAccess;
     Fixture f;
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Initialize(split, f.system);
     auto& engine = f.fast;
     engine.SetNativeTuringMacroMode(true);
@@ -1327,7 +1342,8 @@ TEST_CASE("Split macro DMA reads wait only for the queued work that can write th
 
     {
         // Where reads wait: writes are placed by device memory, any GPU address of it.
-        VideoCommon::GpuSplit split;
+        const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+        VideoCommon::GpuSplit& split = *split_owner;
         Access::Initialize(split, f.system);
         split.Defer([] {}, Writes::Noted);
         split.NoteWrite(f.memory, alias + 0x48, 4);
@@ -1353,7 +1369,8 @@ TEST_CASE("Split macro DMA reads wait only for the queued work that can write th
     engine.SetNativeTuringMacroMode(true);
     constexpr u32 state = MAXWELL3D_REG_INDEX(shadow_scratch) + 1;
     constexpr u32 copy = state + 1;
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Start(split, f.system);
     SCOPE_EXIT {
         split.Stop();
@@ -1589,7 +1606,8 @@ TEST_CASE("Split tells guest memory writes from what only the GPU caches hold",
     constexpr GPUVAddr other = MappedPages::gpu_address + 0x140;
     REQUIRE_FALSE(Access::ShareWriteSlot(MappedPages::device_address + 0x40,
                                          MappedPages::device_address + 0x140));
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Initialize(split, f.system);
     split.Defer([] {}, Writes::Noted);
     split.NoteWrite(f.memory, word, 4);
@@ -1635,7 +1653,8 @@ TEST_CASE("Split front values the releases of the QMD launches it sends as the b
     std::array<u32, 128> positions{};
     compute.SetNativeMacroMode(&macros, positions);
     compute.BindRasterizer(&f.rasterizer);
-    VideoCommon::GpuSplit split;
+    const auto split_owner = std::make_unique<VideoCommon::GpuSplit>(); // Too big for the stack
+    VideoCommon::GpuSplit& split = *split_owner;
     Access::Initialize(split, f.system);
     const auto send = [&](u32 method, u32 argument) {
         compute.FrontCallMethod(f.system, split, method, argument, true, nullptr);

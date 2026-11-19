@@ -6,6 +6,52 @@ build 117 (`89440b2`) and is now its own emulator. Its main additions: compiled 
 (each shader is compiled once instead of every time you start the game), AMD FSR 4 and FSR 3.1
 upscaling, AMD frame generation, and the community's AMD performance work.
 
+## New in the next build (after 32.1)
+
+Fixes and features brought in from [zortos293/Lichii](https://github.com/zortos293/Lichii),
+[tasarren/Lichii](https://github.com/tasarren/Lichii) and
+[nemyu](https://gitlab.com/nemyu-emulator/nemyu).
+
+- **Nextendo online play** (Configure > Network, off by default): sign in to
+  [nextendo.network](https://nextendo.network) and play online in the games it supports, with a
+  friends list, friend requests and presence, one account per emulated user, and its BCAT news and
+  event downloads. From Lichii #1344, #1979, #1358, #1984, #1988, #1983, #1990, #2011, #2065, #2073
+  and its BCAT work.
+- **Ocarina of Time with FPS Unlock above 60 fps** (Lichii #1660, #1663, #1679, #1743, #1745,
+  #1981):
+  - Sound and music no longer stop after a few loading zones.
+  - Moving platforms carry Link above 100 fps, and Gohma steers right.
+  - The pickup count-up, ocarina playback, hit pauses and the ambient wave run at real speed.
+  - Movie cutscenes keep their voices and cues in sync, and the Scarecrow's Song keeps its note
+    lengths.
+  - A cheat that writes the patch's code or memory is named in the log.
+- **Ocarina of Time rendering:**
+  - "No sharpening" works on game version 1.0 and on more of its output shaders, with the right
+    colours and brightness again (Lichii #1137, #1778, #1875, #1995).
+  - Foliage shadows are drawn on GPUs that use the mesh shader fallback (Lichii #863).
+  - Fewer pipelines are built twice for the same mesh shaders (Lichii #2012).
+- **Memory:**
+  - Big textures over memory the game never wrote are cleared instead of uploaded, so area loads
+    are faster (the Graveyard about twice as fast) and use less RAM (tasarren).
+  - Deleted textures' GPU images are reused (tasarren).
+  - Pipelines with the same bindings share their layouts (tasarren).
+  - **VRAM Usage Mode** now sets a target: Auto (70% of the card), Unlimited, 2, 4 or 8 GB
+    (tasarren). Conservative becomes Auto and Aggressive becomes Unlimited.
+  - BC1 ASTC recompression keeps textures with transparency in BC3, so faces no longer get dark
+    patches (tasarren).
+- **Crashes and stability:**
+  - Fixed a use-after-free of the inline index buffer (Lichii #2163).
+  - Fixed a race between emulated CPU cores when game code is invalidated (Lichii `d4acca9200`).
+  - Fixed GPU address space leaks that ran games out of GPU memory (Lichii #1911).
+  - Yoshi and the Mysterious Book's book pages no longer slow down and crash (Lichii #1534).
+  - The driver pipeline cache can't be corrupted by a crash while it is saved (Lichii #2100).
+  - Settings and play time survive a crash during a save (nemyu).
+  - Shader translation fixes for Switch 2 programs (Lichii #2132, #2140 and the root tables they
+    build on).
+- **Linux on NVIDIA:** the driver's shader cache gets its own 10 GB folder, so shaders stop being
+  compiled again at every start (Lichii #1301).
+- **Smaller GPU logs:** the GPU log restarts past 64 MiB and counts repeated lines (nemyu).
+
 ## New in build 27
 
 - **RenoDX PsychoV35 HDR tonemapper** (Graphics > HDR Tonemapper, with HDR Contrast): a game's

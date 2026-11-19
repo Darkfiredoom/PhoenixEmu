@@ -82,7 +82,10 @@ notices and licenses:
 - the PsychoV35 tonemapper from [RenoDX](https://github.com/clshortfuse/renodx) by Carlos Lopez
   (MIT);
 - Tasa's memory work from [tasarren/Lichii](https://github.com/tasarren/Lichii): the shared CPU
-  code cache, the malloc arena cap, the memory release after loading and RAM Usage Mode;
+  code cache, the malloc arena cap, the memory release after loading, RAM Usage Mode, the VRAM
+  target and clearing unwritten textures;
+- [nemyu](https://gitlab.com/nemyu-emulator/nemyu): atomic settings saves and the GPU log cap;
+- Nextendo online play, from Lichii;
 - [fsr4-vk](https://github.com/Astyyyyy/fsr4-vk) by Astyyyyy and contributors (GPL-3.0-only),
   the open-source FSR 4 runtime shipped in `fsr4-vk/` and offered next to AMD's;
 - AMD's [FidelityFX SDK](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) for FSR and

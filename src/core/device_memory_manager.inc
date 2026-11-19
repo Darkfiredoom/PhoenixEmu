@@ -274,22 +274,22 @@ bool DeviceMemoryManager<Traits>::IsHole(DAddr address, size_t size) const {
     // Physical runs, checked as they end: one lseek per run.
     u64 run_begin = 0;
     u64 run_size = 0;
-    const size_t page_end = Common::DivCeil(address + size, Memory::LICHII_PAGESIZE);
-    for (size_t page = address >> Memory::LICHII_PAGEBITS; page < page_end; ++page) {
+    const size_t page_end = Common::DivCeil(address + size, Memory::PHOENIX_PAGESIZE);
+    for (size_t page = address >> Memory::PHOENIX_PAGEBITS; page < page_end; ++page) {
         const u32 compressed = tracked_entries[page].compressed_physical_ptr;
         if (compressed == 0) {
             return false;
         }
-        const u64 physical = u64{compressed - 1} << Memory::LICHII_PAGEBITS;
+        const u64 physical = u64{compressed - 1} << Memory::PHOENIX_PAGEBITS;
         if (run_size != 0 && run_begin + run_size == physical) {
-            run_size += Memory::LICHII_PAGESIZE;
+            run_size += Memory::PHOENIX_PAGESIZE;
             continue;
         }
         if (run_size != 0 && !device_memory_ptr->buffer.IsHole(run_begin, run_size)) {
             return false;
         }
         run_begin = physical;
-        run_size = Memory::LICHII_PAGESIZE;
+        run_size = Memory::PHOENIX_PAGESIZE;
     }
     return device_memory_ptr->buffer.IsHole(run_begin, run_size);
 }

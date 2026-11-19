@@ -139,7 +139,6 @@ ConfigureNetwork::~ConfigureNetwork() {
 void ConfigureNetwork::ApplyConfiguration() {
     Settings::values.network_interface = ui->network_interface->currentText().toStdString();
     Settings::values.airplane_mode = ui->airplane_mode->isChecked();
-    Settings::values.lan_play = ui->lan_play->isChecked();
     if (!per_game) {
         Settings::values.nextendo_enabled = ui->nextendo_enabled->isChecked();
         Settings::values.nextendo_sync_profile = ui->nextendo_sync_profile->isChecked();
@@ -178,7 +177,6 @@ void ConfigureNetwork::SetConfiguration() {
     ui->network_interface->setCurrentText(QString::fromStdString(network_interface));
     ui->network_interface->setEnabled(runtime_lock);
     ui->airplane_mode->setChecked(airplane_mode);
-    ui->lan_play->setChecked(Settings::values.lan_play.GetValue());
     ui->nextendo_enabled->setChecked(Settings::values.nextendo_enabled.GetValue());
     ui->nextendo_sync_profile->setChecked(Settings::values.nextendo_sync_profile.GetValue());
     ui->nextendo_client_id->setText(

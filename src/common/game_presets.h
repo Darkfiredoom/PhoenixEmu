@@ -18,7 +18,7 @@ inline void SetMarioKartWorldRecommendedSettings(Values& settings, bool global) 
     session(settings.gpu_accuracy, GpuAccuracy::Low);
     session(settings.use_asynchronous_shaders, true);
     session(settings.astc_recompression, AstcRecompression::Bc3);
-    session(settings.vram_usage_mode, VramUsageMode::Conservative);
+    session(settings.vram_usage_mode, VramUsageMode::Auto);
     session(settings.use_reactive_flushing, false);
     session(settings.vsync_mode, VSyncMode::FifoRelaxed);
     session(settings.use_docked_mode, ConsoleMode::Handheld);

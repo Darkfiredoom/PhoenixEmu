@@ -42,11 +42,11 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     entry(config.dma_accuracy, DmaAccuracy::Default);
     entry(config.gpu_fence_behavior, GpuFenceBehavior::Default);
     entry(config.native_compute_write_mark, NativeComputeWriteMark::Auto);
-    // Aggressive keeps more textures in video memory, which Windows also charges to RAM plus
-    // page file: only where both are plentiful.
+    // Unlimited keeps more textures in video memory, which Windows also charges to RAM plus
+    // page file: only where both are plentiful. Auto targets 70% of the card.
     entry(config.vram_usage_mode, large_card && host.ram_bytes >= 30 * GiB
-                                      ? VramUsageMode::Aggressive
-                                      : VramUsageMode::Conservative);
+                                      ? VramUsageMode::Unlimited
+                                      : VramUsageMode::Auto);
     entry(config.nvdec_emulation, NvdecEmulation::Gpu);
     entry(config.max_anisotropy, AnisotropyMode::Automatic);
     entry(config.accelerate_astc, AstcDecodeMode::Gpu);
@@ -130,7 +130,7 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     if (host.integrated) {
         entry(config.use_docked_mode, ConsoleMode::Handheld);
         entry(config.resolution_setup, ResolutionSetup::Res1X);
-        entry(config.vram_usage_mode, VramUsageMode::Conservative);
+        entry(config.vram_usage_mode, VramUsageMode::Auto);
         entry(config.astc_recompression, AstcRecompression::Bc3);
         entry(config.oot_fsr_preset, OotFsrPreset::Performance);
         entry(config.oot_docked_output, OotDockedOutput::Output1440p);

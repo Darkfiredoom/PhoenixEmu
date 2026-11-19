@@ -15,7 +15,7 @@ void SetConflictingPreferences(Settings::Values& settings, bool per_game) {
     set(settings.gpu_accuracy, Settings::GpuAccuracy::High);
     set(settings.use_asynchronous_shaders, false);
     set(settings.astc_recompression, Settings::AstcRecompression::Uncompressed);
-    set(settings.vram_usage_mode, Settings::VramUsageMode::Aggressive);
+    set(settings.vram_usage_mode, Settings::VramUsageMode::Unlimited);
     set(settings.use_reactive_flushing, true);
     set(settings.vsync_mode, Settings::VSyncMode::Immediate);
     set(settings.scaling_filter, Settings::ScalingFilter::NearestNeighbor);
@@ -28,7 +28,7 @@ void CheckPreset(const Settings::Values& settings) {
     CHECK(settings.gpu_accuracy.GetValue() == Settings::GpuAccuracy::Low);
     CHECK(settings.use_asynchronous_shaders.GetValue());
     CHECK(settings.astc_recompression.GetValue() == Settings::AstcRecompression::Bc3);
-    CHECK(settings.vram_usage_mode.GetValue() == Settings::VramUsageMode::Conservative);
+    CHECK(settings.vram_usage_mode.GetValue() == Settings::VramUsageMode::Auto);
     CHECK_FALSE(settings.use_reactive_flushing.GetValue());
     CHECK(settings.vsync_mode.GetValue() == Settings::VSyncMode::FifoRelaxed);
     CHECK(settings.use_docked_mode.GetValue() == Settings::ConsoleMode::Handheld);
@@ -43,7 +43,7 @@ void CheckPreferences(const Settings::Values& settings, bool global = false) {
     CHECK_FALSE(settings.use_asynchronous_shaders.GetValue(global));
     CHECK(settings.astc_recompression.GetValue(global) ==
           Settings::AstcRecompression::Uncompressed);
-    CHECK(settings.vram_usage_mode.GetValue(global) == Settings::VramUsageMode::Aggressive);
+    CHECK(settings.vram_usage_mode.GetValue(global) == Settings::VramUsageMode::Unlimited);
     CHECK(settings.use_reactive_flushing.GetValue(global));
     CHECK(settings.vsync_mode.GetValue(global) == Settings::VSyncMode::Immediate);
     CHECK(settings.scaling_filter.GetValue(global) == Settings::ScalingFilter::NearestNeighbor);

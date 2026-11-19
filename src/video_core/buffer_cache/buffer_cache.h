@@ -48,7 +48,7 @@ BufferCache<P>::BufferCache(Tegra::MaxwellDeviceMemoryManager& device_memory_, R
     gpu_modified_ranges.Clear();
     inline_buffer_id = NULL_BUFFER_ID;
 #ifdef PHOENIX_LEGACY
-    immediately_free = (Settings::values.vram_usage_mode.GetValue() == Settings::VramUsageMode::Aggressive);
+    immediately_free = (Settings::values.vram_usage_mode.GetValue() == Settings::VramUsageMode::Unlimited);
 #endif
     if (!runtime.CanReportMemoryUsage()) {
         minimum_memory = DEFAULT_EXPECTED_MEMORY;
@@ -57,6 +57,8 @@ BufferCache<P>::BufferCache(Tegra::MaxwellDeviceMemoryManager& device_memory_, R
     }
 
     const s64 device_local_memory = static_cast<s64>(runtime.GetDeviceLocalMemory());
+    // A small VRAM target (vram_usage_mode 2 GB: 256 MiB) keeps buffers to an eighth of it.
+    native_collect_memory = (std::min)(u64{512_MiB}, static_cast<u64>(device_local_memory) / 8);
     const s64 min_spacing_expected = device_local_memory - 1_GiB;
     const s64 min_spacing_critical = device_local_memory - 512_MiB;
     const s64 mem_threshold = (std::min)(device_local_memory, TARGET_THRESHOLD);
@@ -233,7 +235,7 @@ void BufferCache<P>::TickFrame() {
             if (buffer_bytes >= 512_MiB) {
                 RunGarbageCollector(buffer_bytes >= 1_GiB);
             }
-        } else if (buffer_bytes >= 512_MiB && frame_tick > 120) {
+        } else if (buffer_bytes >= native_collect_memory && frame_tick > 120) {
             u64 idle_bytes = 0;
             lru_cache.ForEachItemBelow(frame_tick - 120, [&](BufferId buffer_id) {
                 idle_bytes += slot_buffers[buffer_id].SizeBytes();

@@ -5,6 +5,7 @@
 
 #include <array>
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -137,6 +138,7 @@ private:
     // Helper functions
     void WriteToLog(const std::string& message);
     void RotateLogFile();
+    bool TracesCalls() const;
     std::string FormatTimestamp(std::chrono::microseconds timestamp) const;
     std::string FormatMemorySize(u64 bytes) const;
 
@@ -164,8 +166,18 @@ private:
 
     // File backend for GPU logs
     std::unique_ptr<Common::FS::IOFile> gpu_log_file;
+    std::filesystem::path gpu_log_path;
+    std::filesystem::path old_log_path;
     mutable std::mutex file_mutex;
     u64 bytes_written = 0;
+    u64 file_bytes = 0;
+    u64 unflushed_bytes = 0;
+
+    // Lines repeated past a limit within a second are counted instead of written
+    std::chrono::steady_clock::time_point repeat_window_start{};
+    ::Common::unordered_map<size_t, u32> repeat_counts;
+    u64 window_left_out = 0;
+    u64 total_left_out = 0;
 
     // Feature flags
     bool track_vulkan_calls = true;

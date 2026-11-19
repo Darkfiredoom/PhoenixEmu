@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 #include <mutex>
+#include <string_view>
 #include <thread>
 
 #include "common/fs/file.h"
@@ -15,6 +16,13 @@
 #include "common/settings.h"
 
 namespace GPU::Logging {
+
+using namespace Common::Literals;
+
+/// eden_gpu.log is moved to eden_gpu.log.old.txt past this, so the newest lines are kept
+constexpr u64 MaxLogFileBytes = 64_MiB;
+/// Times the same line is written within a second before the rest are only counted
+constexpr u32 MaxRepeatsPerSecond = 20;
 
 // Static instance
 static GPULogger* g_instance = nullptr;
@@ -55,10 +63,10 @@ void GPULogger::Initialize(LogLevel level, DriverType driver) {
     [[maybe_unused]] const bool crashes_dir_created = CreateDir(crashes_dir);
 
     // Open GPU log file
-    const auto gpu_log_path = log_dir / "eden_gpu.log";
+    gpu_log_path = log_dir / "eden_gpu.log";
 
     // Rotate old log
-    const auto old_log_path = log_dir / "eden_gpu.log.old.txt";
+    old_log_path = log_dir / "eden_gpu.log.old.txt";
     RemoveFile(old_log_path);
     [[maybe_unused]] const bool log_renamed = RenameFile(gpu_log_path, old_log_path);
 
@@ -70,6 +78,8 @@ void GPULogger::Initialize(LogLevel level, DriverType driver) {
         LOG_ERROR(Render_Vulkan, "[GPU Logging] Failed to open GPU log file");
         return;
     }
+    file_bytes = 0;
+    unflushed_bytes = 0;
 
     // Initialize ring buffer
     call_ring_buffer.resize(ring_buffer_size);
@@ -142,10 +152,11 @@ void GPULogger::Shutdown() {
         "Peak Memory Usage: {}\n"
         "Current Memory Usage: {}\n"
         "Log Size: {} bytes\n"
+        "Repeated Lines Left Out: {}\n"
         "==============================\n",
         total_vulkan_calls, total_allocations, total_deallocations,
         FormatMemorySize(peak_allocated_bytes), FormatMemorySize(current_allocated_bytes),
-        bytes_written);
+        bytes_written, total_left_out + window_left_out);
 
     WriteToLog(stats);
 
@@ -201,6 +212,11 @@ void GPULogger::LogVulkanCall(const std::string& call_name, const std::string& p
         total_vulkan_calls++;
     }
 
+    // Errors keeps the calls for a crash dump and writes only the failed ones.
+    if (current_level == LogLevel::Errors && result >= 0) {
+        return;
+    }
+
     // Log to file
     const auto log_entry =
         fmt::format("[{}] [Vulkan] [Thread:{}] {}({}) -> {}\n", FormatTimestamp(timestamp),
@@ -241,6 +257,10 @@ void GPULogger::LogMemoryAllocation(uintptr_t memory, u64 size, u32 memory_flags
         }
     }
 
+    if (current_level < LogLevel::Standard) {
+        return;
+    }
+
     const auto log_entry = fmt::format(
         "[{}] [Memory] Allocated {} at {:#x} (Device:{}, Host:{})\n", FormatTimestamp(timestamp),
         FormatMemorySize(size), memory, is_device_local ? "Yes" : "No",
@@ -272,7 +292,7 @@ void GPULogger::LogMemoryDeallocation(uintptr_t memory) {
         }
     }
 
-    if (size > 0) {
+    if (size > 0 && current_level >= LogLevel::Standard) {
         const auto log_entry =
             fmt::format("[{}] [Memory] Deallocated {} at {:#x}\n", FormatTimestamp(timestamp),
                         FormatMemorySize(size), memory);
@@ -401,11 +421,7 @@ void GPULogger::LogExtensionUsage(const std::string& extension_name, const std::
 }
 
 void GPULogger::LogRenderPassBegin(const std::string& render_pass_info) {
-    if (!initialized || current_level == LogLevel::Off) {
-        return;
-    }
-
-    if (!track_vulkan_calls && current_level < LogLevel::Verbose) {
+    if (!initialized || !TracesCalls()) {
         return;
     }
 
@@ -418,11 +434,7 @@ void GPULogger::LogRenderPassBegin(const std::string& render_pass_info) {
 }
 
 void GPULogger::LogRenderPassEnd() {
-    if (!initialized || current_level == LogLevel::Off) {
-        return;
-    }
-
-    if (!track_vulkan_calls && current_level < LogLevel::Verbose) {
+    if (!initialized || !TracesCalls()) {
         return;
     }
 
@@ -434,11 +446,7 @@ void GPULogger::LogRenderPassEnd() {
 }
 
 void GPULogger::LogPipelineBind(bool is_compute, const std::string& pipeline_info) {
-    if (!initialized || current_level == LogLevel::Off) {
-        return;
-    }
-
-    if (!track_vulkan_calls && current_level < LogLevel::Verbose) {
+    if (!initialized || !TracesCalls()) {
         return;
     }
 
@@ -486,11 +494,7 @@ void GPULogger::LogPipelineBarrier(const std::string& barrier_info) {
 }
 
 void GPULogger::LogImageOperation(const std::string& operation, const std::string& image_info) {
-    if (!initialized || current_level == LogLevel::Off) {
-        return;
-    }
-
-    if (!track_vulkan_calls && current_level < LogLevel::Verbose) {
+    if (!initialized || !TracesCalls()) {
         return;
     }
 
@@ -503,11 +507,7 @@ void GPULogger::LogImageOperation(const std::string& operation, const std::strin
 }
 
 void GPULogger::LogClearOperation(const std::string& clear_info) {
-    if (!initialized || current_level == LogLevel::Off) {
-        return;
-    }
-
-    if (!track_vulkan_calls && current_level < LogLevel::Verbose) {
+    if (!initialized || !TracesCalls()) {
         return;
     }
 
@@ -691,19 +691,76 @@ bool GPULogger::IsInitialized() const {
     return initialized;
 }
 
+// Draws, dispatches, render passes, binds, clears and image operations: Standard and up
+bool GPULogger::TracesCalls() const {
+    return current_level >= LogLevel::Verbose ||
+           (current_level == LogLevel::Standard && track_vulkan_calls);
+}
+
 void GPULogger::WriteToLog(const std::string& message) {
     if (!gpu_log_file || !gpu_log_file->IsOpen()) {
         return;
     }
 
     std::lock_guard lock(file_mutex);
-    bytes_written += gpu_log_file->WriteString(message);
-
-    // Flush on errors or if we've written a lot
-    using namespace Common::Literals;
-    if (bytes_written % (1_MiB) == 0) {
-        gpu_log_file->Flush();
+    const auto now = std::chrono::steady_clock::now();
+    std::string text;
+    if (now - repeat_window_start >= std::chrono::seconds{1}) {
+        if (window_left_out != 0) {
+            text = fmt::format("[GPU Logging] {} repeated lines left out in the last second\n",
+                               window_left_out);
+            total_left_out += window_left_out;
+            window_left_out = 0;
+        }
+        repeat_counts.clear();
+        repeat_window_start = now;
     }
+    // The same line past its timestamp
+    const std::string_view line{message};
+    const size_t stamp_end = line.find("] ");
+    const std::string_view body =
+        stamp_end == std::string_view::npos ? line : line.substr(stamp_end + 2);
+    if (++repeat_counts[std::hash<std::string_view>{}(body)] > MaxRepeatsPerSecond) {
+        ++window_left_out;
+        if (text.empty()) {
+            return;
+        }
+    } else {
+        text += message;
+    }
+
+    if (file_bytes + text.size() > MaxLogFileBytes) {
+        RotateLogFile();
+        if (!gpu_log_file || !gpu_log_file->IsOpen()) {
+            return;
+        }
+    }
+    const size_t written = gpu_log_file->WriteString(text);
+    bytes_written += written;
+    file_bytes += written;
+    unflushed_bytes += written;
+    if (unflushed_bytes >= 1_MiB) {
+        gpu_log_file->Flush();
+        unflushed_bytes = 0;
+    }
+}
+
+void GPULogger::RotateLogFile() {
+    gpu_log_file->Close();
+    Common::FS::RemoveFile(old_log_path);
+    [[maybe_unused]] const bool renamed = Common::FS::RenameFile(gpu_log_path, old_log_path);
+    gpu_log_file = std::make_unique<Common::FS::IOFile>(
+        gpu_log_path, Common::FS::FileAccessMode::Write, Common::FS::FileType::TextFile);
+    file_bytes = 0;
+    unflushed_bytes = 0;
+    if (!gpu_log_file->IsOpen()) {
+        LOG_ERROR(Render_Vulkan, "[GPU Logging] Failed to reopen the GPU log file");
+        return;
+    }
+    file_bytes = gpu_log_file->WriteString(fmt::format(
+        "=== Continued at {} MiB; the earlier lines are in eden_gpu.log.old.txt ===\n",
+        MaxLogFileBytes / 1_MiB));
+    bytes_written += file_bytes;
 }
 
 std::string GPULogger::FormatTimestamp(std::chrono::microseconds timestamp) const {
@@ -713,7 +770,6 @@ std::string GPULogger::FormatTimestamp(std::chrono::microseconds timestamp) cons
 }
 
 std::string GPULogger::FormatMemorySize(u64 bytes) const {
-    using namespace Common::Literals;
     if (bytes >= 1_GiB) {
         return fmt::format("{:.2f} GiB", static_cast<double>(bytes) / (1_GiB));
     } else if (bytes >= 1_MiB) {

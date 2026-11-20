@@ -28,6 +28,7 @@
 #include "update_dialog.h"
 
 #include "common/httplib.h"
+#include "common/net/ca_store.h"
 
 #ifdef PHOENIX_BUNDLED_OPENSSL
 #include <openssl/cert.h>
@@ -336,10 +337,9 @@ bool UpdateDialog::DownloadTo(const QString& filename) {
     client->set_read_timeout(timeout_seconds);
     client->set_write_timeout(timeout_seconds);
     client->set_follow_location(true);
-
-#ifdef PHOENIX_BUNDLED_OPENSSL
-    client->load_ca_cert_store(kCert, sizeof(kCert));
-#endif
+    // The AppImage's OpenSSL looks for certificates where the build machine keeps them: SteamOS
+    // failed the download with "SSL server verification failed" while the update check worked.
+    Common::Net::ConfigureCaStore(*client);
 
     if (client == nullptr) {
         LOG_ERROR(Frontend, "Invalid URL {}{}", m_asset.url, m_asset.path);

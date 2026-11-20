@@ -220,7 +220,8 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, fsr4_runtime, tr("FSR 4 runtime:"),
            tr("Which library runs FSR 4.\nAMD: AMD's official FidelityFX runtime (Windows; "
               "downloaded on request).\nfsr4-vk: the open-source fsr4-vk by Astyyyyy, shipped "
-              "with PhoenixEmu, on Windows and Linux. It runs AMD's FSR 4.1.1 network (FP8 on "
+              "with PhoenixEmu on Windows and Linux: inside the AppImage, in the fsr4-vk folder "
+              "of the zip and tar.gz. Nothing to install. It runs AMD's FSR 4.1.1 network (FP8 on "
               "RX 9000, INT8 on other GPUs).\nAuto: AMD's when it offers FSR 4 for your GPU, else "
               "fsr4-vk, else AMD's FSR 3.1.\nTakes effect when the game starts."));
     INSERT(Settings, nvidia_dlss, tr("Use NVIDIA DLSS in place of a game's DLSS (experimental)"),

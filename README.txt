@@ -134,7 +134,7 @@ Which library runs it ("FSR 4 runtime", in the same box):
   - Auto (default): AMD's runtime when it offers FSR 4 for your GPU, else fsr4-vk.
   - AMD: AMD's official FidelityFX runtime (Windows).
   - fsr4-vk: the open-source fsr4-vk (github.com/Astyyyyy/fsr4-vk), in the fsr4-vk folder next
-    to the emulator. It runs AMD's FSR 4.1.1 network on Windows and Linux: FP8 on RX 9000, INT8
+    to the emulator (built into the Linux AppImage: nothing to copy). It runs AMD's FSR 4.1.1 network on Windows and Linux: FP8 on RX 9000, INT8
     on other GPUs, so FSR 4 also works on Linux and on GPUs AMD's runtime gives only FSR 3.1.
 
 The log (%APPDATA%\phoenixemu\log\phoenixemu_log.txt) says which one runs:

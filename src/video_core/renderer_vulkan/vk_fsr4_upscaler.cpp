@@ -394,6 +394,16 @@ bool Fsr4Upscaler::CreateContext(VkExtent2D render_size, VkExtent2D upscale_size
     ffxCreateBackendVKDesc backend{};
     backend.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK;
     backend.deviceContext = vk_context;
+    // fsr4-vk only looks for the deprecated backend type (3) and rejected the newer one as a
+    // missing device (FFX_API_RETURN_ERROR_PARAMETER). Its fields are laid out the same.
+    ffxCreateBackendVKDesc_DEPRECATED backend_deprecated{};
+    backend_deprecated.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK_DEPRECATED;
+    backend_deprecated.vkDevice = vk_context.vkDevice;
+    backend_deprecated.vkPhysicalDevice = vk_context.vkPhysicalDevice;
+    backend_deprecated.vkDeviceProcAddr = vk_context.vkDeviceProcAddr;
+    ffxCreateContextDescHeader& backend_header = context->api->source == Source::Fsr4Vk
+                                                     ? backend_deprecated.header
+                                                     : backend.header;
     ffxOverrideVersion version_override{};
     version_override.header.type = FFX_API_DESC_TYPE_OVERRIDE_VERSION;
     version_override.versionId = context->provider.id;
@@ -411,7 +421,7 @@ bool Fsr4Upscaler::CreateContext(VkExtent2D render_size, VkExtent2D upscale_size
     // Chain: upscale <- version <- override <- backend.
     create.header.pNext = &api_version.header;
     api_version.header.pNext = &version_override.header;
-    version_override.header.pNext = &backend.header;
+    version_override.header.pNext = &backend_header;
     const ffxReturnCode_t result =
         context->api->create_context(&context->handle, &create.header, nullptr);
     if (result != FFX_API_RETURN_OK) {

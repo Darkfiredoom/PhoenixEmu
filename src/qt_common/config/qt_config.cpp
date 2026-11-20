@@ -241,6 +241,17 @@ void QtConfig::ReadPathValues() {
     }
     EndArray();
 
+    UISettings::values.amiibo_library.clear();
+    const int amiibo_library_size = BeginArray(std::string("amiibo_library"));
+    for (int i = 0; i < amiibo_library_size; ++i) {
+        SetArrayIndex(i);
+        const std::string path = ReadStringSetting(std::string("path"));
+        if (!path.empty()) {
+            UISettings::values.amiibo_library.append(QString::fromStdString(path));
+        }
+    }
+    EndArray();
+
     ReadCategory(Settings::Category::Paths);
 
     EndGroup();
@@ -474,6 +485,14 @@ void QtConfig::SavePathValues() {
     for (int i = 0; i < static_cast<int>(Settings::values.external_content_dirs.size()); ++i) {
         SetArrayIndex(i);
         WriteStringSetting(std::string("path"), Settings::values.external_content_dirs[i]);
+    }
+    EndArray();
+
+    BeginArray(std::string("amiibo_library"));
+    for (int i = 0; i < UISettings::values.amiibo_library.size(); ++i) {
+        SetArrayIndex(i);
+        WriteStringSetting(std::string("path"),
+                           UISettings::values.amiibo_library[i].toStdString());
     }
     EndArray();
 

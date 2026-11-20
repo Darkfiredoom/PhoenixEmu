@@ -23,6 +23,8 @@ add_executable(phoenix
     about_dialog.cpp
     about_dialog.h
     aboutdialog.ui
+    amiibo_library.cpp
+    amiibo_library.h
     compatibility_report.cpp
     compatibility_report.h
     applets/qt_amiibo_settings.cpp

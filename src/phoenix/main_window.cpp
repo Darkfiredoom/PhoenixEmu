@@ -70,6 +70,7 @@
 #include "phoenix/nx_tools.h"
 #endif
 
+#include "amiibo_library.h"
 #include "applets/qt_amiibo_settings.h"
 #include "applets/qt_controller.h"
 #include "applets/qt_error.h"
@@ -1789,6 +1790,7 @@ void MainWindow::InitializeHotkeys() {
     hotkey_registry.LoadHotkeys();
 
     LinkActionShortcut(ui->action_Load_File, QStringLiteral("Load File"));
+    LinkActionShortcut(ui->action_Load_Amiibo, QStringLiteral("Amiibo Library"));
     LinkActionShortcut(ui->action_Exit, QStringLiteral("Exit Eglantine"));
     LinkActionShortcut(ui->action_Restart, QStringLiteral("Restart Emulation"));
     LinkActionShortcut(ui->action_Pause, QStringLiteral("Continue/Pause Emulation"));
@@ -2570,7 +2572,6 @@ void MainWindow::UpdateMenuState() {
         ui->action_Stop,
         ui->action_Restart,
         ui->action_Configure_Current_Game,
-        ui->action_Load_Amiibo,
         ui->action_Pause,
     };
 
@@ -3452,6 +3453,9 @@ void MainWindow::OnEmulationStopped() {
     if (qApp->property("phoenix_recipe_requested").toBool()) {
         qunsetenv("PHOENIXEMU_MAKE_RECIPE");
         qApp->setProperty("phoenix_recipe_requested", false);
+    }
+    if (amiibo_library != nullptr) {
+        amiibo_library->CancelPendingTap();
     }
     if (!emulation_running) {
         return;
@@ -5239,35 +5243,20 @@ void MainWindow::OpenPerGameConfiguration(u64 title_id, const std::string& file_
 }
 
 void MainWindow::OnLoadAmiibo() {
-    if (QtCommon::emu_thread == nullptr || !QtCommon::emu_thread->IsRunning() ||
-        is_amiibo_file_select_active)
-        return;
-
-    auto* virtual_amiibo = input_subsystem->GetVirtualAmiibo();
-
-    // Remove amiibo if one is connected
-    if (virtual_amiibo->GetCurrentState() == InputCommon::VirtualAmiibo::State::TagNearby) {
-        virtual_amiibo->CloseAmiibo();
-        QMessageBox::warning(this, tr("Amiibo"), tr("The current amiibo has been removed"));
+    if (amiibo_library == nullptr) {
+        amiibo_library =
+            new AmiiboLibraryDialog(this, input_subsystem.get(), QtCommon::system->HIDCore());
+        connect(amiibo_library, &AmiiboLibraryDialog::LibraryChanged, this,
+                &MainWindow::OnSaveConfig);
+    }
+    // The hotkey toggles the window so it can be dismissed without leaving the game.
+    if (amiibo_library->isVisible() && amiibo_library->isActiveWindow()) {
+        amiibo_library->hide();
         return;
     }
-
-    if (virtual_amiibo->GetCurrentState() != InputCommon::VirtualAmiibo::State::WaitingForAmiibo) {
-        QMessageBox::warning(this, tr("Error"), tr("The current game is not looking for amiibos"));
-        return;
-    }
-
-    is_amiibo_file_select_active = true;
-    const QString extensions{QStringLiteral("*.bin")};
-    const QString file_filter = tr("Amiibo File (%1);; All Files (*.*)").arg(extensions);
-    const QString filename = QFileDialog::getOpenFileName(this, tr("Load Amiibo"), {}, file_filter);
-    is_amiibo_file_select_active = false;
-
-    if (filename.isEmpty()) {
-        return;
-    }
-
-    LoadAmiibo(filename);
+    amiibo_library->show();
+    amiibo_library->raise();
+    amiibo_library->activateWindow();
 }
 
 // TODO(crueter): does this need to be ported to QML?

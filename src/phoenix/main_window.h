@@ -79,6 +79,7 @@ enum class GameListOpenTarget;
 enum class DumpRomFSTarget;
 class GameListPlaceholder;
 
+class AmiiboLibraryDialog;
 class QtAmiiboSettingsDialog;
 class QtControllerSelectorDialog;
 class QtProfileSelectionDialog;
@@ -728,8 +729,7 @@ private:
     QtSoftwareKeyboardDialog* software_keyboard = nullptr;
     QtNXWebEngineView* web_applet = nullptr;
 
-    // True if amiibo file select is visible
-    bool is_amiibo_file_select_active{};
+    AmiiboLibraryDialog* amiibo_library = nullptr;
 
     // True if load file select is visible
     bool is_load_file_select_active{};

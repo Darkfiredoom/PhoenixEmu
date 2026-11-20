@@ -398,11 +398,8 @@
    </property>
   </action>
   <action name="action_Load_Amiibo">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
-    <string>Load/Remove &amp;Amiibo...</string>
+    <string>&amp;Amiibo Library...</string>
    </property>
   </action>
   <action name="action_Open_Mods_Page">

@@ -185,6 +185,8 @@ struct Values {
     bool game_dir_deprecated_deepscan;
     QVector<GameDir> game_dirs;
     QStringList recent_files;
+    // Amiibo files added to the Amiibo Library, most recently tapped first.
+    QStringList amiibo_library;
     Setting<std::string> language{linkage, {}, "language", Category::Paths};
 
     // Optional key that enables the SteamGridDB icon fallback
@@ -287,7 +289,7 @@ void SaveWindowState();
 void RestoreWindowState(std::unique_ptr<QtConfig>& qtConfig);
 
 // sync with uisettings.cpp
-extern const std::array<Shortcut, 33> default_hotkeys;
+extern const std::array<Shortcut, 34> default_hotkeys;
 
 } // namespace UISettings
 

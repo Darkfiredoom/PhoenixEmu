@@ -344,7 +344,7 @@ fs::path FindSteam() {
          {QStringLiteral("/.local/share/Steam"), QStringLiteral("/.steam/steam"),
           QStringLiteral("/.steam/root"),
           QStringLiteral("/.var/app/com.valvesoftware.Steam/.local/share/Steam")}) {
-        candidates.emplace_back((home + relative).toStdString());
+        candidates.emplace_back(QString{home + relative}.toStdString());
     }
 #endif
     std::error_code error;

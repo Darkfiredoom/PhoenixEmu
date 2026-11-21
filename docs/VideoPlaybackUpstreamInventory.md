@@ -76,7 +76,7 @@ See [port decisions](VideoPlaybackUpstreamAudit.md) for the selected changes.
 | [#411](https://github.com/Djihads80/Eglantine/pull/411) | MERGED | video_core: bound-check macro position writes |
 | [#412](https://github.com/Djihads80/Eglantine/pull/412) | MERGED | video_core: drop constant buffer words past the buffer end |
 | [#413](https://github.com/Djihads80/Eglantine/pull/413) | MERGED | shader: lower more Ampere forms used by Pokemon Pokopia's compute shaders |
-| [#421](https://github.com/Djihads80/Eglantine/pull/421) | CLOSED | Add a built-in MCP server for AI agents (off by default) |
+| [#421](https://github.com/Djihads80/Eglantine/pull/421) | CLOSED | Add a built-in MCP debug server (off by default) |
 | [#425](https://github.com/Djihads80/Eglantine/pull/425) | OPEN | ci: add native Windows ARM64 build |
 | [#427](https://github.com/Djihads80/Eglantine/pull/427) | OPEN | vulkan: fix two macOS crashes (mesh pipelines on MoltenVK, swapchain recreation) |
 | [#430](https://github.com/Djihads80/Eglantine/pull/430) | MERGED | video_core: log and fall back on an undecodable render target format |

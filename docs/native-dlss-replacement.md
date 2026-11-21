@@ -101,7 +101,7 @@ NVIDIA app's signed DLSS model. The UI and Windows loading path require Windows 
 
 ## Provenance
 
-This backport is AI-assisted and requires human review and testing before distribution.
+This backport requires review and testing before distribution.
 It carries upstream work by Duck912 from Eglantine commits `08dbcc7e3b3d`, `11cebf56014a`
 and PR #434 through `f9d0c802e8e4`, plus Jonas's warning fix `537c1f4e173a`. The empty-extension requirement
 fix `1889602c7a0d` is a separately included follow-up. Existing SPDX notices and AMD/NVIDIA

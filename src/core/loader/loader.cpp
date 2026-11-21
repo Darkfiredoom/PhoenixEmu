@@ -20,6 +20,8 @@
 #include "core/file_sys/control_metadata.h"
 #include "core/file_sys/common_funcs.h"
 #include "core/file_sys/content_archive.h"
+#include "core/file_sys/program_metadata.h"
+#include "core/file_sys/nup_container.h"
 #include "core/file_sys/registered_cache.h"
 #include "core/file_sys/submission_package.h"
 #include "core/hle/kernel/k_process.h"
@@ -197,6 +199,86 @@ bool IsBootableGameContainer(FileSys::VirtualFile file, FileType type, u64 progr
     }
 
     return HasApplicationProgramContent(OpenContainerAsNsp(file, type, program_id, program_index));
+}
+
+namespace {
+// The program id from a Switch 2 program's main.npdm, if it is one.
+std::optional<u64> Switch2ProgramId(FileSys::ProgramMetadata& metadata,
+                                    const FileSys::VirtualFile& npdm) {
+    if (npdm == nullptr || metadata.Load(npdm) != ResultStatus::Success ||
+        !metadata.IsSwitch2()) {
+        return std::nullopt;
+    }
+    return metadata.GetTitleID();
+}
+} // namespace
+
+std::optional<u64> FindSwitch2Program(FileSys::VirtualFile file, u64 program_id,
+                                      std::size_t program_index) {
+    FileSys::ProgramMetadata metadata;
+    if (FileSys::NupContainer::IsNupFile(file)) {
+        FileSys::NupContainer nup{file};
+        if (nup.GetStatus() != ResultStatus::Success) {
+            return std::nullopt;
+        }
+        const auto base = nup.FindBasePackage();
+        const auto update = nup.FindBestUpdatePackage();
+        std::optional<std::size_t> program;
+        if (update && nup.GetExeFSDir(*update) != nullptr) {
+            program = update;
+        } else if (base && nup.GetExeFSDir(*base) != nullptr) {
+            program = base;
+        }
+        const auto exefs = program ? nup.GetExeFSDir(*program) : nullptr;
+        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
+        return Switch2ProgramId(metadata, npdm);
+    }
+    const auto type = file != nullptr ? IdentifyFile(file) : FileType::Unknown;
+    if (type == FileType::NX) {
+        // A bool here was an engaged optional either way: Switch 1 archives booted as Switch 2.
+        if (AppLoader_NX::ReadPlatform(file, program_id) != 2) {
+            return std::nullopt;
+        }
+        return program_id;
+    }
+    if (type == FileType::XCI || type == FileType::XCZ) {
+        const FileSys::XCI xci{file, program_id, program_index};
+        if (xci.GetStatus() != ResultStatus::Success) {
+            return std::nullopt;
+        }
+        const auto partition = xci.GetSecurePartitionNSP();
+        const auto program = partition != nullptr
+                                 ? partition->GetNCA(xci.GetProgramTitleID(),
+                                                     FileSys::ContentRecordType::Program)
+                                 : nullptr;
+        const auto exefs = program != nullptr ? program->GetExeFS() : nullptr;
+        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
+        return Switch2ProgramId(metadata, npdm);
+    }
+    if (type == FileType::NSP || type == FileType::NSZ) {
+        const FileSys::NSP nsp{file, program_id, program_index};
+        if (nsp.GetStatus() != ResultStatus::Success) {
+            return std::nullopt;
+        }
+        auto exefs = nsp.GetExeFS();
+        if (!nsp.IsExtractedType()) {
+            const auto program =
+                nsp.GetNCA(nsp.GetProgramTitleID(), FileSys::ContentRecordType::Program);
+            exefs = program != nullptr ? program->GetExeFS() : nullptr;
+        }
+        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
+        return Switch2ProgramId(metadata, npdm);
+    }
+    if (type == FileType::NCA) {
+        // Installed titles reach the game list as their program NCA.
+        const FileSys::NCA nca{file};
+        const auto exefs = nca.GetStatus() == ResultStatus::Success ? nca.GetExeFS() : nullptr;
+        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
+        return Switch2ProgramId(metadata, npdm);
+    }
+    const auto dir = file != nullptr ? file->GetContainingDirectory() : nullptr;
+    const auto npdm = dir != nullptr ? dir->GetFile("main.npdm") : nullptr;
+    return Switch2ProgramId(metadata, npdm);
 }
 
 FileType GuessFromFilename(const std::string& name) {

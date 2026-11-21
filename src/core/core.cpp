@@ -131,78 +131,6 @@ FileSys::VirtualFile GetGameFileFromPath(const FileSys::VirtualFilesystem& vfs,
     return vfs->OpenFile(path, FileSys::OpenMode::Read);
 }
 
-namespace {
-
-// The program id from a Switch 2 program's main.npdm, if it is one.
-std::optional<u64> Switch2ProgramId(FileSys::ProgramMetadata& metadata,
-                                    const FileSys::VirtualFile& npdm) {
-    if (npdm == nullptr || metadata.Load(npdm) != Loader::ResultStatus::Success ||
-        !metadata.IsSwitch2()) {
-        return std::nullopt;
-    }
-    return metadata.GetTitleID();
-}
-
-// Detect the platform and program before initializing the kernel memory layout and guest clock:
-// the id of a Switch 2 program, or nothing for any other program.
-std::optional<u64> FindSwitch2Program(const FileSys::VirtualFile& file, u64 program_id,
-                                      std::size_t program_index) {
-    FileSys::ProgramMetadata metadata;
-    if (FileSys::NupContainer::IsNupFile(file)) {
-        FileSys::NupContainer nup{file};
-        if (nup.GetStatus() != Loader::ResultStatus::Success) {
-            return std::nullopt;
-        }
-        const auto base = nup.FindBasePackage();
-        const auto update = nup.FindBestUpdatePackage();
-        std::optional<std::size_t> program;
-        if (update && nup.GetExeFSDir(*update) != nullptr) {
-            program = update;
-        } else if (base && nup.GetExeFSDir(*base) != nullptr) {
-            program = base;
-        }
-        const auto exefs = program ? nup.GetExeFSDir(*program) : nullptr;
-        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
-        return Switch2ProgramId(metadata, npdm);
-    }
-    const auto type = file != nullptr ? Loader::IdentifyFile(file) : Loader::FileType::Unknown;
-    if (type == Loader::FileType::NX) {
-        return Loader::AppLoader_NX::ReadPlatform(file, program_id) == 2;
-    }
-    if (type == Loader::FileType::XCI || type == Loader::FileType::XCZ) {
-        const FileSys::XCI xci{file, program_id, program_index};
-        if (xci.GetStatus() != Loader::ResultStatus::Success) {
-            return std::nullopt;
-        }
-        const auto partition = xci.GetSecurePartitionNSP();
-        const auto program = partition != nullptr
-                                 ? partition->GetNCA(xci.GetProgramTitleID(),
-                                                     FileSys::ContentRecordType::Program)
-                                 : nullptr;
-        const auto exefs = program != nullptr ? program->GetExeFS() : nullptr;
-        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
-        return Switch2ProgramId(metadata, npdm);
-    }
-    if (type == Loader::FileType::NSP || type == Loader::FileType::NSZ) {
-        const FileSys::NSP nsp{file, program_id, program_index};
-        if (nsp.GetStatus() != Loader::ResultStatus::Success) {
-            return std::nullopt;
-        }
-        auto exefs = nsp.GetExeFS();
-        if (!nsp.IsExtractedType()) {
-            const auto program =
-                nsp.GetNCA(nsp.GetProgramTitleID(), FileSys::ContentRecordType::Program);
-            exefs = program != nullptr ? program->GetExeFS() : nullptr;
-        }
-        const auto npdm = exefs != nullptr ? exefs->GetFile("main.npdm") : nullptr;
-        return Switch2ProgramId(metadata, npdm);
-    }
-    const auto dir = file != nullptr ? file->GetContainingDirectory() : nullptr;
-    const auto npdm = dir != nullptr ? dir->GetFile("main.npdm") : nullptr;
-    return Switch2ProgramId(metadata, npdm);
-}
-
-} // namespace
 
 struct System::Impl {
     explicit Impl(System& system)
@@ -422,8 +350,8 @@ struct System::Impl {
 
         const std::optional<u64> switch2_program_id =
             virtual_filesystem != nullptr
-                ? FindSwitch2Program(GetGameFileFromPath(virtual_filesystem, filepath),
-                                     params.program_id, params.program_index)
+                ? Loader::FindSwitch2Program(GetGameFileFromPath(virtual_filesystem, filepath),
+                                             params.program_id, params.program_index)
                 : std::nullopt;
         const bool switch2_program = switch2_program_id.has_value();
         Kernel::KSystemControl::SetApplicationProgramId(switch2_program_id.value_or(0));

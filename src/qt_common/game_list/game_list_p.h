@@ -96,6 +96,8 @@ public:
     /// The picture at up to 512 px (the home view's big tiles); DecorationRole holds it at the
     /// game list's icon size.
     static constexpr int LargePictureRole = SortRole + 6;
+    /// True when the game is a Switch 2 title (its cards carry the Switch 2 badge).
+    static constexpr int Switch2Role = SortRole + 7;
 
     GameListItemPath() = default;
     GameListItemPath(const QString& game_path, const std::vector<u8>& picture_data,

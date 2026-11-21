@@ -79,6 +79,22 @@ bool IsBootableGameContainer(FileSys::VirtualFile file, FileType type = FileType
                              u64 program_id = 0, std::size_t program_index = 0);
 
 /**
+ * The program id of the application in `file` when it is a Switch 2 title (its NPDM uses the
+ * Switch 2 ACID layout, or an NX archive says so), nothing otherwise.
+ *
+ * @param file open file
+ * @param program_id optional program id hint for multi-program containers
+ * @param program_index optional program index hint for multi-program containers
+ */
+std::optional<u64> FindSwitch2Program(FileSys::VirtualFile file, u64 program_id = 0,
+                                      std::size_t program_index = 0);
+
+inline bool IsSwitch2Program(FileSys::VirtualFile file, u64 program_id = 0,
+                             std::size_t program_index = 0) {
+    return FindSwitch2Program(std::move(file), program_id, program_index).has_value();
+}
+
+/**
  * Guess the type of a bootable file from its name
  * @param name String name of bootable file
  * @return FileType of file. Note: this will return FileType::Unknown if it is unable to determine

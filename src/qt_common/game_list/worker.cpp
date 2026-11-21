@@ -262,6 +262,15 @@ QString FormatPatchNameVersions(const FileSys::PatchManager& patch_manager,
     return out;
 }
 
+bool GetPlatformIsSwitch2(const FileSys::VirtualFile& file, u64 program_id) {
+    const QString cached = GetGameListCachedObject(
+        fmt::format("{:016X}", program_id), "switch2.txt", [&file, program_id] {
+            return Loader::IsSwitch2Program(file, program_id) ? QStringLiteral("1")
+                                                              : QStringLiteral("0");
+        });
+    return cached == QStringLiteral("1");
+}
+
 QList<QStandardItem*> MakeGameListEntry(const std::string& path, const std::string& name,
                                         const std::size_t size, const std::vector<u8>& icon,
                                         Loader::AppLoader& loader, u64 program_id,
@@ -417,6 +426,7 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir, GameListItemTy
 
         auto entry = MakeGameListEntry(file->GetFullPath(), name, file->GetSize(), icon, *loader,
                                        program_id, play_time_manager, patch);
+        entry[0]->setData(GetPlatformIsSwitch2(file, program_id), GameListItemPath::Switch2Role);
         auto pending = std::make_shared<PendingRow>(std::move(entry));
         RecordEvent([=](GameListModel* model) { model->AddEntry(pending->Release(), parent_dir); });
     }
@@ -472,7 +482,7 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::vector<std::fi
             std::vector<u64> program_ids;
             loader->ReadProgramIds(program_ids);
 
-            const auto addEntry = [this, physical_name,
+            const auto addEntry = [this, physical_name, file,
                                    parent_dir](std::unique_ptr<Loader::AppLoader>& app_loader,
                                                const u64 id) {
                 std::vector<u8> icon;
@@ -503,6 +513,7 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::vector<std::fi
 
                 auto entry = MakeGameListEntry(physical_name, name, size, icon, *app_loader, id,
                                                play_time_manager, patch);
+                entry[0]->setData(GetPlatformIsSwitch2(file, id), GameListItemPath::Switch2Role);
 
                 if (loose_dump) {
                     entry[GameListModel::COLUMN_SIZE]->setText(tr("Not scanned"));

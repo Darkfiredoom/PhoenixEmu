@@ -42,6 +42,7 @@ namespace Vulkan {
 
 namespace {
 constexpr VkFormat OUTPUT_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT;
+constexpr VkFormat EXPOSURE_FORMAT = VK_FORMAT_R32_SFLOAT;
 constexpr VkImageUsageFlags OUTPUT_USAGE = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -508,6 +509,64 @@ void Fsr4Upscaler::CreateOutput(VkExtent2D upscale_size) {
                                    },
                                });
     });
+    if (exposure_image) {
+        return;
+    }
+    // fsr4-vk rejects a dispatch without an exposure texture ("unsupported exposure resource:
+    // present=no"). 1.0 is what AMD's runtime assumes when none is given.
+    exposure_image = memory_allocator.CreateImage(VkImageCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = EXPOSURE_FORMAT,
+        .extent = {1, 1, 1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    });
+    scheduler.Record([image = *exposure_image](vk::CommandBuffer cmdbuf) {
+        constexpr VkImageSubresourceRange range{
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        const auto barrier = [&](VkAccessFlags src, VkAccessFlags dst, VkImageLayout from,
+                                 VkImageLayout to) {
+            return VkImageMemoryBarrier{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .pNext = nullptr,
+                .srcAccessMask = src,
+                .dstAccessMask = dst,
+                .oldLayout = from,
+                .newLayout = to,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = image,
+                .subresourceRange = range,
+            };
+        };
+        cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                               0,
+                               barrier(0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                       VK_IMAGE_LAYOUT_UNDEFINED,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
+        cmdbuf.ClearColorImage(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               VkClearColorValue{.float32{1.0f, 1.0f, 1.0f, 1.0f}}, range);
+        cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                               barrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+    });
 }
 
 bool Fsr4Upscaler::CheckOutputHealth() {
@@ -709,7 +768,8 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
     }
 
     scheduler.RequestOutsideRenderPassOperationContext();
-    scheduler.Record([this, in, reset, health, output = *output_image](vk::CommandBuffer cmdbuf) {
+    scheduler.Record([this, in, reset, health, output = *output_image,
+                      exposure = *exposure_image](vk::CommandBuffer cmdbuf) {
         constexpr VkAccessFlags WRITES =
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
             VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -746,7 +806,15 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
         dispatch.motionVectors = ImageResource(in.motion_vectors, in.render_size,
                                                FFX_API_RESOURCE_STATE_COMPUTE_READ,
                                                FFX_API_RESOURCE_USAGE_READ_ONLY);
-        dispatch.exposure = {};
+        const Image exposure_info{
+            .view = VK_NULL_HANDLE,
+            .image = exposure,
+            .format = EXPOSURE_FORMAT,
+            .range{},
+            .barrier_aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+        };
+        dispatch.exposure = ImageResource(exposure_info, {1, 1}, FFX_API_RESOURCE_STATE_COMPUTE_READ,
+                                          FFX_API_RESOURCE_USAGE_READ_ONLY);
         dispatch.reactive = {};
         dispatch.transparencyAndComposition = {};
         dispatch.output = ImageResource(output_image_info, in.upscale_size,

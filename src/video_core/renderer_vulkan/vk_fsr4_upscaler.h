@@ -110,6 +110,9 @@ private:
     bool hdr_input = true;
     vk::Image output_image;
     vk::ImageView output_view;
+    /// 1x1 R32F holding 1.0: a neutral exposure, which fsr4-vk requires while AMD's DLLs
+    /// default to it.
+    vk::Image exposure_image;
     vk::Sampler point_sampler;
     std::atomic<bool> failed{};
     /// When a context that couldn't be created is tried again (steady clock, ns); 0: never.

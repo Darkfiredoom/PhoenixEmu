@@ -371,7 +371,8 @@ void Fsr4Upscaler::DestroyContext() {
 }
 
 bool Fsr4Upscaler::CreateContext(VkExtent2D render_size, VkExtent2D upscale_size,
-                                 bool depth_inverted, bool hdr_requested) {
+                                 bool depth_inverted, bool hdr_requested,
+                                 bool dynamic_resolution) {
     DestroyContext();
     // EDEN_NX2_FSR_FAIL_CREATE=<n>: the first n context creations fail, to test what happens
     // when FSR can't start (the FSR 3.1 fallback, then the later tries).
@@ -415,7 +416,8 @@ bool Fsr4Upscaler::CreateContext(VkExtent2D render_size, VkExtent2D upscale_size
     create.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
     create.flags = (depth_inverted ? FFX_UPSCALE_ENABLE_DEPTH_INVERTED : 0u) |
                    (hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE | FFX_UPSCALE_ENABLE_AUTO_EXPOSURE
-                        : FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE);
+                        : FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE) |
+                   (dynamic_resolution ? FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION : 0u);
     create.maxRenderSize = {render_size.width, render_size.height};
     create.maxUpscaleSize = {upscale_size.width, upscale_size.height};
     create.fpMessage = &FfxRuntime::LogMessage; // AMD's warnings about its inputs, in the log
@@ -684,18 +686,42 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
         failed = true;
         return false;
     }
-    const bool extent_changed = !output_image || in.render_size.width != render_extent.width ||
-                                in.render_size.height != render_extent.height ||
-                                in.upscale_size.width != upscale_extent.width ||
+    // The context is made for a largest render size and each dispatch names the frame's own, as
+    // FSR's API intends: a render size that changes from frame to frame (dynamic resolution)
+    // made a new context every frame, about 60 ms each with a GPU wait before it. It grows to
+    // the largest size seen rather than straight to the output size, which an 8 GB card may not
+    // have the memory for.
+    const bool output_changed = !output_image || in.upscale_size.width != upscale_extent.width ||
                                 in.upscale_size.height != upscale_extent.height;
-    const bool options_changed = extent_changed || in.depth_inverted != depth_inverted_input ||
-                                 in.hdr != hdr_input;
+    const bool render_grew = in.render_size.width > render_extent.width ||
+                             in.render_size.height > render_extent.height;
+    // A render size other than the context's own under one context needs FSR's dynamic
+    // resolution flag: without it AMD's driver failed in the dispatch on an RX 7900 XT when the
+    // size changed (NX2navi, as Triforce's vk_fsr4.cpp notes). So the first change makes the
+    // context once more, with the flag, and every size after that uses it.
+    const bool went_dynamic = !output_changed && !dynamic_render && render_extent.width != 0 &&
+                              (in.render_size.width != render_extent.width ||
+                               in.render_size.height != render_extent.height);
+    const bool options_changed = output_changed || render_grew || went_dynamic ||
+                                 in.depth_inverted != depth_inverted_input || in.hdr != hdr_input;
     if (options_changed) {
         scheduler.Finish(); // the old context may still be recording
-        if (extent_changed) {
+        if (output_changed) {
             CreateOutput(in.upscale_size);
+            render_extent = {};
+            dynamic_render = false;
         }
-        bool started = CreateContext(in.render_size, in.upscale_size, in.depth_inverted, in.hdr);
+        if (went_dynamic) {
+            dynamic_render = true;
+            LOG_INFO(Render_Vulkan,
+                     "AMD FSR: the render size went from {}x{} to {}x{}: one context for every "
+                     "render size from now on (the game's dynamic resolution)",
+                     render_extent.width, render_extent.height, in.render_size.width,
+                     in.render_size.height);
+        }
+        const VkExtent2D max_render{std::max(in.render_size.width, render_extent.width),
+                                    std::max(in.render_size.height, render_extent.height)};
+        bool started = CreateContext(max_render, in.upscale_size, in.depth_inverted, in.hdr, dynamic_render);
         if (!started) {
             // Out of video memory, typically: an RX 9060 XT 8 GB with 6.2 GB offered got error 3
             // for 2560x1440 -> 3840x2160, and with FSR given up for the session frame generation
@@ -716,7 +742,7 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
                     health_done = true; // the output check is for FSR 4
                 }
             }
-            started = CreateContext(in.render_size, in.upscale_size, in.depth_inverted, in.hdr);
+            started = CreateContext(max_render, in.upscale_size, in.depth_inverted, in.hdr, dynamic_render);
         }
         if (!started) {
             // The game's own upscaler draws meanwhile. Loading a scene is when memory is
@@ -736,7 +762,7 @@ bool Fsr4Upscaler::Upscale(const Inputs& in) {
             return false;
         }
         create_failures = 0;
-        render_extent = in.render_size;
+        render_extent = max_render;
         upscale_extent = in.upscale_size;
         depth_inverted_input = in.depth_inverted;
         hdr_input = in.hdr;
@@ -941,7 +967,7 @@ Fsr4Upscaler::~Fsr4Upscaler() = default;
 
 void Fsr4Upscaler::CreateOutput(VkExtent2D) {}
 
-bool Fsr4Upscaler::CreateContext(VkExtent2D, VkExtent2D, bool, bool) {
+bool Fsr4Upscaler::CreateContext(VkExtent2D, VkExtent2D, bool, bool, bool) {
     return false;
 }
 

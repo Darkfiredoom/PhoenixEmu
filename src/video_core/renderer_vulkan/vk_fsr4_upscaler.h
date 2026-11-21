@@ -92,7 +92,7 @@ private:
 
     void CreateOutput(VkExtent2D upscale_size);
     bool CreateContext(VkExtent2D render_size, VkExtent2D upscale_size, bool depth_inverted,
-                       bool hdr);
+                       bool hdr, bool dynamic_resolution);
     void DestroyContext();
     /// Reads back the last output sample. Returns true when FSR 4 has drawn black (or NaN) over a
     /// varied picture long enough that it should give way to FSR 3.1.
@@ -105,6 +105,9 @@ private:
     MemoryAllocator& memory_allocator;
     std::unique_ptr<Context> context;
     VkExtent2D render_extent{};
+    /// The render size has changed under this output (the game's dynamic resolution): the
+    /// context is made with FSR's dynamic resolution flag from then on.
+    bool dynamic_render{};
     VkExtent2D upscale_extent{};
     bool depth_inverted_input = true;
     bool hdr_input = true;

@@ -11,6 +11,9 @@
 #include <span>
 #include <vector>
 
+#include <chrono>
+
+#include "video_core/steady_pace.h"
 #include "common/common_types.h"
 #include "video_core/renderer_vulkan/vk_amd_frame_gen.h"
 #include "common/settings_enums.h"
@@ -176,6 +179,9 @@ private:
     std::size_t image_count{};
     std::vector<VkImage> images;
     std::vector<u64> resource_ticks;
+    /// Frame pacing's Steady mode: the rate measured from the frames' own times.
+    VideoCommon::SteadyPace steady_pace;
+    std::chrono::steady_clock::time_point steady_last_release{};
     std::vector<vk::Semaphore> present_semaphores;
     std::vector<vk::Semaphore> render_semaphores;
 

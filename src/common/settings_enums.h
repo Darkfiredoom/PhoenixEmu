@@ -131,7 +131,7 @@ ENUM(TimeZone, Auto, Default, Cet, Cst6Cdt, Cuba, Eet, Egypt, Eire, Est, Est5Edt
 ENUM(AnisotropyMode, Automatic, Default, X2, X4, X8, X16);
 ENUM(AstcDecodeMode, Cpu, Gpu, CpuAsynchronous);
 ENUM(AstcRecompression, Uncompressed, Bc1, Bc3);
-ENUM(FramePacingMode, Target_Auto, Target_30, Target_60, Target_90, Target_120);
+ENUM(FramePacingMode, Target_Auto, Target_30, Target_60, Target_90, Target_120, Steady);
 ENUM(VSyncMode, Immediate, Mailbox, Fifo, FifoRelaxed);
 // Stored by index: 0 and 1 were Conservative and Aggressive.
 ENUM(VramUsageMode, Auto, Unlimited, Gb2, Gb4, Gb8);

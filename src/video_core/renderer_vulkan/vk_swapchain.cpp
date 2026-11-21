@@ -295,6 +295,20 @@ bool Swapchain::AcquireNextImage(bool may_flush) {
     case Settings::FramePacingMode::Target_120:
         scheduler.Wait(resource_ticks[image_index], 120.0 * per_frame, may_flush);
         break;
+    case Settings::FramePacingMode::Steady: {
+        // The GPU first, unpaced; the time since the last frame was let go is then this frame's
+        // own (the pacing's sleep is not in it), and the pace follows from those times.
+        scheduler.Wait(resource_ticks[image_index], 0.0, may_flush);
+        const auto now = std::chrono::steady_clock::now();
+        if (steady_last_release != std::chrono::steady_clock::time_point{} &&
+            steady_pace.AddFrame(
+                std::chrono::duration<double, std::milli>(now - steady_last_release).count())) {
+            LOG_INFO(Render_Vulkan, "Frame pacing (Steady): {:.0f} fps", steady_pace.TargetFps());
+        }
+        scheduler.Wait(0, steady_pace.TargetFps() * per_frame, may_flush);
+        steady_last_release = std::chrono::steady_clock::now();
+        break;
+    }
     }
     };
 

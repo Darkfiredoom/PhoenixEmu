@@ -592,6 +592,7 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                               PAIR(FramePacingMode, Target_60, tr("60 FPS")),
                               PAIR(FramePacingMode, Target_90, tr("90 FPS")),
                               PAIR(FramePacingMode, Target_120, tr("120 FPS")),
+                              PAIR(FramePacingMode, Steady, tr("Steady (the rate your PC holds)")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::VramUsageMode>::Index(),
                           {

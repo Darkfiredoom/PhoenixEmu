@@ -669,7 +669,7 @@ struct Values {
     SwitchableSetting<FramePacingMode, true> frame_pacing_mode{linkage,
                                                                FramePacingMode::Target_Auto,
                                                                FramePacingMode::Target_Auto,
-                                                               FramePacingMode::Target_120,
+                                                               FramePacingMode::Steady,
                                                                "frame_pacing_mode",
                                                                Category::RendererAdvanced,
                                                                Specialization::Default,

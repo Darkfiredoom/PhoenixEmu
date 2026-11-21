@@ -125,6 +125,7 @@ private:
     QButtonGroup* card_size_group{};
     QButtonGroup* side_count_group{};
     QCheckBox* banner_box{};
+    QCheckBox* details_box{};
     QWidget* icon_options{};
     QButtonGroup* icon_size_group{};
 

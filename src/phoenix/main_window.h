@@ -81,6 +81,7 @@ class GameListPlaceholder;
 
 class AmiiboLibraryDialog;
 class CustomizePanel;
+class GameDetailsPanel;
 class QtAmiiboSettingsDialog;
 class QtControllerSelectorDialog;
 class QtProfileSelectionDialog;
@@ -307,6 +308,8 @@ private:
     void SetupCustomizeMenu();
     /// Opens or closes the Customize panel beside the game list.
     void ToggleCustomizePanel();
+    /// Shows the game details beside the games when they apply, hides them otherwise.
+    void UpdateGameDetailsPanel();
     /// The User menu (menu bar and the home view's user button): pick the current user.
     void SetupUserMenu();
     void FillUserMenu(QMenu* menu);
@@ -419,6 +422,7 @@ private slots:
     void OnGameListAddDirectory();
     void OnGameListShowList(bool show);
     void OnGameListOpenPerGameProperties(const std::string& file);
+    void OnGameListSteamShortcut(u64 program_id, const std::string& game_path, bool add);
     void OnLinkToRyujinx(const u64& program_id);
     void OnMenuLoadFile();
     void OnMenuLoadFolder();
@@ -733,6 +737,10 @@ private:
 
     AmiiboLibraryDialog* amiibo_library = nullptr;
     CustomizePanel* customize_panel = nullptr;
+    GameDetailsPanel* game_details_panel = nullptr;
+    bool game_details_closed = false; ///< Hidden with its close button until the next pick
+    /// The "Are you sure you want to close?" box while it is open (ConfirmClose).
+    QPointer<QMessageBox> close_question;
     /// The Configure page OnConfigure opens on next (5 is Controls), then back to the first.
     int configure_start_page = 0;
     /// Counts the connected gamepads for the home view.

@@ -186,6 +186,10 @@ add_executable(phoenix
     nx2_switches_dialog.cpp
     customize_panel.h
     customize_panel.cpp
+    game_details_panel.h
+    game_details_panel.cpp
+    steam_shortcuts.h
+    steam_shortcuts.cpp
     controllers_dialog.h
     controllers_dialog.cpp
     pipeline_visualizer_dialog.h

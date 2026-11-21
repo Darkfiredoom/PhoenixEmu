@@ -246,6 +246,8 @@ struct Values {
     Setting<u8> row_2_text_id{linkage, 2, "row_2_text_id", Category::UiGameList};
     Setting<Settings::GameListMode> game_list_mode{linkage, Settings::GameListMode::CarouselView, "game_list_mode", Category::UiGameList};
     Setting<bool> show_game_name{linkage, true, "show_game_name", Category::UiGameList};
+    /// The picked game's details beside the home view and the grid.
+    Setting<bool> show_game_details{linkage, true, "show_game_details", Category::UiGameList};
     /// The status bar shows build 11's graphics buttons and the FSR sizes (its DETAILS toggle).
     Setting<bool> show_status_details{linkage, false, "show_status_details", Category::Ui};
     /// Customize menu (phoenix/util/phoenix_theme.h): the PhoenixEmu theme's accent and background

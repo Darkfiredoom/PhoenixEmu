@@ -6,10 +6,12 @@
 
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <list>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "common/polyfill_thread.h"
@@ -109,6 +111,10 @@ private:
 
     // Host state tracking
     Common::Event m_stopped{};
+    /// The services this manager serves, and the command its threads are handling (~0 for none):
+    /// a stop that waits on a stuck request names it in the log.
+    std::string m_service_names{};
+    std::atomic<u32> m_busy_command{~0U};
     std::vector<std::jthread> m_threads{};
     std::stop_source m_stop_source{};
 };

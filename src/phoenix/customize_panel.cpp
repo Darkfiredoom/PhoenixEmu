@@ -345,6 +345,8 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
             }
             Changed();
         });
+        details_box = Check(s, tr("Show the picked game's details beside the games"),
+                            [](bool on) { UISettings::values.show_game_details = on; });
         s->addWidget(new QLabel(tr("Game cards")));
         cards_group = Segments(s, {tr("Plain"), tr("Badge"), tr("Cartridge")}, [this](int id) {
             UISettings::values.game_card_style = static_cast<u32>(id);
@@ -716,6 +718,7 @@ void CustomizePanel::Refresh() {
         ->button(static_cast<int>(std::clamp(v.carousel_side_count.GetValue(), 3U, 8U) - 3))
         ->setChecked(true);
     banner_box->setChecked(v.carousel_banner_background.GetValue());
+    details_box->setChecked(v.show_game_details.GetValue());
     static constexpr std::array<u32, 5> icon_sizes{0, 32, 64, 128, 256};
     const auto icon_it = std::find(icon_sizes.begin(), icon_sizes.end(),
                                    v.game_icon_size.GetValue());

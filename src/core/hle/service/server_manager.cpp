@@ -6,6 +6,9 @@
 
 #include <utility>
 
+#include <fmt/format.h>
+
+#include "common/logging.h"
 #include "common/scope_exit.h"
 
 #include "core/core.h"
@@ -102,8 +105,17 @@ ServerManager::~ServerManager() {
     m_stop_source.request_stop();
     m_wakeup_event->Signal(m_system.Kernel());
 
-    // Wait for processing to stop.
-    m_stopped.Wait();
+    // Wait for processing to stop. A request that never returns hangs the stop here: name it
+    // after a moment, so the log says which service to look at.
+    if (!m_stopped.WaitFor(std::chrono::seconds(2))) {
+        const u32 command = m_busy_command.load(std::memory_order_relaxed);
+        LOG_WARNING(Service,
+                    "Shutdown: {} has not stopped after 2 s; {} (still waiting)",
+                    m_service_names.empty() ? std::string{"a service"} : m_service_names,
+                    command == ~0U ? std::string{"no request in progress"}
+                                   : fmt::format("stuck in command {}", command));
+        m_stopped.Wait();
+    }
     m_threads.clear();
 
     // Clean up ports.
@@ -156,6 +168,8 @@ Result ServerManager::RegisterSession(Kernel::KServerSession* server_session,
 Result ServerManager::RegisterNamedService(const std::string& service_name,
                                            SessionRequestHandlerFactory&& handler_factory,
                                            u32 max_sessions) {
+    m_service_names += (m_service_names.empty() ? "" : ", ") + service_name;
+
     // Add the new server to sm: and get the moved server port.
     Kernel::KServerPort* server_port{};
     R_ASSERT(m_system.ServiceManager().RegisterService(std::addressof(server_port), service_name,
@@ -189,6 +203,8 @@ Result ServerManager::RegisterNamedService(const std::string& service_name,
 Result ServerManager::ManageNamedPort(const std::string& service_name,
                                       SessionRequestHandlerFactory&& handler_factory,
                                       u32 max_sessions) {
+    m_service_names += (m_service_names.empty() ? "" : ", ") + service_name;
+
     // Create a new port.
     auto* port = Kernel::KPort::Create(m_system.Kernel());
     port->Initialize(m_system.Kernel(), max_sessions, false, 0);
@@ -399,8 +415,10 @@ Result ServerManager::CompleteSyncRequest(Session* session) {
             return m_deferral_epoch;
         }();
 
+        m_busy_command.store(session->GetContext()->GetCommand(), std::memory_order_relaxed);
         service_res =
             session->GetManager()->CompleteSyncRequest(server_session, *session->GetContext());
+        m_busy_command.store(~0U, std::memory_order_relaxed);
         if (!session->GetContext()->GetIsDeferred()) {
             break;
         }

@@ -62,6 +62,9 @@
 #include "phoenix/game/game_list.h"
 #include "phoenix/controllers_dialog.h"
 #include "phoenix/customize_panel.h"
+#include "phoenix/game_details_panel.h"
+#include "phoenix/steam_shortcuts.h"
+#include "qt_common/game_list/game_list_p.h"
 #include "phoenix/nup_dialogs.h"
 #include "phoenix/recommended_settings_dialog.h"
 #include "phoenix/shader_warm_dialog.h"
@@ -659,6 +662,18 @@ MainWindow::MainWindow(bool has_broken_vulkan)
     RestoreUIState();
 
     ConnectMenuEvents();
+
+    // Quitting is the main window's decision (closeEvent ends with quit()): with Qt's default, the
+    // last visible window closing (a dialog in front of a fullscreen game, the main window hidden)
+    // ended the event loop with the game still running, and tearing the window down under it
+    // crashed (a Steam Deck log: "Exit chosen", then SIGSEGV with no "Shutdown:" lines).
+    QApplication::setQuitOnLastWindowClosed(false);
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this] {
+        if (emulation_running) {
+            LOG_WARNING(Frontend, "Quitting with the game still running: stopping it first");
+            ShutdownGame();
+        }
+    });
     ConnectWidgetEvents();
 
     QtCommon::SetupHID();
@@ -2008,6 +2023,8 @@ void MainWindow::ConnectWidgetEvents() {
 #endif
     connect(game_list, &GameList::CopyTIDRequested, this, &MainWindow::OnGameListCopyTID);
     connect(game_list, &GameList::CreateShortcut, this, &MainWindow::OnGameListCreateShortcut);
+    connect(game_list, &GameList::SteamShortcutRequested, this,
+            &MainWindow::OnGameListSteamShortcut);
     connect(game_list, &GameList::AddDirectory, this, &MainWindow::OnGameListAddDirectory);
     connect(game_list_placeholder, &GameListPlaceholder::AddDirectory, this,
             &MainWindow::OnGameListAddDirectory);
@@ -2018,6 +2035,54 @@ void MainWindow::ConnectWidgetEvents() {
 
     connect(game_list, &GameList::OpenPerGameGeneralRequested, this,
             &MainWindow::OnGameListOpenPerGameProperties);
+
+    // The picked game's details beside the home view and the grid.
+    {
+        GameDetailsPanel::Actions actions;
+        actions.play = [this](const QString& path, u64 program_id) {
+            OnGameListLoadFile(path, program_id);
+        };
+        actions.properties = [this](const QString& path) {
+            OnGameListOpenPerGameProperties(path.toStdString());
+        };
+        actions.toggle_favorite = [this](u64 program_id) {
+            game_list->ToggleFavoriteGame(program_id);
+            OnSaveConfig();
+        };
+        actions.is_favorite = [](u64 program_id) {
+            return UISettings::values.favorited_ids.contains(program_id);
+        };
+        actions.precompile_shaders = [this](u64 program_id, const QString& path) {
+            OnGameListPrepareShaderWarm(program_id, path.toStdString());
+        };
+        actions.more = [this](const QModelIndex& game, const QPoint& global_pos) {
+            game_list->ShowGameMenu(game, global_pos);
+            if (game_details_panel != nullptr) {
+                game_details_panel->Refresh();
+            }
+        };
+        actions.addons_changed = [this] {
+            OnSaveConfig();
+            game_list->RefreshGameDirectory();
+        };
+        game_details_panel =
+            new GameDetailsPanel(*QtCommon::system, *play_time_manager, std::move(actions), this);
+        game_details_panel->hide();
+        ui->horizontalLayout->addWidget(game_details_panel);
+        connect(game_details_panel, &GameDetailsPanel::CloseRequested, this, [this] {
+            game_details_closed = true;
+            UpdateGameDetailsPanel();
+        });
+        connect(game_list, &GameList::SelectedGameChanged, this, [this](const QModelIndex& game) {
+            game_details_closed = false;
+            game_details_panel->SetGame(game);
+            UpdateGameDetailsPanel();
+        });
+        connect(game_list, &GameList::PopulatingCompleted, this, [this] {
+            game_details_panel->SetGame(game_list->SelectedGame());
+            UpdateGameDetailsPanel();
+        });
+    }
     connect(game_list, &GameList::LinkToRyujinxRequested, this, &MainWindow::OnLinkToRyujinx);
 
     connect(this, &MainWindow::UpdateInstallProgress, this, &MainWindow::IncrementInstallProgress);
@@ -2070,6 +2135,7 @@ void MainWindow::ToggleCustomizePanel() {
                 for (QWidget* const child : game_list->findChildren<QWidget*>()) {
                     child->update();
                 }
+                UpdateGameDetailsPanel();
             },
             [this](Settings::GameListMode mode) { SetGameListMode(mode); },
             [this](u32 size) {
@@ -2080,17 +2146,35 @@ void MainWindow::ToggleCustomizePanel() {
                 game_list->RefreshGameDirectory();
             },
             this);
-        connect(customize_panel, &CustomizePanel::CloseRequested, customize_panel,
-                &QWidget::hide);
+        connect(customize_panel, &CustomizePanel::CloseRequested, this, [this] {
+            customize_panel->hide();
+            UpdateGameDetailsPanel();
+        });
         ui->horizontalLayout->addWidget(customize_panel);
         customize_panel->hide();
     }
     if (customize_panel->isVisible()) {
         customize_panel->hide();
+        UpdateGameDetailsPanel();
         return;
     }
     customize_panel->Refresh();
     customize_panel->setVisible(!emulation_running);
+    UpdateGameDetailsPanel();
+}
+
+void MainWindow::UpdateGameDetailsPanel() {
+    if (game_details_panel == nullptr) {
+        return;
+    }
+    // The list view has its own columns; the Customize panel takes the same place.
+    const bool show = UISettings::values.show_game_details.GetValue() && !game_details_closed &&
+                      !emulation_running && game_list->isVisible() &&
+                      UISettings::values.game_list_mode.GetValue() !=
+                          Settings::GameListMode::TreeView &&
+                      (customize_panel == nullptr || !customize_panel->isVisible()) &&
+                      game_list->SelectedGame().isValid();
+    game_details_panel->setVisible(show);
 }
 
 void MainWindow::ApplyCustomization() {
@@ -2202,9 +2286,17 @@ void MainWindow::ConnectMenuEvents() {
         ui->menu_File->insertAction(ui->menu_File->actions().value(0), add_folder);
         connect(add_folder, &QAction::triggered, this, &MainWindow::OnGameListAddDirectory);
     }
-    connect_menu(ui->action_Exit, &QMainWindow::close);
-    connect(ui->action_Exit, &QAction::triggered, this,
-            [] { LOG_INFO(Frontend, "Exit chosen (menu or hotkey)"); });
+    connect_menu(ui->action_Exit, [this] {
+        LOG_INFO(Frontend, "Exit chosen (menu or hotkey)");
+        // A close already waits on "Are you sure?" (one the system asked for, behind a
+        // fullscreen game): Exit is the answer. Calling close() again would do nothing, as Qt
+        // counts the first close as still in progress.
+        if (close_question != nullptr) {
+            close_question->done(QMessageBox::Yes);
+            return;
+        }
+        close();
+    });
     connect_menu(ui->action_Load_Amiibo, &MainWindow::OnLoadAmiibo);
 
     // Emulation
@@ -3071,6 +3163,9 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
     if (customize_panel != nullptr) {
         customize_panel->hide(); // it customizes the home screen
     }
+    if (game_details_panel != nullptr) {
+        game_details_panel->hide();
+    }
     status_bar_update_timer.start(500);
     renderer_status_button->setDisabled(true);
     frame_gen_status_button->setDisabled(true);
@@ -3429,6 +3524,7 @@ void MainWindow::OnEmulationStopped() {
         game_list->show();
     }
     game_list->SetFilterFocus();
+    UpdateGameDetailsPanel();
     tas_label->clear();
     input_subsystem->GetTas()->Stop();
     OnTasStateChanged();
@@ -3948,6 +4044,73 @@ void MainWindow::OnGameListCreateShortcut(u64 program_id, const std::string& gam
     QtCommon::Game::CreateShortcut(game_path, program_id, "", target, arguments, true);
 }
 
+void MainWindow::OnGameListSteamShortcut(u64 program_id, const std::string& game_path,
+                                         bool add) {
+    SteamShortcuts::Result result;
+    if (add) {
+        // The game's name and icon, from its own files (as Create Shortcut takes them).
+        const FileSys::PatchManager pm{program_id, QtCommon::system->GetFileSystemController(),
+                                       QtCommon::system->GetContentProvider()};
+        const auto control = pm.GetControlMetadata();
+        const auto loader = Loader::GetLoader(
+            *QtCommon::system, QtCommon::vfs->OpenFile(game_path, FileSys::OpenMode::Read));
+        std::string title = fmt::format("{:016X}", program_id);
+        if (control.first != nullptr) {
+            title = control.first->GetApplicationName();
+        } else if (loader != nullptr) {
+            loader->ReadTitle(title);
+        }
+        std::vector<u8> icon_bytes;
+        if (control.second != nullptr) {
+            icon_bytes = control.second->ReadAllBytes();
+        } else if (loader != nullptr) {
+            loader->ReadIcon(icon_bytes);
+        }
+        QImage icon = QImage::fromData(icon_bytes.data(), static_cast<int>(icon_bytes.size()));
+        // A file without readable metadata (an update alone, a game whose keys are missing): the
+        // name and picture the game list shows.
+        QString name = QString::fromStdString(title);
+        if (title == fmt::format("{:016X}", program_id) || icon.isNull()) {
+            const QString wanted = QString::fromStdString(game_path);
+            std::function<bool(const QModelIndex&)> find = [&](const QModelIndex& parent) {
+                const QAbstractItemModel* const model = game_list->GetModel();
+                for (int row = 0; row < model->rowCount(parent); ++row) {
+                    const QModelIndex index = model->index(row, 0, parent);
+                    if (index.data(GameListItemPath::FullPathRole).toString() == wanted) {
+                        if (title == fmt::format("{:016X}", program_id)) {
+                            name = index.data(GameListItemPath::TitleRole).toString();
+                        }
+                        if (icon.isNull()) {
+                            QPixmap picture =
+                                index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+                            if (picture.isNull()) {
+                                picture = index.data(Qt::DecorationRole).value<QPixmap>();
+                            }
+                            icon = picture.toImage();
+                        }
+                        return true;
+                    }
+                    if (model->hasChildren(index) && find(index)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            find(QModelIndex{});
+        }
+        result = SteamShortcuts::Add(game_path, name,
+                                     QtCommon::GetEdenCommand(),
+                                     fmt::format("-g \"{:s}\"", game_path), icon);
+    } else {
+        result = SteamShortcuts::Remove(game_path);
+    }
+    if (result.ok) {
+        QMessageBox::information(this, tr("Steam"), result.message);
+    } else {
+        QMessageBox::warning(this, tr("Steam"), result.message);
+    }
+}
+
 void MainWindow::OnGameListOpenDirectory(const QString& directory) {
     // TODO(crueter): QtCommon
     std::filesystem::path fs_path;
@@ -3997,6 +4160,7 @@ void MainWindow::OnGameListShowList(bool show) {
         return;
     game_list->setVisible(show);
     game_list_placeholder->setVisible(!show);
+    UpdateGameDetailsPanel();
 };
 
 void MainWindow::OnGameListOpenPerGameProperties(const std::string& file) {
@@ -4690,6 +4854,7 @@ void MainWindow::SetGameListMode(Settings::GameListMode mode) {
 
     CheckIconSize();
     game_list->ResetViewMode();
+    UpdateGameDetailsPanel();
 }
 
 void MainWindow::SetGridView() {
@@ -7148,8 +7313,34 @@ bool MainWindow::ConfirmClose() {
         UISettings::values.confirm_before_stopping.GetValue() == ConfirmStop::Ask_Based_On_Game)
         return true;
 
-    const auto text = tr("Are you sure you want to close PhoenixEmu?");
-    return question(this, tr("PhoenixEmu"), text);
+    // Over the game when it is fullscreen, so a close the system asks for (Steam's game mode,
+    // the window manager) is not answered by a box nobody can see.
+    QWidget* const parent =
+        render_window != nullptr && render_window->isVisible() && render_window->isFullScreen()
+            ? static_cast<QWidget*>(render_window)
+            : this;
+    QMessageBox box{parent};
+    box.setWindowTitle(tr("PhoenixEmu"));
+    box.setText(tr("Are you sure you want to close PhoenixEmu?"));
+    box.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    box.setDefaultButton(QMessageBox::No);
+    box.setWindowFlag(Qt::WindowStaysOnTopHint);
+    ControllerNavigation* const controller_navigation =
+        new ControllerNavigation(QtCommon::system->HIDCore(), &box);
+    connect(controller_navigation, &ControllerNavigation::TriggerKeyboardEvent, &box,
+            [&box](Qt::Key key) {
+                if (!box.isActiveWindow()) {
+                    return;
+                }
+                MenuSounds::Click();
+                QCoreApplication::postEvent(&box,
+                                            new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier));
+            });
+    close_question = &box;
+    const int result = box.exec();
+    close_question = nullptr;
+    controller_navigation->UnloadController();
+    return result == QMessageBox::Yes;
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
@@ -7197,6 +7388,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     Network::Shutdown();
 
     QWidget::closeEvent(event);
+    // PhoenixEmu quits here, when its own close is done, and not when Qt sees the last window go
+    // (that could be a dialog in front of a running game).
+    QCoreApplication::quit();
 }
 
 void MainWindow::resizeEvent(QResizeEvent* event) {

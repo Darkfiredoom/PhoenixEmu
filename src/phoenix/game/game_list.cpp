@@ -43,6 +43,7 @@
 #include "core/core.h"
 #include "core/file_sys/nup_writer.h"
 #ifdef LICHII_NX_TOOLS
+#include "phoenix/steam_shortcuts.h"
 #include "phoenix/nx_tools.h"
 #endif
 #include "core/file_sys/patch_manager.h"
@@ -136,6 +137,9 @@ GameList::GameList(FileSys::VirtualFilesystem vfs_, FileSys::ManualContentProvid
           static_cast<QAbstractItemView*>(carousel_view)}) {
         connect(view->selectionModel(), &QItemSelectionModel::currentChanged, this,
                 [this, view](const QModelIndex& current, const QModelIndex& previous) {
+                    if (view == m_currentView) {
+                        emit SelectedGameChanged(current);
+                    }
                     // The picked game's own music (from its files) fades in.
                     if (current.isValid() && view->isVisible()) {
                         const u64 program_id =
@@ -630,6 +634,9 @@ void GameList::ResetViewMode() {
     // until that finishes, as OnPopulate does for every other populate.
     m_currentView->setEnabled(!m_populating);
     layout->insertWidget(0, m_currentView);
+    emit SelectedGameChanged(m_currentView->selectionModel() != nullptr
+                                 ? m_currentView->selectionModel()->currentIndex()
+                                 : QModelIndex{});
 
     auto view = m_currentView->viewport();
     view->installEventFilter(this);
@@ -872,6 +879,27 @@ void GameList::PopupContextMenu(const QPoint& menu_location) {
     context_menu.exec(m_currentView->viewport()->mapToGlobal(menu_location));
 }
 
+QModelIndex GameList::SelectedGame() const {
+    if (m_currentView == nullptr || m_currentView->selectionModel() == nullptr) {
+        return {};
+    }
+    return m_currentView->selectionModel()->currentIndex();
+}
+
+void GameList::ShowGameMenu(const QModelIndex& game, const QPoint& global_pos) {
+    if (!game.isValid()) {
+        return;
+    }
+    const auto selected = game.sibling(game.row(), 0);
+    if (selected.data(GameListItem::TypeRole).value<GameListItemType>() != GameListItemType::Game) {
+        return;
+    }
+    QMenu context_menu;
+    AddGamePopup(context_menu, selected.data(GameListItemPath::ProgramIdRole).toULongLong(),
+                 selected.data(GameListItemPath::FullPathRole).toString().toStdString());
+    context_menu.exec(global_pos);
+}
+
 void GameList::SetReportableProgramId(u64 program_id) {
     reportable_program_id = program_id;
 }
@@ -1000,6 +1028,14 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
     QAction* create_desktop_shortcut = shortcut_menu->addAction(tr("Add to Desktop"));
     QAction* create_applications_menu_shortcut =
         shortcut_menu->addAction(tr("Add to Applications Menu"));
+    // As a non-Steam game, after Triforce Setup's Add to Steam.
+    const bool in_steam = SteamShortcuts::IsAdded(path);
+    QAction* const steam_shortcut =
+        shortcut_menu->addAction(in_steam ? tr("Remove from Steam") : tr("Add to Steam"));
+    steam_shortcut->setEnabled(in_steam || !SteamShortcuts::FindSteam().empty());
+    if (!steam_shortcut->isEnabled()) {
+        steam_shortcut->setToolTip(tr("Steam was not found on this PC"));
+    }
 #endif
     context_menu.addSeparator();
     QAction* edit_nup = nullptr;
@@ -1139,6 +1175,9 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
             [this, program_id, path]() {
                 emit CreateShortcut(program_id, path, QtCommon::Game::ShortcutTarget::Applications);
             });
+    connect(steam_shortcut, &QAction::triggered, this, [this, program_id, path, in_steam]() {
+        emit SteamShortcutRequested(program_id, path, !in_steam);
+    });
 #endif
     connect(properties, &QAction::triggered, this,
             [this, path]() { emit OpenPerGameGeneralRequested(path); });

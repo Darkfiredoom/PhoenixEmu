@@ -101,6 +101,15 @@ public:
 
     void ResetViewMode();
 
+    /// The game picked in the shown view (invalid when none).
+    QModelIndex SelectedGame() const;
+    /// The game's right-click menu at a screen position.
+    void ShowGameMenu(const QModelIndex& game, const QPoint& global_pos);
+    /// Adds or removes a game from Favorites.
+    void ToggleFavoriteGame(u64 program_id) {
+        ToggleFavorite(program_id);
+    }
+
 public slots:
     void SetNupConversionRunning(bool running);
     void SetNxToolRunning(bool running);
@@ -139,12 +148,16 @@ signals:
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);
     void OpenPerGameGeneralRequested(const std::string& file);
+    /// Add the game to Steam's library (add) or take it out.
+    void SteamShortcutRequested(u64 program_id, const std::string& game_path, bool add);
     void LinkToRyujinxRequested(const u64& program_id);
     void OpenDirectory(const QString& directory);
     void AddDirectory();
     void ShowList(bool show);
     void PopulatingCompleted();
     void SaveConfig();
+    /// The picked game in the shown view changed (or the view did).
+    void SelectedGameChanged(const QModelIndex& game);
 
 private slots:
     void OnTextChanged(const QString& new_text);

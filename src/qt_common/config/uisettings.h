@@ -82,6 +82,14 @@ struct GameDir {
     }
 };
 
+// One file in the Amiibo Library and how the player organised it.
+struct AmiiboEntry {
+    QString path;
+    QString name;  ///< The player's own name; empty for the amiibo's name.
+    QString group; ///< The player's own group; empty for none.
+    bool favorite = false;
+};
+
 struct Values {
     Settings::Linkage linkage{1000};
 
@@ -186,7 +194,9 @@ struct Values {
     QVector<GameDir> game_dirs;
     QStringList recent_files;
     // Amiibo files added to the Amiibo Library, most recently tapped first.
-    QStringList amiibo_library;
+    QVector<AmiiboEntry> amiibo_library;
+    QString amiibo_view; ///< The library's last filter: "", "favorites", "group:<name>" or "series:<name>".
+    int amiibo_sort = 0; ///< 0 recently used, 1 name, 2 series.
     Setting<std::string> language{linkage, {}, "language", Category::Paths};
 
     // Optional key that enables the SteamGridDB icon fallback

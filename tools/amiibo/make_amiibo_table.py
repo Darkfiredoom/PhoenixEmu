@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Builds dist/amiibo_table.json for the Amiibo Library: amiibo ID -> [name, amiipedia image].
+"""Builds dist/amiibo_table.json for the Amiibo Library: amiibo ID -> [name, amiipedia image, series].
 
 Names and IDs come from the AmiiboAPI database; amiipedia lists no IDs, so its pictures are matched
 by series and name. Run it again when new amiibo come out:
@@ -95,7 +95,7 @@ def main():
         series = database["amiibo_series"].get("0x" + hex_id[12:14], "")
         kind = database["types"].get("0x" + hex_id[6:8], "")
         entry, count = best_match(info["name"], series, kind, entries)
-        table[hex_id] = [info["name"], entry["image"] if entry else ""]
+        table[hex_id] = [info["name"], entry["image"] if entry else "", series]
         pictures += entry is not None
         ties += count > 1
 

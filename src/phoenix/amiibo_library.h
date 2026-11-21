@@ -3,13 +3,17 @@
 
 #pragma once
 
+#include <vector>
+
 #include <QDialog>
+#include <QHash>
 #include <QIcon>
 #include <QSet>
 #include <QString>
 #include <QTimer>
 
 class ControllerNavigation;
+class QComboBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
@@ -49,7 +53,30 @@ protected:
     void dropEvent(QDropEvent* event) override;
 
 private:
-    void Populate();
+    // What the list shows for one library entry, worked out once per change to the library
+    // rather than on every keystroke in the search box.
+    struct Row {
+        QString path;
+        QString name; ///< For sorting and searching: the label without marks.
+        QString label;
+        QString file_name;
+        QString series;
+        QString image;
+        QString tooltip;
+        int recent; ///< Position in the library: 0 is the most recently tapped.
+        bool exists;
+    };
+
+    void Rebuild();
+    void RefreshFilters();
+    void ApplyView();
+    void SaveLibrary();
+    void ShowContextMenu(const QPoint& pos);
+    QStringList SelectedPaths() const;
+    void SetFavorite(const QStringList& paths, bool favorite);
+    void SetGroup(const QStringList& paths);
+    void Rename(const QString& path);
+    QIcon IconFor(const QString& image);
     // Downloads an amiipedia picture into the cache and shows it on the items that use it.
     void RequestImage(const QString& image);
     void AddFiles();
@@ -59,22 +86,31 @@ private:
     void TapSelected();
     void TapNow(const QString& path);
     void MoveToFront(const QString& path);
+    QString OnReaderPath();
+    QString LabelFor(const QString& path) const;
     void UpdateState();
 
     InputCommon::InputSubsystem* input_subsystem;
     ControllerNavigation* controller_navigation = nullptr;
 
     QLineEdit* search = nullptr;
+    QComboBox* view = nullptr;
+    QComboBox* sort = nullptr;
     QListWidget* list = nullptr;
     QLabel* status = nullptr;
     QPushButton* tap_button = nullptr;
     QPushButton* remove_tag_button = nullptr;
     QPushButton* forget_button = nullptr;
 
+    std::vector<Row> rows;
+    QHash<QString, QIcon> icons;
     QNetworkAccessManager* network = nullptr;
     QSet<QString> downloading;
     QIcon placeholder;
     QString pending_path;
+    QString reader_raw_path;
+    QString reader_path;
+    QString bold_path;
     int last_state = -1;
     QTimer state_timer;
 };

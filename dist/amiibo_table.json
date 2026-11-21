@@ -1,3730 +1,4662 @@
 {
 "0000000000000002": [
 "Mario",
-"super-smash-bros-mario.png"
+"super-smash-bros-mario.png",
+"Super Smash Bros."
 ],
 "0000000000340102": [
 "Mario",
-"super-mario-mario.png"
+"super-mario-mario.png",
+"Super Mario Bros."
 ],
 "00000000003c0102": [
 "Mario - Gold Edition",
-"super-mario-mario-gold-edition.png"
+"super-mario-mario-gold-edition.png",
+"Super Mario Bros."
 ],
 "00000000003d0102": [
 "Mario - Silver Edition",
-"super-mario-mario-silver-edition.png"
+"super-mario-mario-silver-edition.png",
+"Super Mario Bros."
 ],
 "0000000002380602": [
 "8-Bit Mario Classic Color",
-"super-mario-mario.png"
+"super-mario-mario.png",
+"8-bit Mario"
 ],
 "0000000002390602": [
 "8-Bit Mario Modern Color",
-"super-mario-mario.png"
+"super-mario-mario.png",
+"8-bit Mario"
 ],
 "0000000003710102": [
 "Mario - Wedding",
-"super-mario-mario-wedding-outfit.png"
+"super-mario-mario-wedding-outfit.png",
+"Super Mario Bros."
 ],
 "00000003039bff02": [
 "Mario - Power Up Band",
-"super-nintendo-world-mario-power-up-band.png"
+"super-nintendo-world-mario-power-up-band.png",
+"Super Nintendo World"
 ],
 "000000030430ff02": [
 "Golden - Power Up Band",
-"super-nintendo-world-golden-power-up-band.png"
+"super-nintendo-world-golden-power-up-band.png",
+"Super Nintendo World"
 ],
 "00000004043f1c02": [
 "Mario - My Mario Wooden Blocks",
-"my-mario-wooden-blocks-mario.png"
+"my-mario-wooden-blocks-mario.png",
+"My Mario Wooden Blocks"
 ],
 "0000010000190002": [
 "Dr. Mario",
-"super-smash-bros-dr-mario.png"
+"super-smash-bros-dr-mario.png",
+"Super Smash Bros."
 ],
 "0000030003a60102": [
 "Mario - Cat",
-"super-mario-cat-mario.png"
+"super-mario-cat-mario.png",
+"Super Mario Bros."
 ],
 "00010000000c0002": [
 "Luigi",
-"super-smash-bros-luigi.png"
+"super-smash-bros-luigi.png",
+"Super Smash Bros."
 ],
 "0001000000350102": [
 "Luigi",
-"super-mario-luigi.png"
+"super-mario-luigi.png",
+"Super Mario Bros."
 ],
 "00010003039cff02": [
 "Luigi - Power Up Band",
-"super-nintendo-world-luigi-power-up-band.png"
+"super-nintendo-world-luigi-power-up-band.png",
+"Super Nintendo World"
 ],
 "0001000404401c02": [
 "Luigi - My Mario Wooden Blocks",
-"my-mario-wooden-blocks-mario.png"
+"my-mario-wooden-blocks-mario.png",
+"My Mario Wooden Blocks"
 ],
 "0002000000010002": [
 "Peach",
-"super-smash-bros-peach.png"
+"super-smash-bros-peach.png",
+"Super Smash Bros."
 ],
 "0002000000360102": [
 "Peach",
-"super-mario-peach.png"
+"super-mario-peach.png",
+"Super Mario Bros."
 ],
 "0002000003720102": [
 "Peach - Wedding",
-"super-mario-peach-wedding-outfit.png"
+"super-mario-peach-wedding-outfit.png",
+"Super Mario Bros."
 ],
 "00020003039dff02": [
 "Peach - Power Up Band",
-"super-nintendo-world-peach-power-up-band.png"
+"super-nintendo-world-peach-power-up-band.png",
+"Super Nintendo World"
 ],
 "0002000404411c02": [
 "Peach - My Mario Wooden Blocks",
-"my-mario-wooden-blocks-mario.png"
+"my-mario-wooden-blocks-mario.png",
+"My Mario Wooden Blocks"
 ],
 "0002010003a70102": [
 "Peach - Cat",
-"super-mario-cat-peach.png"
+"super-mario-cat-peach.png",
+"Super Mario Bros."
 ],
 "0003000000020002": [
 "Yoshi",
-"super-smash-bros-yoshi.png"
+"super-smash-bros-yoshi.png",
+"Super Smash Bros."
 ],
 "0003000000370102": [
 "Yoshi",
-"super-mario-yoshi.png"
+"super-mario-yoshi.png",
+"Super Mario Bros."
 ],
 "00030003039fff02": [
 "Yoshi - Power Up Band",
-"super-nintendo-world-yoshi-power-up-band.png"
+"super-nintendo-world-yoshi-power-up-band.png",
+"Super Nintendo World"
 ],
 "0003000404421c02": [
 "Yoshi - My Mario Wooden Blocks",
-"my-mario-wooden-blocks-mario.png"
+"my-mario-wooden-blocks-mario.png",
+"My Mario Wooden Blocks"
 ],
 "0003010200410302": [
 "Green Yarn Yoshi",
-"yoshi-s-woolly-world-green-yarn-yoshi.png"
+"yoshi-s-woolly-world-green-yarn-yoshi.png",
+"Yoshi's Woolly World"
 ],
 "0003010200420302": [
 "Pink Yarn Yoshi",
-"yoshi-s-woolly-world-pink-yarn-yoshi.png"
+"yoshi-s-woolly-world-pink-yarn-yoshi.png",
+"Yoshi's Woolly World"
 ],
 "0003010200430302": [
 "Light Blue Yarn Yoshi",
-"yoshi-s-woolly-world-light-blue-yarn-yoshi.png"
+"yoshi-s-woolly-world-light-blue-yarn-yoshi.png",
+"Yoshi's Woolly World"
 ],
 "00030102023e0302": [
 "Mega Yarn Yoshi",
-"yoshi-s-woolly-world-mega-yarn-yoshi.png"
+"yoshi-s-woolly-world-mega-yarn-yoshi.png",
+"Yoshi's Woolly World"
 ],
 "0004000002620102": [
 "Rosalina",
-"super-mario-rosalina.png"
+"super-mario-rosalina.png",
+"Super Mario Bros."
 ],
 "0004010000130002": [
 "Rosalina & Luma",
-"super-smash-bros-rosalina.png"
+"super-smash-bros-rosalina.png",
+"Super Smash Bros."
 ],
 "0005000000140002": [
 "Bowser",
-"super-smash-bros-bowser.png"
+"super-smash-bros-bowser.png",
+"Super Smash Bros."
 ],
 "0005000000390102": [
 "Bowser",
-"super-mario-bowser.png"
+"super-mario-bowser.png",
+"Super Mario Bros."
 ],
 "0005000003730102": [
 "Bowser - Wedding",
-"super-mario-bowser-wedding-outfit.png"
+"super-mario-bowser-wedding-outfit.png",
+"Super Mario Bros."
 ],
 "0005ff00023a0702": [
 "Hammer Slam Bowser",
-"skylanders-superchargers-hammer-slam-bowser.png"
+"skylanders-superchargers-hammer-slam-bowser.png",
+"Skylanders"
 ],
 "0006000000150002": [
 "Bowser Jr.",
-"super-smash-bros-bowser-jr.png"
+"super-smash-bros-bowser-jr.png",
+"Super Smash Bros."
 ],
 "00070000001a0002": [
 "Wario",
-"super-smash-bros-wario.png"
+"super-smash-bros-wario.png",
+"Super Smash Bros."
 ],
 "0007000002630102": [
 "Wario",
-"super-mario-wario.png"
+"super-mario-wario.png",
+"Super Mario Bros."
 ],
 "0008000000030002": [
 "Donkey Kong",
-"super-smash-bros-donkey-kong.png"
+"super-smash-bros-donkey-kong.png",
+"Super Smash Bros."
 ],
 "0008000002640102": [
 "Donkey Kong",
-"super-mario-donkey-kong.png"
+"super-mario-donkey-kong.png",
+"Super Mario Bros."
 ],
 "000800030431ff02": [
 "Donkey Kong - Power Up Band",
-"super-nintendo-world-donkey-kong-power-up-band.png"
+"super-nintendo-world-donkey-kong-power-up-band.png",
+"Super Nintendo World"
 ],
 "00080100042f1a02": [
 "Donkey Kong & Pauline",
-"donkey-kong-donkey-kong-pauline.png"
+"donkey-kong-donkey-kong-pauline.png",
+"Donkey Kong"
 ],
 "0008ff00023b0702": [
 "Turbo Charge Donkey Kong",
-"skylanders-superchargers-turbo-charge-donkey-kong.png"
+"skylanders-superchargers-turbo-charge-donkey-kong.png",
+"Skylanders"
 ],
 "00090000000d0002": [
 "Diddy Kong",
-"super-smash-bros-diddy-kong.png"
+"super-smash-bros-diddy-kong.png",
+"Super Smash Bros."
 ],
 "0009000002650102": [
 "Diddy Kong",
-"super-mario-diddy-kong.png"
+"super-mario-diddy-kong.png",
+"Super Mario Bros."
 ],
 "000900030432ff02": [
 "Diddy Kong - Power Up Band",
-"super-nintendo-world-diddy-kong-power-up-band.png"
+"super-nintendo-world-diddy-kong-power-up-band.png",
+"Super Nintendo World"
 ],
 "000a000000380102": [
 "Toad",
-"super-mario-toad.png"
+"super-mario-toad.png",
+"Super Mario Bros."
 ],
 "000a000303a0ff02": [
 "Toad - Power Up Band",
-"super-nintendo-world-toad-power-up-band.png"
+"super-nintendo-world-toad-power-up-band.png",
+"Super Nintendo World"
 ],
 "0013000002660102": [
 "Daisy",
-"super-mario-daisy.png"
+"super-mario-daisy.png",
+"Super Mario Bros."
 ],
 "00130000037a0002": [
 "Daisy",
-"super-smash-bros-daisy.png"
+"super-smash-bros-daisy.png",
+"Super Smash Bros."
 ],
 "00130003039eff02": [
 "Daisy - Power Up Band",
-"super-nintendo-world-daisy-power-up-band.png"
+"super-nintendo-world-daisy-power-up-band.png",
+"Super Nintendo World"
 ],
 "0014000002670102": [
 "Waluigi",
-"super-mario-waluigi.png"
+"super-mario-waluigi.png",
+"Super Mario Bros."
 ],
 "0015000003670102": [
 "Goomba",
-"super-mario-goomba.png"
+"super-mario-goomba.png",
+"Super Mario Bros."
 ],
 "0017000002680102": [
 "Boo",
-"super-mario-boo.png"
+"super-mario-boo.png",
+"Super Mario Bros."
 ],
 "0023000003680102": [
 "Koopa Troopa",
-"super-mario-koopa-troopa.png"
+"super-mario-koopa-troopa.png",
+"Super Mario Bros."
 ],
 "00240000038d0002": [
 "Piranha Plant",
-"super-smash-bros-piranha-plant.png"
+"super-smash-bros-piranha-plant.png",
+"Super Smash Bros."
 ],
 "00800102035d0302": [
 "Poochy",
-"yoshi-s-woolly-world-poochy.png"
+"yoshi-s-woolly-world-poochy.png",
+"Yoshi's Woolly World"
 ],
 "00c00000037b0002": [
 "King K. Rool",
-"super-smash-bros-king-k-rool.png"
+"super-smash-bros-king-k-rool.png",
+"Super Smash Bros."
 ],
 "0100000000040002": [
 "Link",
-"super-smash-bros-link.png"
+"super-smash-bros-link.png",
+"Super Smash Bros."
 ],
 "01000000034b0902": [
 "Link - Ocarina of Time",
-"the-legend-of-zelda-link-ocarina-of-time.png"
+"the-legend-of-zelda-link-ocarina-of-time.png",
+"Legend Of Zelda"
 ],
 "01000000034c0902": [
 "Link - Majora's Mask",
-"the-legend-of-zelda-link-majora-s-mask.png"
+"the-legend-of-zelda-link-majora-s-mask.png",
+"Legend Of Zelda"
 ],
 "01000000034d0902": [
 "Link - Twilight Princess",
-"the-legend-of-zelda-link-twilight-princess.png"
+"the-legend-of-zelda-link-twilight-princess.png",
+"Legend Of Zelda"
 ],
 "01000000034e0902": [
 "Link - Skyward Sword",
-"the-legend-of-zelda-link-skyward-sword.png"
+"the-legend-of-zelda-link-skyward-sword.png",
+"Legend Of Zelda"
 ],
 "01000000034f0902": [
 "8-Bit Link",
-"the-legend-of-zelda-wolf-link.png"
+"the-legend-of-zelda-wolf-link.png",
+"Legend Of Zelda"
 ],
 "0100000003530902": [
 "Link - Archer",
-"the-legend-of-zelda-link-archer.png"
+"the-legend-of-zelda-link-archer.png",
+"Legend Of Zelda"
 ],
 "0100000003540902": [
 "Link - Rider",
-"the-legend-of-zelda-link-rider.png"
+"the-legend-of-zelda-link-rider.png",
+"Legend Of Zelda"
 ],
 "01000000037c0002": [
 "Young Link",
-"super-smash-bros-young-link.png"
+"super-smash-bros-young-link.png",
+"Super Smash Bros."
 ],
 "0100000003990902": [
 "Link - Link's Awakening",
-"the-legend-of-zelda-link-link-s-awakening.png"
+"the-legend-of-zelda-link-link-s-awakening.png",
+"Legend Of Zelda"
 ],
 "0100000004180902": [
 "Link - Tears of the Kingdom",
-"the-legend-of-zelda-link-tears-of-the-kingdom.png"
+"the-legend-of-zelda-link-tears-of-the-kingdom.png",
+"Legend Of Zelda"
 ],
 "0100010000160002": [
 "Toon Link",
-"super-smash-bros-toon-link.png"
+"super-smash-bros-toon-link.png",
+"Super Smash Bros."
 ],
 "0100010003500902": [
 "Toon Link - The Wind Waker",
-"the-legend-of-zelda-toon-link-the-wind-waker.png"
+"the-legend-of-zelda-toon-link-the-wind-waker.png",
+"Legend Of Zelda"
 ],
 "01010000000e0002": [
 "Zelda",
-"super-smash-bros-zelda.png"
+"super-smash-bros-zelda.png",
+"Super Smash Bros."
 ],
 "0101000003520902": [
 "Toon Zelda - The Wind Waker",
-"the-legend-of-zelda-zelda-the-wind-waker.png"
+"the-legend-of-zelda-zelda-the-wind-waker.png",
+"Legend Of Zelda"
 ],
 "0101000003560902": [
 "Zelda",
-"the-legend-of-zelda-zelda.png"
+"the-legend-of-zelda-zelda.png",
+"Legend Of Zelda"
 ],
 "0101000004190902": [
 "Zelda - Tears of the Kingdom",
-"the-legend-of-zelda-zelda-tears-of-the-kingdom.png"
+"the-legend-of-zelda-zelda-tears-of-the-kingdom.png",
+"Legend Of Zelda"
 ],
 "0101010000170002": [
 "Sheik",
-"super-smash-bros-sheik.png"
+"super-smash-bros-sheik.png",
+"Super Smash Bros."
 ],
 "0101030004140902": [
 "Zelda & Loftwing",
-"the-legend-of-zelda-zelda.png"
+"the-legend-of-zelda-zelda.png",
+"Legend Of Zelda"
 ],
 "01020100001b0002": [
 "Ganondorf",
-"super-smash-bros-ganondorf.png"
+"super-smash-bros-ganondorf.png",
+"Super Smash Bros."
 ],
 "01020100041a0902": [
 "Ganondorf - Tears of the Kingdom",
-"the-legend-of-zelda-ganondorf-tears-of-the-kingdom.png"
+"the-legend-of-zelda-ganondorf-tears-of-the-kingdom.png",
+"Legend Of Zelda"
 ],
 "01030000024f0902": [
 "Midna & Wolf Link",
-"the-legend-of-zelda-wolf-link.png"
+"the-legend-of-zelda-wolf-link.png",
+"Legend Of Zelda"
 ],
 "0105000003580902": [
 "Daruk",
-"the-legend-of-zelda-daruk-goron-champion.png"
+"the-legend-of-zelda-daruk-goron-champion.png",
+"Legend Of Zelda"
 ],
 "0106000003590902": [
 "Urbosa",
-"the-legend-of-zelda-urbosa-gerudo-champion.png"
+"the-legend-of-zelda-urbosa-gerudo-champion.png",
+"Legend Of Zelda"
 ],
 "01070000035a0902": [
 "Mipha",
-"the-legend-of-zelda-mipha-zora-champion.png"
+"the-legend-of-zelda-mipha-zora-champion.png",
+"Legend Of Zelda"
 ],
 "01080000035b0902": [
 "Revali",
-"the-legend-of-zelda-revali-rito-champion.png"
+"the-legend-of-zelda-revali-rito-champion.png",
+"Legend Of Zelda"
 ],
 "0109000004a30902": [
 "Riju",
-"the-legend-of-zelda-riju.png"
+"the-legend-of-zelda-riju.png",
+"Legend Of Zelda"
 ],
 "010a000004a40902": [
 "Sidon",
-"the-legend-of-zelda-sidon.png"
+"the-legend-of-zelda-sidon.png",
+"Legend Of Zelda"
 ],
 "010b000004a50902": [
 "Tulin",
-"the-legend-of-zelda-tulin.png"
+"the-legend-of-zelda-tulin.png",
+"Legend Of Zelda"
 ],
 "010c000004a60902": [
 "Yunobo",
-"the-legend-of-zelda-yunobo.png"
+"the-legend-of-zelda-yunobo.png",
+"Legend Of Zelda"
 ],
 "0140000003550902": [
 "Guardian",
-"the-legend-of-zelda-guardian.png"
+"the-legend-of-zelda-guardian.png",
+"Legend Of Zelda"
 ],
 "01410000035c0902": [
 "Bokoblin",
-"the-legend-of-zelda-bokoblin.png"
+"the-legend-of-zelda-bokoblin.png",
+"Legend Of Zelda"
 ],
 "0180000000080002": [
 "Villager",
-"super-smash-bros-villager.png"
+"super-smash-bros-villager.png",
+"Super Smash Bros."
 ],
 "01810000024b0502": [
 "Isabelle - Summer Outfit",
-"animal-crossing-isabelle-summer-outfit.png"
+"animal-crossing-isabelle-summer-outfit.png",
+"Animal Crossing"
 ],
 "01810000037d0002": [
 "Isabelle",
-"super-smash-bros-isabelle.png"
+"super-smash-bros-isabelle.png",
+"Super Smash Bros."
 ],
 "0181000100440502": [
 "Isabelle",
-"animal-crossing-cards-series-1-isabelle.png"
+"animal-crossing-cards-series-1-isabelle.png",
+"Animal Crossing"
 ],
 "0181000101d40502": [
 "Isabelle - Character Parfait",
-"animal-crossing-cards-promos-isabelle-character-parfait.png"
+"animal-crossing-cards-promos-isabelle-character-parfait.png",
+"Animal Crossing"
 ],
 "01810100023f0502": [
 "Isabelle - Winter Outfit",
-"animal-crossing-isabelle-winter-outfit.png"
+"animal-crossing-isabelle-winter-outfit.png",
+"Animal Crossing"
 ],
 "0181010100b40502": [
 "Isabelle - Winter",
-"animal-crossing-cards-series-2-isabelle-winter.png"
+"animal-crossing-cards-series-2-isabelle-winter.png",
+"Animal Crossing"
 ],
 "01810201011a0502": [
 "Isabelle - Kimono",
-"animal-crossing-cards-series-3-isabelle-kimono.png"
+"animal-crossing-cards-series-3-isabelle-kimono.png",
+"Animal Crossing"
 ],
 "0181030101700502": [
 "Isabelle - Dress",
-"animal-crossing-cards-series-4-isabelle-dress.png"
+"animal-crossing-cards-series-4-isabelle-dress.png",
+"Animal Crossing"
 ],
 "0181040103aa0502": [
 "Isabelle",
-"animal-crossing-cards-series-1-isabelle.png"
+"animal-crossing-cards-series-1-isabelle.png",
+"Animal Crossing"
 ],
 "0181050103bf0502": [
 "Isabelle - Sweater",
-"animal-crossing-cards-series-5-isabelle-sweater.png"
+"animal-crossing-cards-series-5-isabelle-sweater.png",
+"Animal Crossing"
 ],
 "0182000002400502": [
 "K. K. Slider",
-""
+"",
+"Animal Crossing"
 ],
 "0182000100a80502": [
 "K.K. Slider",
-"animal-crossing-cards-promos-k-k-slider-pikopuri.png"
+"animal-crossing-cards-promos-k-k-slider-pikopuri.png",
+"Animal Crossing"
 ],
 "0182000101d80502": [
 "K. K. Slider - Pikopuri",
-"animal-crossing-cards-promos-k-k-slider-pikopuri.png"
+"animal-crossing-cards-promos-k-k-slider-pikopuri.png",
+"Animal Crossing"
 ],
 "0182000103b20502": [
 "K.K. Slider",
-"animal-crossing-cards-promos-k-k-slider-pikopuri.png"
+"animal-crossing-cards-promos-k-k-slider-pikopuri.png",
+"Animal Crossing"
 ],
 "0182010100460502": [
 "DJ KK",
-"animal-crossing-cards-series-1-dj-kk.png"
+"animal-crossing-cards-series-1-dj-kk.png",
+"Animal Crossing"
 ],
 "0183000002420502": [
 "Tom Nook",
-"animal-crossing-tom-nook.png"
+"animal-crossing-tom-nook.png",
+"Animal Crossing"
 ],
 "0183000100450502": [
 "Tom Nook",
-"animal-crossing-cards-series-1-tom-nook.png"
+"animal-crossing-cards-series-1-tom-nook.png",
+"Animal Crossing"
 ],
 "01830101010e0502": [
 "Tom Nook - Jacket",
-"animal-crossing-cards-series-1-tom-nook.png"
+"animal-crossing-cards-series-1-tom-nook.png",
+"Animal Crossing"
 ],
 "0183020103a80502": [
 "Tom Nook",
-"animal-crossing-cards-series-1-tom-nook.png"
+"animal-crossing-cards-series-1-tom-nook.png",
+"Animal Crossing"
 ],
 "0183030103be0502": [
 "Tom Nook - Coat",
-"animal-crossing-cards-series-5-tom-nook-coat.png"
+"animal-crossing-cards-series-5-tom-nook-coat.png",
+"Animal Crossing"
 ],
 "01840000024d0502": [
 "Timmy & Tommy",
-"animal-crossing-timmy-tommy.png"
+"animal-crossing-timmy-tommy.png",
+"Animal Crossing"
 ],
 "0184050103a90502": [
 "Timmy & Tommy",
-"animal-crossing-cards-series-5-timmy-tommy.png"
+"animal-crossing-cards-series-5-timmy-tommy.png",
+"Animal Crossing"
 ],
 "01850001004b0502": [
 "Timmy",
-"animal-crossing-cards-series-1-timmy.png"
+"animal-crossing-cards-series-1-timmy.png",
+"Animal Crossing"
 ],
 "0185020101170502": [
 "Timmy - Full Apron",
-"animal-crossing-cards-series-1-timmy.png"
+"animal-crossing-cards-series-1-timmy.png",
+"Animal Crossing"
 ],
 "0185040101790502": [
 "Timmy - Suit",
-"animal-crossing-cards-series-1-timmy.png"
+"animal-crossing-cards-series-1-timmy.png",
+"Animal Crossing"
 ],
 "0186010100af0502": [
 "Tommy - Uniform",
-"animal-crossing-cards-series-2-tommy.png"
+"animal-crossing-cards-series-2-tommy.png",
+"Animal Crossing"
 ],
 "0186030101750502": [
 "Tommy - Suit",
-"animal-crossing-cards-series-2-tommy.png"
+"animal-crossing-cards-series-2-tommy.png",
+"Animal Crossing"
 ],
 "0187000100470502": [
 "Sable",
-"animal-crossing-cards-series-1-sable.png"
+"animal-crossing-cards-series-1-sable.png",
+"Animal Crossing"
 ],
 "0187000103b00502": [
 "Sable",
-"animal-crossing-cards-series-1-sable.png"
+"animal-crossing-cards-series-1-sable.png",
+"Animal Crossing"
 ],
 "0188000002410502": [
 "Mabel",
-"animal-crossing-mabel.png"
+"animal-crossing-mabel.png",
+"Animal Crossing"
 ],
 "0188000101120502": [
 "Mabel",
-"animal-crossing-cards-series-3-mabel.png"
+"animal-crossing-cards-series-3-mabel.png",
+"Animal Crossing"
 ],
 "0188000103af0502": [
 "Mabel",
-"animal-crossing-cards-series-3-mabel.png"
+"animal-crossing-cards-series-3-mabel.png",
+"Animal Crossing"
 ],
 "0189000100ab0502": [
 "Labelle",
-"animal-crossing-cards-series-2-labelle.png"
+"animal-crossing-cards-series-2-labelle.png",
+"Animal Crossing"
 ],
 "0189010103b10502": [
 "Label",
-"animal-crossing-cards-series-5-label.png"
+"animal-crossing-cards-series-5-label.png",
+"Animal Crossing"
 ],
 "018a000002450502": [
 "Reese",
-"animal-crossing-reese.png"
+"animal-crossing-reese.png",
+"Animal Crossing"
 ],
 "018a000100a90502": [
 "Reese",
-"animal-crossing-cards-series-2-reese.png"
+"animal-crossing-cards-series-2-reese.png",
+"Animal Crossing"
 ],
 "018b000002460502": [
 "Cyrus",
-"animal-crossing-cyrus.png"
+"animal-crossing-cyrus.png",
+"Animal Crossing"
 ],
 "018b000101150502": [
 "Cyrus",
-"animal-crossing-cards-series-3-cyrus.png"
+"animal-crossing-cards-series-3-cyrus.png",
+"Animal Crossing"
 ],
 "018c000002430502": [
 "Digby",
-"animal-crossing-digby.png"
+"animal-crossing-digby.png",
+"Animal Crossing"
 ],
 "018c0001004c0502": [
 "Digby",
-"animal-crossing-cards-series-1-digby.png"
+"animal-crossing-cards-series-1-digby.png",
+"Animal Crossing"
 ],
 "018c010101180502": [
 "Digby - Raincoat",
-"animal-crossing-cards-series-1-digby.png"
+"animal-crossing-cards-series-1-digby.png",
+"Animal Crossing"
 ],
 "018d0000024c0502": [
 "Rover",
-"animal-crossing-rover.png"
+"animal-crossing-rover.png",
+"Animal Crossing"
 ],
 "018d0001010c0502": [
 "Rover",
-"animal-crossing-cards-series-3-rover.png"
+"animal-crossing-cards-series-3-rover.png",
+"Animal Crossing"
 ],
 "018e000002490502": [
 "Resetti",
-"animal-crossing-resetti.png"
+"animal-crossing-resetti.png",
+"Animal Crossing"
 ],
 "018e000100490502": [
 "Resetti",
-"animal-crossing-cards-series-1-resetti.png"
+"animal-crossing-cards-series-1-resetti.png",
+"Animal Crossing"
 ],
 "018e010101780502": [
 "Resetti - Without Hat",
-"animal-crossing-cards-series-1-resetti.png"
+"animal-crossing-cards-series-1-resetti.png",
+"Animal Crossing"
 ],
 "018f000100b30502": [
 "Don Resetti",
-"animal-crossing-cards-series-1-resetti.png"
+"animal-crossing-cards-series-1-resetti.png",
+"Animal Crossing"
 ],
 "018f010101190502": [
 "Don Resetti - Without Hat",
-"animal-crossing-cards-series-1-resetti.png"
+"animal-crossing-cards-series-1-resetti.png",
+"Animal Crossing"
 ],
 "0190000101710502": [
 "Brewster",
-"animal-crossing-cards-series-4-brewster.png"
+"animal-crossing-cards-series-4-brewster.png",
+"Animal Crossing"
 ],
 "01910001004e0502": [
 "Harriet",
-"animal-crossing-cards-series-1-harriet.png"
+"animal-crossing-cards-series-1-harriet.png",
+"Animal Crossing"
 ],
 "0192000002470502": [
 "Blathers",
-"animal-crossing-blathers.png"
+"animal-crossing-blathers.png",
+"Animal Crossing"
 ],
 "01920001010d0502": [
 "Blathers",
-"animal-crossing-cards-series-3-blathers.png"
+"animal-crossing-cards-series-3-blathers.png",
+"Animal Crossing"
 ],
 "0192000103ad0502": [
 "Blathers",
-"animal-crossing-cards-series-3-blathers.png"
+"animal-crossing-cards-series-3-blathers.png",
+"Animal Crossing"
 ],
 "0193000002480502": [
 "Celeste",
-"animal-crossing-celeste.png"
+"animal-crossing-celeste.png",
+"Animal Crossing"
 ],
 "0193000101740502": [
 "Celeste",
-"animal-crossing-cards-series-4-celeste.png"
+"animal-crossing-cards-series-4-celeste.png",
+"Animal Crossing"
 ],
 "0193000103ae0502": [
 "Celeste",
-"animal-crossing-cards-series-4-celeste.png"
+"animal-crossing-cards-series-4-celeste.png",
+"Animal Crossing"
 ],
 "01940000024a0502": [
 "Kicks",
-"animal-crossing-kicks.png"
+"animal-crossing-kicks.png",
+"Animal Crossing"
 ],
 "0194000100aa0502": [
 "Kicks",
-"animal-crossing-cards-series-2-kicks.png"
+"animal-crossing-cards-series-2-kicks.png",
+"Animal Crossing"
 ],
 "0194000103b60502": [
 "Kicks",
-"animal-crossing-cards-series-2-kicks.png"
+"animal-crossing-cards-series-2-kicks.png",
+"Animal Crossing"
 ],
 "0195000100b00502": [
 "Porter",
-"animal-crossing-cards-series-2-porter.png"
+"animal-crossing-cards-series-2-porter.png",
+"Animal Crossing"
 ],
 "01960000024e0502": [
 "Kapp'n",
-"animal-crossing-kapp-n.png"
+"animal-crossing-kapp-n.png",
+"Animal Crossing"
 ],
 "0196000100480502": [
 "Kapp'n",
-"animal-crossing-cards-series-1-kapp-n.png"
+"animal-crossing-cards-series-1-kapp-n.png",
+"Animal Crossing"
 ],
 "0197000101770502": [
 "Leilani",
-"animal-crossing-cards-series-4-leilani.png"
+"animal-crossing-cards-series-4-leilani.png",
+"Animal Crossing"
 ],
 "0198000100b10502": [
 "Leila",
-"animal-crossing-cards-series-2-leila.png"
+"animal-crossing-cards-series-2-leila.png",
+"Animal Crossing"
 ],
 "0199000101160502": [
 "Grams",
-"animal-crossing-cards-series-3-grams.png"
+"animal-crossing-cards-series-3-grams.png",
+"Animal Crossing"
 ],
 "019a000100b70502": [
 "Chip",
-"animal-crossing-cards-series-2-chip.png"
+"animal-crossing-cards-series-2-chip.png",
+"Animal Crossing"
 ],
 "019b000100b60502": [
 "Nat",
-"animal-crossing-cards-series-2-nat.png"
+"animal-crossing-cards-series-2-nat.png",
+"Animal Crossing"
 ],
 "019c000101730502": [
 "Phineas",
-"animal-crossing-cards-series-4-phineas.png"
+"animal-crossing-cards-series-4-phineas.png",
+"Animal Crossing"
 ],
 "019d000100ac0502": [
 "Copper",
-"animal-crossing-cards-series-2-copper.png"
+"animal-crossing-cards-series-2-copper.png",
+"Animal Crossing"
 ],
 "019e000100ad0502": [
 "Booker",
-"animal-crossing-cards-series-2-booker.png"
+"animal-crossing-cards-series-2-booker.png",
+"Animal Crossing"
 ],
 "019f000101110502": [
 "Pete",
-"animal-crossing-cards-series-3-pete.png"
+"animal-crossing-cards-series-3-pete.png",
+"Animal Crossing"
 ],
 "01a00001010f0502": [
 "Pelly",
-"animal-crossing-cards-series-3-pelly.png"
+"animal-crossing-cards-series-3-pelly.png",
+"Animal Crossing"
 ],
 "01a1000101100502": [
 "Phyllis",
-"animal-crossing-cards-series-3-phyllis.png"
+"animal-crossing-cards-series-3-phyllis.png",
+"Animal Crossing"
 ],
 "01a20001017d0502": [
 "Gulliver",
-"animal-crossing-cards-series-4-gulliver.png"
+"animal-crossing-cards-series-4-gulliver.png",
+"Animal Crossing"
 ],
 "01a2000103b90502": [
 "Gulliver",
-"animal-crossing-cards-series-4-gulliver.png"
+"animal-crossing-cards-series-4-gulliver.png",
+"Animal Crossing"
 ],
 "01a30001004a0502": [
 "Joan",
-"animal-crossing-cards-series-1-joan.png"
+"animal-crossing-cards-series-1-joan.png",
+"Animal Crossing"
 ],
 "01a40001004d0502": [
 "Pascal",
-"animal-crossing-cards-series-1-pascal.png"
+"animal-crossing-cards-series-1-pascal.png",
+"Animal Crossing"
 ],
 "01a5000101720502": [
 "Katrina",
-"animal-crossing-cards-series-4-katrina.png"
+"animal-crossing-cards-series-4-katrina.png",
+"Animal Crossing"
 ],
 "01a6000100500502": [
 "Saharah",
-"animal-crossing-cards-series-1-saharah.png"
+"animal-crossing-cards-series-1-saharah.png",
+"Animal Crossing"
 ],
 "01a6000103b70502": [
 "Saharah",
-"animal-crossing-cards-series-1-saharah.png"
+"animal-crossing-cards-series-1-saharah.png",
+"Animal Crossing"
 ],
 "01a7000101140502": [
 "Wendell",
-"animal-crossing-cards-series-3-wendell.png"
+"animal-crossing-cards-series-3-wendell.png",
+"Animal Crossing"
 ],
 "01a80001004f0502": [
 "Redd",
-"animal-crossing-cards-series-1-redd.png"
+"animal-crossing-cards-series-1-redd.png",
+"Animal Crossing"
 ],
 "01a80101017e0502": [
 "Redd - Shirt",
-"animal-crossing-cards-series-1-redd.png"
+"animal-crossing-cards-series-1-redd.png",
+"Animal Crossing"
 ],
 "01a9000101760502": [
 "Gracie",
-"animal-crossing-cards-series-4-gracie.png"
+"animal-crossing-cards-series-4-gracie.png",
+"Animal Crossing"
 ],
 "01aa000100530502": [
 "Lyle",
-"animal-crossing-cards-series-1-lyle.png"
+"animal-crossing-cards-series-1-lyle.png",
+"Animal Crossing"
 ],
 "01ab0001017c0502": [
 "Pave",
-"animal-crossing-cards-series-4-pave.png"
+"animal-crossing-cards-series-4-pave.png",
+"Animal Crossing"
 ],
 "01ac0001017f0502": [
 "Zipper",
-"animal-crossing-cards-series-4-zipper.png"
+"animal-crossing-cards-series-4-zipper.png",
+"Animal Crossing"
 ],
 "01ad000100b80502": [
 "Jack",
-"animal-crossing-cards-series-2-jack.png"
+"animal-crossing-cards-series-2-jack.png",
+"Animal Crossing"
 ],
 "01ae0001011b0502": [
 "Franklin",
-"animal-crossing-cards-series-3-franklin.png"
+"animal-crossing-cards-series-3-franklin.png",
+"Animal Crossing"
 ],
 "01af0001011c0502": [
 "Jingle",
-"animal-crossing-cards-series-3-jingle.png"
+"animal-crossing-cards-series-3-jingle.png",
+"Animal Crossing"
 ],
 "01b0000100520502": [
 "Tortimer",
-"animal-crossing-cards-series-1-tortimer.png"
+"animal-crossing-cards-series-1-tortimer.png",
+"Animal Crossing"
 ],
 "01b1000100b20502": [
 "Shrunk",
-"animal-crossing-cards-series-2-shrunk.png"
+"animal-crossing-cards-series-2-shrunk.png",
+"Animal Crossing"
 ],
 "01b10101017b0502": [
 "Shrunk - Loud Jacket",
-"animal-crossing-cards-series-2-shrunk.png"
+"animal-crossing-cards-series-2-shrunk.png",
+"Animal Crossing"
 ],
 "01b3000100b50502": [
 "Blanca",
-"animal-crossing-cards-series-2-blanca.png"
+"animal-crossing-cards-series-2-blanca.png",
+"Animal Crossing"
 ],
 "01b4000101130502": [
 "Leif",
-"animal-crossing-cards-series-3-leif.png"
+"animal-crossing-cards-series-3-leif.png",
+"Animal Crossing"
 ],
 "01b5000100510502": [
 "Luna",
-"animal-crossing-cards-series-1-luna.png"
+"animal-crossing-cards-series-1-luna.png",
+"Animal Crossing"
 ],
 "01b6000100ae0502": [
 "Katie",
-"animal-crossing-cards-series-2-katie.png"
+"animal-crossing-cards-series-2-katie.png",
+"Animal Crossing"
 ],
 "01c1000002440502": [
 "Lottie",
-"animal-crossing-lottie.png"
+"animal-crossing-lottie.png",
+"Animal Crossing"
 ],
 "01c1000100540502": [
 "Lottie",
-"animal-crossing-cards-series-1-lottie.png"
+"animal-crossing-cards-series-1-lottie.png",
+"Animal Crossing"
 ],
 "01c10101017a0502": [
 "Lottie - Black Skirt And Bow",
-"animal-crossing-cards-series-1-lottie.png"
+"animal-crossing-cards-series-1-lottie.png",
+"Animal Crossing"
 ],
 "01c1020103bb0502": [
 "Lottie - Island",
-"animal-crossing-cards-series-1-lottie.png"
+"animal-crossing-cards-series-1-lottie.png",
+"Animal Crossing"
 ],
 "0200000100a10502": [
 "Cyrano",
-"animal-crossing-cards-series-1-cyrano.png"
+"animal-crossing-cards-series-1-cyrano.png",
+"Animal Crossing"
 ],
 "02010001016a0502": [
 "Antonio",
-"animal-crossing-cards-series-3-antonio.png"
+"animal-crossing-cards-series-3-antonio.png",
+"Animal Crossing"
 ],
 "0202000101030502": [
 "Pango",
-"animal-crossing-cards-series-2-pango.png"
+"animal-crossing-cards-series-2-pango.png",
+"Animal Crossing"
 ],
 "02030001019a0502": [
 "Anabelle",
-"animal-crossing-cards-series-4-anabelle.png"
+"animal-crossing-cards-series-4-anabelle.png",
+"Animal Crossing"
 ],
 "0206000103120502": [
 "Snooty",
-"animal-crossing-cards-new-leaf-welcome-amiibo-snooty.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-snooty.png",
+"Animal Crossing"
 ],
 "0208000100960502": [
 "Annalisa",
-"animal-crossing-cards-series-1-annalisa.png"
+"animal-crossing-cards-series-1-annalisa.png",
+"Animal Crossing"
 ],
 "02090001019f0502": [
 "Olaf",
-"animal-crossing-cards-series-4-olaf.png"
+"animal-crossing-cards-series-4-olaf.png",
+"Animal Crossing"
 ],
 "0214000100e40502": [
 "Teddy",
-"animal-crossing-cards-series-2-teddy.png"
+"animal-crossing-cards-series-2-teddy.png",
+"Animal Crossing"
 ],
 "0215000101820502": [
 "Pinky",
-"animal-crossing-cards-series-4-pinky.png"
+"animal-crossing-cards-series-4-pinky.png",
+"Animal Crossing"
 ],
 "0216000100570502": [
 "Curt",
-"animal-crossing-cards-series-1-curt.png"
+"animal-crossing-cards-series-1-curt.png",
+"Animal Crossing"
 ],
 "0217000101b30502": [
 "Chow",
-"animal-crossing-cards-series-4-chow.png"
+"animal-crossing-cards-series-4-chow.png",
+"Animal Crossing"
 ],
 "02190001007e0502": [
 "Nate",
-"animal-crossing-cards-series-1-nate.png"
+"animal-crossing-cards-series-1-nate.png",
+"Animal Crossing"
 ],
 "021a000100da0502": [
 "Groucho",
-"animal-crossing-cards-series-2-groucho.png"
+"animal-crossing-cards-series-2-groucho.png",
+"Animal Crossing"
 ],
 "021b000100800502": [
 "Tutu",
-"animal-crossing-cards-series-1-tutu.png"
+"animal-crossing-cards-series-1-tutu.png",
+"Animal Crossing"
 ],
 "021c000102f70502": [
 "Ursala",
-"animal-crossing-cards-new-leaf-welcome-amiibo-ursala.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-ursala.png",
+"Animal Crossing"
 ],
 "021d000101cd0502": [
 "Grizzly",
-"animal-crossing-cards-series-4-grizzly.png"
+"animal-crossing-cards-series-4-grizzly.png",
+"Animal Crossing"
 ],
 "021e000101230502": [
 "Paula",
-"animal-crossing-cards-series-3-paula.png"
+"animal-crossing-cards-series-3-paula.png",
+"Animal Crossing"
 ],
 "021f000103170502": [
 "Ike",
-"animal-crossing-cards-new-leaf-welcome-amiibo-ike.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-ike.png",
+"Animal Crossing"
 ],
 "0220000100fd0502": [
 "Charlise",
-"animal-crossing-cards-series-2-charlise.png"
+"animal-crossing-cards-series-2-charlise.png",
+"Animal Crossing"
 ],
 "02210001013c0502": [
 "Beardo",
-"animal-crossing-cards-series-3-beardo.png"
+"animal-crossing-cards-series-3-beardo.png",
+"Animal Crossing"
 ],
 "0222000101440502": [
 "Klaus",
-"animal-crossing-cards-series-3-klaus.png"
+"animal-crossing-cards-series-3-klaus.png",
+"Animal Crossing"
 ],
 "022d000100f20502": [
 "Jay",
-"animal-crossing-cards-series-2-jay.png"
+"animal-crossing-cards-series-2-jay.png",
+"Animal Crossing"
 ],
 "022e000101d30502": [
 "Robin",
-"animal-crossing-cards-series-4-robin.png"
+"animal-crossing-cards-series-4-robin.png",
+"Animal Crossing"
 ],
 "022f0001011e0502": [
 "Anchovy",
-"animal-crossing-cards-series-3-anchovy.png"
+"animal-crossing-cards-series-3-anchovy.png",
+"Animal Crossing"
 ],
 "0230000101d20502": [
 "Twiggy",
-"animal-crossing-cards-series-4-twiggy.png"
+"animal-crossing-cards-series-4-twiggy.png",
+"Animal Crossing"
 ],
 "02310001006a0502": [
 "Jitters",
-"animal-crossing-cards-series-1-jitters.png"
+"animal-crossing-cards-series-1-jitters.png",
+"Animal Crossing"
 ],
 "0232000102ea0502": [
 "Piper",
-"animal-crossing-cards-new-leaf-welcome-amiibo-piper.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-piper.png",
+"Animal Crossing"
 ],
 "0233000103060502": [
 "Admiral",
-"animal-crossing-cards-new-leaf-welcome-amiibo-admiral.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-admiral.png",
+"Animal Crossing"
 ],
 "0235000100840502": [
 "Midge",
-"animal-crossing-cards-series-1-midge.png"
+"animal-crossing-cards-series-1-midge.png",
+"Animal Crossing"
 ],
 "0238000102f80502": [
 "Jacob",
-"animal-crossing-cards-new-leaf-welcome-amiibo-jacob.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-jacob.png",
+"Animal Crossing"
 ],
 "023c000100bd0502": [
 "Lucha",
-"animal-crossing-cards-series-2-lucha.png"
+"animal-crossing-cards-series-2-lucha.png",
+"Animal Crossing"
 ],
 "023d000101b50502": [
 "Jacques",
-"animal-crossing-cards-series-4-jacques.png"
+"animal-crossing-cards-series-4-jacques.png",
+"Animal Crossing"
 ],
 "023e000100d10502": [
 "Peck",
-"animal-crossing-cards-series-2-peck.png"
+"animal-crossing-cards-series-2-peck.png",
+"Animal Crossing"
 ],
 "023f000101660502": [
 "Sparro",
-"animal-crossing-cards-series-3-sparro.png"
+"animal-crossing-cards-series-3-sparro.png",
+"Animal Crossing"
 ],
 "024a000101d10502": [
 "Angus",
-"animal-crossing-cards-series-4-angus.png"
+"animal-crossing-cards-series-4-angus.png",
+"Animal Crossing"
 ],
 "024b000101260502": [
 "Rodeo",
-"animal-crossing-cards-series-3-rodeo.png"
+"animal-crossing-cards-series-3-rodeo.png",
+"Animal Crossing"
 ],
 "024d000102f60502": [
 "Stu",
-"animal-crossing-cards-new-leaf-welcome-amiibo-stu.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-stu.png",
+"Animal Crossing"
 ],
 "024f000100810502": [
 "T-Bone",
-"animal-crossing-cards-series-1-t-bone.png"
+"animal-crossing-cards-series-1-t-bone.png",
+"Animal Crossing"
 ],
 "0251000100c10502": [
 "Coach",
-"animal-crossing-cards-series-2-coach.png"
+"animal-crossing-cards-series-2-coach.png",
+"Animal Crossing"
 ],
 "0252000100fe0502": [
 "Vic",
-"animal-crossing-cards-series-2-vic.png"
+"animal-crossing-cards-series-2-vic.png",
+"Animal Crossing"
 ],
 "025d000100550502": [
 "Bob",
-"animal-crossing-cards-series-1-bob.png"
+"animal-crossing-cards-series-1-bob.png",
+"Animal Crossing"
 ],
 "025e000101250502": [
 "Mitzi",
-"animal-crossing-cards-series-3-mitzi.png"
+"animal-crossing-cards-series-3-mitzi.png",
+"Animal Crossing"
 ],
 "025f000101c50502": [
 "Rosie",
-"animal-crossing-cards-series-4-rosie.png"
+"animal-crossing-cards-series-4-rosie.png",
+"Animal Crossing"
 ],
 "025f000101d70502": [
 "Rosie - Amiibo Festival",
-"animal-crossing-cards-promos-rosie-amiibo-festival.png"
+"animal-crossing-cards-promos-rosie-amiibo-festival.png",
+"Animal Crossing"
 ],
 "0260000100d20502": [
 "Olivia",
-"animal-crossing-cards-series-2-olivia.png"
+"animal-crossing-cards-series-2-olivia.png",
+"Animal Crossing"
 ],
 "0261000100650502": [
 "Kiki",
-"animal-crossing-cards-series-1-kiki.png"
+"animal-crossing-cards-series-1-kiki.png",
+"Animal Crossing"
 ],
 "0262000101370502": [
 "Tangy",
-"animal-crossing-cards-series-3-tangy.png"
+"animal-crossing-cards-series-3-tangy.png",
+"Animal Crossing"
 ],
 "0263000100750502": [
 "Punchy",
-"animal-crossing-cards-series-1-punchy.png"
+"animal-crossing-cards-series-1-punchy.png",
+"Animal Crossing"
 ],
 "0264000101ac0502": [
 "Purrl",
-"animal-crossing-cards-series-4-purrl.png"
+"animal-crossing-cards-series-4-purrl.png",
+"Animal Crossing"
 ],
 "0265000101540502": [
 "Moe",
-"animal-crossing-cards-series-3-moe.png"
+"animal-crossing-cards-series-3-moe.png",
+"Animal Crossing"
 ],
 "0266000100680502": [
 "Kabuki",
-"animal-crossing-cards-series-1-kabuki.png"
+"animal-crossing-cards-series-1-kabuki.png",
+"Animal Crossing"
 ],
 "0267000101080502": [
 "Kid Cat",
-"animal-crossing-cards-series-2-kid-cat.png"
+"animal-crossing-cards-series-2-kid-cat.png",
+"Animal Crossing"
 ],
 "02680001007d0502": [
 "Monique",
-"animal-crossing-cards-series-1-monique.png"
+"animal-crossing-cards-series-1-monique.png",
+"Animal Crossing"
 ],
 "02690001011f0502": [
 "Tabby",
-"animal-crossing-cards-series-3-tabby.png"
+"animal-crossing-cards-series-3-tabby.png",
+"Animal Crossing"
 ],
 "026a000101460502": [
 "Stinky",
-"animal-crossing-cards-series-3-stinky.png"
+"animal-crossing-cards-series-3-stinky.png",
+"Animal Crossing"
 ],
 "026b000100e90502": [
 "Kitty",
-"animal-crossing-cards-series-2-kitty.png"
+"animal-crossing-cards-series-2-kitty.png",
+"Animal Crossing"
 ],
 "026c000100c30502": [
 "Tom",
-"animal-crossing-cards-series-2-tom.png"
+"animal-crossing-cards-series-2-tom.png",
+"Animal Crossing"
 ],
 "026d0001013f0502": [
 "Merry",
-"animal-crossing-cards-series-3-merry.png"
+"animal-crossing-cards-series-3-merry.png",
+"Animal Crossing"
 ],
 "026e000100ba0502": [
 "Felicity",
-"animal-crossing-cards-series-2-felicity.png"
+"animal-crossing-cards-series-2-felicity.png",
+"Animal Crossing"
 ],
 "026f000101900502": [
 "Lolly",
-"animal-crossing-cards-series-4-lolly.png"
+"animal-crossing-cards-series-4-lolly.png",
+"Animal Crossing"
 ],
 "0270000100ff0502": [
 "Ankha",
-"animal-crossing-cards-series-2-ankha.png"
+"animal-crossing-cards-series-2-ankha.png",
+"Animal Crossing"
 ],
 "02710001019b0502": [
 "Rudy",
-"animal-crossing-cards-series-4-rudy.png"
+"animal-crossing-cards-series-4-rudy.png",
+"Animal Crossing"
 ],
 "0272000101860502": [
 "Katt",
-"animal-crossing-cards-series-4-katt.png"
+"animal-crossing-cards-series-4-katt.png",
+"Animal Crossing"
 ],
 "027d000100630502": [
 "Bluebear",
-"animal-crossing-cards-series-1-bluebear.png"
+"animal-crossing-cards-series-1-bluebear.png",
+"Animal Crossing"
 ],
 "027e000101690502": [
 "Maple",
-"animal-crossing-cards-series-3-maple.png"
+"animal-crossing-cards-series-3-maple.png",
+"Animal Crossing"
 ],
 "027f000100b90502": [
 "Poncho",
-"animal-crossing-cards-series-2-poncho.png"
+"animal-crossing-cards-series-2-poncho.png",
+"Animal Crossing"
 ],
 "0280000100830502": [
 "Pudge",
-"animal-crossing-cards-series-1-pudge.png"
+"animal-crossing-cards-series-1-pudge.png",
+"Animal Crossing"
 ],
 "0281000101200502": [
 "Kody",
-"animal-crossing-cards-series-3-kody.png"
+"animal-crossing-cards-series-3-kody.png",
+"Animal Crossing"
 ],
 "0282000101810502": [
 "Stitches",
-"animal-crossing-cards-series-4-stitches.png"
+"animal-crossing-cards-series-4-stitches.png",
+"Animal Crossing"
 ],
 "0282000101d60502": [
 "Stitches - Amiibo Festival",
-"animal-crossing-cards-promos-stitches-amiibo-festival.png"
+"animal-crossing-cards-promos-stitches-amiibo-festival.png",
+"Animal Crossing"
 ],
 "0283000100c70502": [
 "Vladimir",
-"animal-crossing-cards-series-2-vladimir.png"
+"animal-crossing-cards-series-2-vladimir.png",
+"Animal Crossing"
 ],
 "0284000102fe0502": [
 "Murphy",
-"animal-crossing-cards-new-leaf-welcome-amiibo-murphy.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-murphy.png",
+"Animal Crossing"
 ],
 "0286000103130502": [
 "Olive",
-"animal-crossing-cards-new-leaf-welcome-amiibo-olive.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-olive.png",
+"Animal Crossing"
 ],
 "02870001005a0502": [
 "Cheri",
-"animal-crossing-cards-series-1-cheri.png"
+"animal-crossing-cards-series-1-cheri.png",
+"Animal Crossing"
 ],
 "028a000102e90502": [
 "June",
-"animal-crossing-cards-new-leaf-welcome-amiibo-june.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-june.png",
+"Animal Crossing"
 ],
 "028b000100e30502": [
 "Pekoe",
-"animal-crossing-cards-series-2-pekoe.png"
+"animal-crossing-cards-series-2-pekoe.png",
+"Animal Crossing"
 ],
 "028c0001013e0502": [
 "Chester",
-"animal-crossing-cards-series-3-chester.png"
+"animal-crossing-cards-series-3-chester.png",
+"Animal Crossing"
 ],
 "028d000101bd0502": [
 "Barold",
-"animal-crossing-cards-series-4-barold.png"
+"animal-crossing-cards-series-4-barold.png",
+"Animal Crossing"
 ],
 "028e0001019e0502": [
 "Tammy",
-"animal-crossing-cards-series-4-tammy.png"
+"animal-crossing-cards-series-4-tammy.png",
+"Animal Crossing"
 ],
 "028f0101031a0502": [
 "Marty",
-"animal-crossing-x-sanrio-cards-marty.png"
+"animal-crossing-x-sanrio-cards-marty.png",
+"Animal Crossing"
 ],
 "0299000100950502": [
 "Goose",
-"animal-crossing-cards-series-1-goose.png"
+"animal-crossing-cards-series-1-goose.png",
+"Animal Crossing"
 ],
 "029a000100ee0502": [
 "Benedict",
-"animal-crossing-cards-series-2-benedict.png"
+"animal-crossing-cards-series-2-benedict.png",
+"Animal Crossing"
 ],
 "029b000100cb0502": [
 "Egbert",
-"animal-crossing-cards-series-2-egbert.png"
+"animal-crossing-cards-series-2-egbert.png",
+"Animal Crossing"
 ],
 "029e0001013d0502": [
 "Ava",
-"animal-crossing-cards-series-3-ava.png"
+"animal-crossing-cards-series-3-ava.png",
+"Animal Crossing"
 ],
 "02a2000101ba0502": [
 "Becky",
-"animal-crossing-cards-series-4-becky.png"
+"animal-crossing-cards-series-4-becky.png",
+"Animal Crossing"
 ],
 "02a3000102ff0502": [
 "Plucky",
-"animal-crossing-cards-new-leaf-welcome-amiibo-plucky.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-plucky.png",
+"Animal Crossing"
 ],
 "02a4000100720502": [
 "Knox",
-"animal-crossing-cards-series-1-knox.png"
+"animal-crossing-cards-series-1-knox.png",
+"Animal Crossing"
 ],
 "02a50001018c0502": [
 "Broffina",
-"animal-crossing-cards-series-4-broffina.png"
+"animal-crossing-cards-series-4-broffina.png",
+"Animal Crossing"
 ],
 "02a6000101240502": [
 "Ken",
-"animal-crossing-cards-series-3-ken.png"
+"animal-crossing-cards-series-3-ken.png",
+"Animal Crossing"
 ],
 "02b1000100690502": [
 "Patty",
-"animal-crossing-cards-series-1-patty.png"
+"animal-crossing-cards-series-1-patty.png",
+"Animal Crossing"
 ],
 "02b2000100c40502": [
 "Tipper",
-"animal-crossing-cards-series-2-tipper.png"
+"animal-crossing-cards-series-2-tipper.png",
+"Animal Crossing"
 ],
 "02b70001030f0502": [
 "Norma",
-"animal-crossing-cards-new-leaf-welcome-amiibo-norma.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-norma.png",
+"Animal Crossing"
 ],
 "02b80001019c0502": [
 "Naomi",
-"animal-crossing-cards-series-4-naomi.png"
+"animal-crossing-cards-series-4-naomi.png",
+"Animal Crossing"
 ],
 "02c3000100dc0502": [
 "Alfonso",
-"animal-crossing-cards-series-2-alfonso.png"
+"animal-crossing-cards-series-2-alfonso.png",
+"Animal Crossing"
 ],
 "02c4000100670502": [
 "Alli",
-"animal-crossing-cards-series-1-alli.png"
+"animal-crossing-cards-series-1-alli.png",
+"Animal Crossing"
 ],
 "02c5000103080502": [
 "Boots",
-"animal-crossing-cards-new-leaf-welcome-amiibo-boots.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-boots.png",
+"Animal Crossing"
 ],
 "02c7000101220502": [
 "Del",
-"animal-crossing-cards-series-3-del.png"
+"animal-crossing-cards-series-3-del.png",
+"Animal Crossing"
 ],
 "02c9000100cd0502": [
 "Sly",
-"animal-crossing-cards-series-2-sly.png"
+"animal-crossing-cards-series-2-sly.png",
+"Animal Crossing"
 ],
 "02ca000101ca0502": [
 "Gayle",
-"animal-crossing-cards-series-4-gayle.png"
+"animal-crossing-cards-series-4-gayle.png",
+"Animal Crossing"
 ],
 "02cb000101360502": [
 "Drago",
-"animal-crossing-cards-series-3-drago.png"
+"animal-crossing-cards-series-3-drago.png",
+"Animal Crossing"
 ],
 "02d6000100560502": [
 "Fauna",
-"animal-crossing-cards-series-1-fauna.png"
+"animal-crossing-cards-series-1-fauna.png",
+"Animal Crossing"
 ],
 "02d7000101300502": [
 "Bam",
-"animal-crossing-cards-series-3-bam.png"
+"animal-crossing-cards-series-3-bam.png",
+"Animal Crossing"
 ],
 "02d8000100e20502": [
 "Zell",
-"animal-crossing-cards-series-2-zell.png"
+"animal-crossing-cards-series-2-zell.png",
+"Animal Crossing"
 ],
 "02d9000101c80502": [
 "Bruce",
-"animal-crossing-cards-series-4-bruce.png"
+"animal-crossing-cards-series-4-bruce.png",
+"Animal Crossing"
 ],
 "02da000101330502": [
 "Deirdre",
-"animal-crossing-cards-series-3-deirdre.png"
+"animal-crossing-cards-series-3-deirdre.png",
+"Animal Crossing"
 ],
 "02db0001005e0502": [
 "Lopez",
-"animal-crossing-cards-series-1-lopez.png"
+"animal-crossing-cards-series-1-lopez.png",
+"Animal Crossing"
 ],
 "02dc000100be0502": [
 "Fuchsia",
-"animal-crossing-cards-series-2-fuchsia.png"
+"animal-crossing-cards-series-2-fuchsia.png",
+"Animal Crossing"
 ],
 "02dd000100ea0502": [
 "Beau",
-"animal-crossing-cards-series-2-beau.png"
+"animal-crossing-cards-series-2-beau.png",
+"Animal Crossing"
 ],
 "02de0001009c0502": [
 "Diana",
-"animal-crossing-cards-series-1-diana.png"
+"animal-crossing-cards-series-1-diana.png",
+"Animal Crossing"
 ],
 "02df000101910502": [
 "Erik",
-"animal-crossing-cards-series-4-erik.png"
+"animal-crossing-cards-series-4-erik.png",
+"Animal Crossing"
 ],
 "02e00101031d0502": [
 "Chelsea",
-"animal-crossing-x-sanrio-cards-chelsea.png"
+"animal-crossing-x-sanrio-cards-chelsea.png",
+"Animal Crossing"
 ],
 "02ea000101800502": [
 "Goldie",
-"animal-crossing-cards-series-4-goldie.png"
+"animal-crossing-cards-series-4-goldie.png",
+"Animal Crossing"
 ],
 "02ea000101d50502": [
 "Goldie - Amiibo Festival",
-"animal-crossing-cards-promos-goldie-amiibo-festival.png"
+"animal-crossing-cards-promos-goldie-amiibo-festival.png",
+"Animal Crossing"
 ],
 "02eb000100de0502": [
 "Butch",
-"animal-crossing-cards-series-2-butch.png"
+"animal-crossing-cards-series-2-butch.png",
+"Animal Crossing"
 ],
 "02ec000101c40502": [
 "Lucky",
-"animal-crossing-cards-series-4-lucky.png"
+"animal-crossing-cards-series-4-lucky.png",
+"Animal Crossing"
 ],
 "02ed0001015a0502": [
 "Biskit",
-"animal-crossing-cards-series-3-biskit.png"
+"animal-crossing-cards-series-3-biskit.png",
+"Animal Crossing"
 ],
 "02ee000101990502": [
 "Bones",
-"animal-crossing-cards-series-4-bones.png"
+"animal-crossing-cards-series-4-bones.png",
+"Animal Crossing"
 ],
 "02ef000100580502": [
 "Portia",
-"animal-crossing-cards-series-1-portia.png"
+"animal-crossing-cards-series-1-portia.png",
+"Animal Crossing"
 ],
 "02f0000100a70502": [
 "Walker",
-"animal-crossing-cards-series-1-walker.png"
+"animal-crossing-cards-series-1-walker.png",
+"Animal Crossing"
 ],
 "02f1000101450502": [
 "Daisy",
-"animal-crossing-cards-series-3-daisy.png"
+"animal-crossing-cards-series-3-daisy.png",
+"Animal Crossing"
 ],
 "02f2000100cc0502": [
 "Cookie",
-"animal-crossing-cards-series-2-cookie.png"
+"animal-crossing-cards-series-2-cookie.png",
+"Animal Crossing"
 ],
 "02f3000102f90502": [
 "Maddie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-maddie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-maddie.png",
+"Animal Crossing"
 ],
 "02f4000103050502": [
 "Bea",
-"animal-crossing-cards-new-leaf-welcome-amiibo-bea.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-bea.png",
+"Animal Crossing"
 ],
 "02f8000101380502": [
 "Mac",
-"animal-crossing-cards-series-3-mac.png"
+"animal-crossing-cards-series-3-mac.png",
+"Animal Crossing"
 ],
 "02f9000101020502": [
 "Marcel",
-"animal-crossing-cards-series-2-marcel.png"
+"animal-crossing-cards-series-2-marcel.png",
+"Animal Crossing"
 ],
 "02fa000100970502": [
 "Benjamin",
-"animal-crossing-cards-series-1-benjamin.png"
+"animal-crossing-cards-series-1-benjamin.png",
+"Animal Crossing"
 ],
 "02fb000100900502": [
 "Cherry",
-"animal-crossing-cards-series-1-cherry.png"
+"animal-crossing-cards-series-1-cherry.png",
+"Animal Crossing"
 ],
 "02fc0001018f0502": [
 "Shep",
-"animal-crossing-cards-series-4-shep.png"
+"animal-crossing-cards-series-4-shep.png",
+"Animal Crossing"
 ],
 "0307000100640502": [
 "Bill",
-"animal-crossing-cards-series-1-bill.png"
+"animal-crossing-cards-series-1-bill.png",
+"Animal Crossing"
 ],
 "03080001014d0502": [
 "Joey",
-"animal-crossing-cards-series-3-joey.png"
+"animal-crossing-cards-series-3-joey.png",
+"Animal Crossing"
 ],
 "0309000100c60502": [
 "Pate",
-"animal-crossing-cards-series-2-pate.png"
+"animal-crossing-cards-series-2-pate.png",
+"Animal Crossing"
 ],
 "030a000101c70502": [
 "Maelle",
-"animal-crossing-cards-series-4-maelle.png"
+"animal-crossing-cards-series-4-maelle.png",
+"Animal Crossing"
 ],
 "030b000100790502": [
 "Deena",
-"animal-crossing-cards-series-1-deena.png"
+"animal-crossing-cards-series-1-deena.png",
+"Animal Crossing"
 ],
 "030c000101b80502": [
 "Pompom",
-"animal-crossing-cards-series-4-pompom.png"
+"animal-crossing-cards-series-4-pompom.png",
+"Animal Crossing"
 ],
 "030d000101840502": [
 "Mallary",
-"animal-crossing-cards-series-4-mallary.png"
+"animal-crossing-cards-series-4-mallary.png",
+"Animal Crossing"
 ],
 "030e0001012f0502": [
 "Freckles",
-"animal-crossing-cards-series-3-freckles.png"
+"animal-crossing-cards-series-3-freckles.png",
+"Animal Crossing"
 ],
 "030f0001016d0502": [
 "Derwin",
-"animal-crossing-cards-series-3-derwin.png"
+"animal-crossing-cards-series-3-derwin.png",
+"Animal Crossing"
 ],
 "0310000100f80502": [
 "Drake",
-"animal-crossing-cards-series-2-drake.png"
+"animal-crossing-cards-series-2-drake.png",
+"Animal Crossing"
 ],
 "0311000100d60502": [
 "Scoot",
-"animal-crossing-cards-series-2-scoot.png"
+"animal-crossing-cards-series-2-scoot.png",
+"Animal Crossing"
 ],
 "0312000103090502": [
 "Weber",
-"animal-crossing-cards-new-leaf-welcome-amiibo-weber.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-weber.png",
+"Animal Crossing"
 ],
 "0313000101210502": [
 "Miranda",
-"animal-crossing-cards-series-3-miranda.png"
+"animal-crossing-cards-series-3-miranda.png",
+"Animal Crossing"
 ],
 "0314000102f40502": [
 "Ketchup",
-"animal-crossing-cards-new-leaf-welcome-amiibo-ketchup.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-ketchup.png",
+"Animal Crossing"
 ],
 "0316000101c00502": [
 "Gloria",
-"animal-crossing-cards-series-4-gloria.png"
+"animal-crossing-cards-series-4-gloria.png",
+"Animal Crossing"
 ],
 "0317000100a60502": [
 "Molly",
-"animal-crossing-cards-series-1-molly.png"
+"animal-crossing-cards-series-1-molly.png",
+"Animal Crossing"
 ],
 "03180001006c0502": [
 "Quillson",
-"animal-crossing-cards-series-1-quillson.png"
+"animal-crossing-cards-series-1-quillson.png",
+"Animal Crossing"
 ],
 "0323000100760502": [
 "Opal",
-"animal-crossing-cards-series-1-opal.png"
+"animal-crossing-cards-series-1-opal.png",
+"Animal Crossing"
 ],
 "0324000101890502": [
 "Dizzy",
-"animal-crossing-cards-series-4-dizzy.png"
+"animal-crossing-cards-series-4-dizzy.png",
+"Animal Crossing"
 ],
 "03250001010a0502": [
 "Big Top",
-"animal-crossing-cards-series-2-big-top.png"
+"animal-crossing-cards-series-2-big-top.png",
+"Animal Crossing"
 ],
 "0326000101390502": [
 "Eloise",
-"animal-crossing-cards-series-3-eloise.png"
+"animal-crossing-cards-series-3-eloise.png",
+"Animal Crossing"
 ],
 "0327000101c30502": [
 "Margie",
-"animal-crossing-cards-series-4-margie.png"
+"animal-crossing-cards-series-4-margie.png",
+"Animal Crossing"
 ],
 "0328000102eb0502": [
 "Paolo",
-"animal-crossing-cards-new-leaf-welcome-amiibo-paolo.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-paolo.png",
+"Animal Crossing"
 ],
 "03290001009d0502": [
 "Axel",
-"animal-crossing-cards-series-1-axel.png"
+"animal-crossing-cards-series-1-axel.png",
+"Animal Crossing"
 ],
 "032a000103070502": [
 "Ellie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-ellie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-ellie.png",
+"Animal Crossing"
 ],
 "032c000101480502": [
 "Tucker",
-"animal-crossing-cards-series-3-tucker.png"
+"animal-crossing-cards-series-3-tucker.png",
+"Animal Crossing"
 ],
 "032d000100bc0502": [
 "Tia",
-"animal-crossing-cards-series-2-tia.png"
+"animal-crossing-cards-series-2-tia.png",
+"Animal Crossing"
 ],
 "032e0101031c0502": [
 "Chai",
-"animal-crossing-x-sanrio-cards-chai.png"
+"animal-crossing-x-sanrio-cards-chai.png",
+"Animal Crossing"
 ],
 "03380001011d0502": [
 "Lily",
-"animal-crossing-cards-series-3-lily.png"
+"animal-crossing-cards-series-3-lily.png",
+"Animal Crossing"
 ],
 "0339000101b10502": [
 "Ribbot",
-"animal-crossing-cards-series-4-ribbot.png"
+"animal-crossing-cards-series-4-ribbot.png",
+"Animal Crossing"
 ],
 "033a000101cc0502": [
 "Frobert",
-"animal-crossing-cards-series-4-frobert.png"
+"animal-crossing-cards-series-4-frobert.png",
+"Animal Crossing"
 ],
 "033b000100fa0502": [
 "Camofrog",
-"animal-crossing-cards-series-2-camofrog.png"
+"animal-crossing-cards-series-2-camofrog.png",
+"Animal Crossing"
 ],
 "033c000101000502": [
 "Drift",
-"animal-crossing-cards-series-2-drift.png"
+"animal-crossing-cards-series-2-drift.png",
+"Animal Crossing"
 ],
 "033d0001013a0502": [
 "Wart Jr.",
-"animal-crossing-cards-series-3-wart-jr.png"
+"animal-crossing-cards-series-3-wart-jr.png",
+"Animal Crossing"
 ],
 "033e000101a20502": [
 "Puddles",
-"animal-crossing-cards-series-4-puddles.png"
+"animal-crossing-cards-series-4-puddles.png",
+"Animal Crossing"
 ],
 "033f0001008f0502": [
 "Jeremiah",
-"animal-crossing-cards-series-1-jeremiah.png"
+"animal-crossing-cards-series-1-jeremiah.png",
+"Animal Crossing"
 ],
 "03410001030e0502": [
 "Tad",
-"animal-crossing-cards-new-leaf-welcome-amiibo-tad.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-tad.png",
+"Animal Crossing"
 ],
 "0342000101280502": [
 "Cousteau",
-"animal-crossing-cards-series-3-cousteau.png"
+"animal-crossing-cards-series-3-cousteau.png",
+"Animal Crossing"
 ],
 "0343000102ef0502": [
 "Huck",
-"animal-crossing-cards-new-leaf-welcome-amiibo-huck.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-huck.png",
+"Animal Crossing"
 ],
 "0344000100c50502": [
 "Prince",
-"animal-crossing-cards-series-2-prince.png"
+"animal-crossing-cards-series-2-prince.png",
+"Animal Crossing"
 ],
 "03450001005f0502": [
 "Jambette",
-"animal-crossing-cards-series-1-jambette.png"
+"animal-crossing-cards-series-1-jambette.png",
+"Animal Crossing"
 ],
 "0347000103020502": [
 "Raddle",
-"animal-crossing-cards-new-leaf-welcome-amiibo-raddle.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-raddle.png",
+"Animal Crossing"
 ],
 "03480001006b0502": [
 "Gigi",
-"animal-crossing-cards-series-1-gigi.png"
+"animal-crossing-cards-series-1-gigi.png",
+"Animal Crossing"
 ],
 "03490001018d0502": [
 "Croque",
-"animal-crossing-cards-series-4-croque.png"
+"animal-crossing-cards-series-4-croque.png",
+"Animal Crossing"
 ],
 "034a000101430502": [
 "Diva",
-"animal-crossing-cards-series-3-diva.png"
+"animal-crossing-cards-series-3-diva.png",
+"Animal Crossing"
 ],
 "034b0001009f0502": [
 "Henry",
-"animal-crossing-cards-series-1-henry.png"
+"animal-crossing-cards-series-1-henry.png",
+"Animal Crossing"
 ],
 "0356000101350502": [
 "Chevre",
-"animal-crossing-cards-series-3-chevre.png"
+"animal-crossing-cards-series-3-chevre.png",
+"Animal Crossing"
 ],
 "0357000100eb0502": [
 "Nan",
-"animal-crossing-cards-series-2-nan.png"
+"animal-crossing-cards-series-2-nan.png",
+"Animal Crossing"
 ],
 "0358000102fa0502": [
 "Billy",
-"animal-crossing-cards-new-leaf-welcome-amiibo-billy.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-billy.png",
+"Animal Crossing"
 ],
 "035a000100850502": [
 "Gruff",
-"animal-crossing-cards-series-1-gruff.png"
+"animal-crossing-cards-series-1-gruff.png",
+"Animal Crossing"
 ],
 "035c000101290502": [
 "Velma",
-"animal-crossing-cards-series-3-velma.png"
+"animal-crossing-cards-series-3-velma.png",
+"Animal Crossing"
 ],
 "035d000100c90502": [
 "Kidd",
-"animal-crossing-cards-series-2-kidd.png"
+"animal-crossing-cards-series-2-kidd.png",
+"Animal Crossing"
 ],
 "035e0001018e0502": [
 "Pashmina",
-"animal-crossing-cards-series-4-pashmina.png"
+"animal-crossing-cards-series-4-pashmina.png",
+"Animal Crossing"
 ],
 "0369000100d30502": [
 "Cesar",
-"animal-crossing-cards-series-2-cesar.png"
+"animal-crossing-cards-series-2-cesar.png",
+"Animal Crossing"
 ],
 "036a0001019d0502": [
 "Peewee",
-"animal-crossing-cards-series-4-peewee.png"
+"animal-crossing-cards-series-4-peewee.png",
+"Animal Crossing"
 ],
 "036b0001018b0502": [
 "Boone",
-"animal-crossing-cards-series-4-boone.png"
+"animal-crossing-cards-series-4-boone.png",
+"Animal Crossing"
 ],
 "036d000103040502": [
 "Louie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-louie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-louie.png",
+"Animal Crossing"
 ],
 "036e000102fb0502": [
 "Boyd",
-"animal-crossing-cards-new-leaf-welcome-amiibo-boyd.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-boyd.png",
+"Animal Crossing"
 ],
 "03700001015d0502": [
 "Violet",
-"animal-crossing-cards-series-3-violet.png"
+"animal-crossing-cards-series-3-violet.png",
+"Animal Crossing"
 ],
 "03710001005c0502": [
 "Al",
-"animal-crossing-cards-series-1-al.png"
+"animal-crossing-cards-series-1-al.png",
+"Animal Crossing"
 ],
 "03720001010b0502": [
 "Rocket",
-"animal-crossing-cards-series-2-rocket.png"
+"animal-crossing-cards-series-2-rocket.png",
+"Animal Crossing"
 ],
 "0373000101340502": [
 "Hans",
-"animal-crossing-cards-series-3-hans.png"
+"animal-crossing-cards-series-3-hans.png",
+"Animal Crossing"
 ],
 "0374010103190502": [
 "Rilla",
-"animal-crossing-x-sanrio-cards-rilla.png"
+"animal-crossing-x-sanrio-cards-rilla.png",
+"Animal Crossing"
 ],
 "037e000101560502": [
 "Hamlet",
-"animal-crossing-cards-series-3-hamlet.png"
+"animal-crossing-cards-series-3-hamlet.png",
+"Animal Crossing"
 ],
 "037f000101aa0502": [
 "Apple",
-"animal-crossing-cards-series-4-apple.png"
+"animal-crossing-cards-series-4-apple.png",
+"Animal Crossing"
 ],
 "0380000101870502": [
 "Graham",
-"animal-crossing-cards-series-4-graham.png"
+"animal-crossing-cards-series-4-graham.png",
+"Animal Crossing"
 ],
 "0381000100d50502": [
 "Rodney",
-"animal-crossing-cards-series-2-rodney.png"
+"animal-crossing-cards-series-2-rodney.png",
+"Animal Crossing"
 ],
 "03820001016b0502": [
 "Soleil",
-"animal-crossing-cards-series-3-soleil.png"
+"animal-crossing-cards-series-3-soleil.png",
+"Animal Crossing"
 ],
 "03830001009b0502": [
 "Clay",
-"animal-crossing-cards-series-1-clay.png"
+"animal-crossing-cards-series-1-clay.png",
+"Animal Crossing"
 ],
 "0384000100860502": [
 "Flurry",
-"animal-crossing-cards-series-1-flurry.png"
+"animal-crossing-cards-series-1-flurry.png",
+"Animal Crossing"
 ],
 "0385000101060502": [
 "Hamphrey",
-"animal-crossing-cards-series-2-hamphrey.png"
+"animal-crossing-cards-series-2-hamphrey.png",
+"Animal Crossing"
 ],
 "0390000101850502": [
 "Rocco",
-"animal-crossing-cards-series-4-rocco.png"
+"animal-crossing-cards-series-4-rocco.png",
+"Animal Crossing"
 ],
 "0392000101270502": [
 "Bubbles",
-"animal-crossing-cards-series-3-bubbles.png"
+"animal-crossing-cards-series-3-bubbles.png",
+"Animal Crossing"
 ],
 "0393000100a00502": [
 "Bertha",
-"animal-crossing-cards-series-1-bertha.png"
+"animal-crossing-cards-series-1-bertha.png",
+"Animal Crossing"
 ],
 "0394000100890502": [
 "Biff",
-"animal-crossing-cards-series-1-biff.png"
+"animal-crossing-cards-series-1-biff.png",
+"Animal Crossing"
 ],
 "0395000102fc0502": [
 "Bitty",
-"animal-crossing-cards-new-leaf-welcome-amiibo-bitty.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-bitty.png",
+"Animal Crossing"
 ],
 "0398000100bf0502": [
 "Harry",
-"animal-crossing-cards-series-2-harry.png"
+"animal-crossing-cards-series-2-harry.png",
+"Animal Crossing"
 ],
 "0399000101c20502": [
 "Hippeux",
-"animal-crossing-cards-series-4-hippeux.png"
+"animal-crossing-cards-series-4-hippeux.png",
+"Animal Crossing"
 ],
 "03a40001014f0502": [
 "Buck",
-"animal-crossing-cards-series-3-buck.png"
+"animal-crossing-cards-series-3-buck.png",
+"Animal Crossing"
 ],
 "03a50001015b0502": [
 "Victoria",
-"animal-crossing-cards-series-3-victoria.png"
+"animal-crossing-cards-series-3-victoria.png",
+"Animal Crossing"
 ],
 "03a6000100c80502": [
 "Savannah",
-"animal-crossing-cards-series-2-savannah.png"
+"animal-crossing-cards-series-2-savannah.png",
+"Animal Crossing"
 ],
 "03a7000101a10502": [
 "Elmer",
-"animal-crossing-cards-series-4-elmer.png"
+"animal-crossing-cards-series-4-elmer.png",
+"Animal Crossing"
 ],
 "03a8000100910502": [
 "Roscoe",
-"animal-crossing-cards-series-1-roscoe.png"
+"animal-crossing-cards-series-1-roscoe.png",
+"Animal Crossing"
 ],
 "03a9000100710502": [
 "Winnie",
-"animal-crossing-cards-series-1-winnie.png"
+"animal-crossing-cards-series-1-winnie.png",
+"Animal Crossing"
 ],
 "03aa000100e60502": [
 "Ed",
-"animal-crossing-cards-series-2-ed.png"
+"animal-crossing-cards-series-2-ed.png",
+"Animal Crossing"
 ],
 "03ab000103160502": [
 "Cleo",
-"animal-crossing-cards-new-leaf-welcome-amiibo-cleo.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-cleo.png",
+"Animal Crossing"
 ],
 "03ac000101880502": [
 "Peaches",
-"animal-crossing-cards-series-4-peaches.png"
+"animal-crossing-cards-series-4-peaches.png",
+"Animal Crossing"
 ],
 "03ad000101b20502": [
 "Annalise",
-"animal-crossing-cards-series-4-annalise.png"
+"animal-crossing-cards-series-4-annalise.png",
+"Animal Crossing"
 ],
 "03ae000100870502": [
 "Clyde",
-"animal-crossing-cards-series-1-clyde.png"
+"animal-crossing-cards-series-1-clyde.png",
+"Animal Crossing"
 ],
 "03af0001012c0502": [
 "Colton",
-"animal-crossing-cards-series-3-colton.png"
+"animal-crossing-cards-series-3-colton.png",
+"Animal Crossing"
 ],
 "03b0000101a90502": [
 "Papi",
-"animal-crossing-cards-series-4-papi.png"
+"animal-crossing-cards-series-4-papi.png",
+"Animal Crossing"
 ],
 "03b1000100f00502": [
 "Julian",
-"animal-crossing-cards-series-2-julian.png"
+"animal-crossing-cards-series-2-julian.png",
+"Animal Crossing"
 ],
 "03bc0001008a0502": [
 "Yuka",
-"animal-crossing-cards-series-1-yuka.png"
+"animal-crossing-cards-series-1-yuka.png",
+"Animal Crossing"
 ],
 "03bd000100f90502": [
 "Alice",
-"animal-crossing-cards-series-2-alice.png"
+"animal-crossing-cards-series-2-alice.png",
+"Animal Crossing"
 ],
 "03be000101980502": [
 "Melba",
-"animal-crossing-cards-series-4-melba.png"
+"animal-crossing-cards-series-4-melba.png",
+"Animal Crossing"
 ],
 "03bf000101bc0502": [
 "Sydney",
-"animal-crossing-cards-series-4-sydney.png"
+"animal-crossing-cards-series-4-sydney.png",
+"Animal Crossing"
 ],
 "03c0000103100502": [
 "Gonzo",
-"animal-crossing-cards-new-leaf-welcome-amiibo-gonzo.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-gonzo.png",
+"Animal Crossing"
 ],
 "03c1000100bb0502": [
 "Ozzie",
-"animal-crossing-cards-series-2-ozzie.png"
+"animal-crossing-cards-series-2-ozzie.png",
+"Animal Crossing"
 ],
 "03c40001012b0502": [
 "Canberra",
-"animal-crossing-cards-series-3-canberra.png"
+"animal-crossing-cards-series-3-canberra.png",
+"Animal Crossing"
 ],
 "03c50001015c0502": [
 "Lyman",
-"animal-crossing-cards-series-3-lyman.png"
+"animal-crossing-cards-series-3-lyman.png",
+"Animal Crossing"
 ],
 "03c6000100930502": [
 "Eugene",
-"animal-crossing-cards-series-1-eugene.png"
+"animal-crossing-cards-series-1-eugene.png",
+"Animal Crossing"
 ],
 "03d1000100c20502": [
 "Kitt",
-"animal-crossing-cards-series-2-kitt.png"
+"animal-crossing-cards-series-2-kitt.png",
+"Animal Crossing"
 ],
 "03d2000100e50502": [
 "Mathilda",
-"animal-crossing-cards-series-2-mathilda.png"
+"animal-crossing-cards-series-2-mathilda.png",
+"Animal Crossing"
 ],
 "03d3000102f30502": [
 "Carrie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-carrie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-carrie.png",
+"Animal Crossing"
 ],
 "03d6000101570502": [
 "Astrid",
-"animal-crossing-cards-series-3-astrid.png"
+"animal-crossing-cards-series-3-astrid.png",
+"Animal Crossing"
 ],
 "03d7000101b40502": [
 "Sylvia",
-"animal-crossing-cards-series-4-sylvia.png"
+"animal-crossing-cards-series-4-sylvia.png",
+"Animal Crossing"
 ],
 "03d9000101a50502": [
 "Walt",
-"animal-crossing-cards-series-4-walt.png"
+"animal-crossing-cards-series-4-walt.png",
+"Animal Crossing"
 ],
 "03da000101510502": [
 "Rooney",
-"animal-crossing-cards-series-3-rooney.png"
+"animal-crossing-cards-series-3-rooney.png",
+"Animal Crossing"
 ],
 "03db0001006d0502": [
 "Marcie",
-"animal-crossing-cards-series-1-marcie.png"
+"animal-crossing-cards-series-1-marcie.png",
+"Animal Crossing"
 ],
 "03e6000100ec0502": [
 "Bud",
-"animal-crossing-cards-series-2-bud.png"
+"animal-crossing-cards-series-2-bud.png",
+"Animal Crossing"
 ],
 "03e70001012a0502": [
 "Elvis",
-"animal-crossing-cards-series-3-elvis.png"
+"animal-crossing-cards-series-3-elvis.png",
+"Animal Crossing"
 ],
 "03e8000102f50502": [
 "Rex",
-"animal-crossing-cards-new-leaf-welcome-amiibo-rex.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-rex.png",
+"Animal Crossing"
 ],
 "03ea0001030b0502": [
 "Leopold",
-"animal-crossing-cards-new-leaf-welcome-amiibo-leopold.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-leopold.png",
+"Animal Crossing"
 ],
 "03ec000101830502": [
 "Mott",
-"animal-crossing-cards-series-4-mott.png"
+"animal-crossing-cards-series-4-mott.png",
+"Animal Crossing"
 ],
 "03ed000101a30502": [
 "Rory",
-"animal-crossing-cards-series-4-rory.png"
+"animal-crossing-cards-series-4-rory.png",
+"Animal Crossing"
 ],
 "03ee0001008b0502": [
 "Lionel",
-"animal-crossing-cards-series-1-lionel.png"
+"animal-crossing-cards-series-1-lionel.png",
+"Animal Crossing"
 ],
 "03fa000100d00502": [
 "Nana",
-"animal-crossing-cards-series-2-nana.png"
+"animal-crossing-cards-series-2-nana.png",
+"Animal Crossing"
 ],
 "03fb000101cf0502": [
 "Simon",
-"animal-crossing-cards-series-4-simon.png"
+"animal-crossing-cards-series-4-simon.png",
+"Animal Crossing"
 ],
 "03fc000101470502": [
 "Tammi",
-"animal-crossing-cards-series-3-tammi.png"
+"animal-crossing-cards-series-3-tammi.png",
+"Animal Crossing"
 ],
 "03fd000101580502": [
 "Monty",
-"animal-crossing-cards-series-3-monty.png"
+"animal-crossing-cards-series-3-monty.png",
+"Animal Crossing"
 ],
 "03fe000101a40502": [
 "Elise",
-"animal-crossing-cards-series-4-elise.png"
+"animal-crossing-cards-series-4-elise.png",
+"Animal Crossing"
 ],
 "03ff000100f40502": [
 "Flip",
-"animal-crossing-cards-series-2-flip.png"
+"animal-crossing-cards-series-2-flip.png",
+"Animal Crossing"
 ],
 "04000001006f0502": [
 "Shari",
-"animal-crossing-cards-series-1-shari.png"
+"animal-crossing-cards-series-1-shari.png",
+"Animal Crossing"
 ],
 "0401000100660502": [
 "Deli",
-"animal-crossing-cards-series-1-deli.png"
+"animal-crossing-cards-series-1-deli.png",
+"Animal Crossing"
 ],
 "040c000101590502": [
 "Dora",
-"animal-crossing-cards-series-3-dora.png"
+"animal-crossing-cards-series-3-dora.png",
+"Animal Crossing"
 ],
 "040d000100780502": [
 "Limberg",
-"animal-crossing-cards-series-1-limberg.png"
+"animal-crossing-cards-series-1-limberg.png",
+"Animal Crossing"
 ],
 "040e000100880502": [
 "Bella",
-"animal-crossing-cards-series-1-bella.png"
+"animal-crossing-cards-series-1-bella.png",
+"Animal Crossing"
 ],
 "040f000101500502": [
 "Bree",
-"animal-crossing-cards-series-3-bree.png"
+"animal-crossing-cards-series-3-bree.png",
+"Animal Crossing"
 ],
 "04100001007f0502": [
 "Samson",
-"animal-crossing-cards-series-1-samson.png"
+"animal-crossing-cards-series-1-samson.png",
+"Animal Crossing"
 ],
 "0411000101ab0502": [
 "Rod",
-"animal-crossing-cards-series-4-rod.png"
+"animal-crossing-cards-series-4-rod.png",
+"Animal Crossing"
 ],
 "04140001030a0502": [
 "Candi",
-"animal-crossing-cards-new-leaf-welcome-amiibo-candi.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-candi.png",
+"Animal Crossing"
 ],
 "0415000101bb0502": [
 "Rizzo",
-"animal-crossing-cards-series-4-rizzo.png"
+"animal-crossing-cards-series-4-rizzo.png",
+"Animal Crossing"
 ],
 "0416000100fb0502": [
 "Anicotti",
-"animal-crossing-cards-series-2-anicotti.png"
+"animal-crossing-cards-series-2-anicotti.png",
+"Animal Crossing"
 ],
 "0418000100d80502": [
 "Broccolo",
-"animal-crossing-cards-series-2-broccolo.png"
+"animal-crossing-cards-series-2-broccolo.png",
+"Animal Crossing"
 ],
 "041a000100e00502": [
 "Moose",
-"animal-crossing-cards-series-2-moose.png"
+"animal-crossing-cards-series-2-moose.png",
+"Animal Crossing"
 ],
 "041b000100f10502": [
 "Bettina",
-"animal-crossing-cards-series-2-bettina.png"
+"animal-crossing-cards-series-2-bettina.png",
+"Animal Crossing"
 ],
 "041c000101410502": [
 "Greta",
-"animal-crossing-cards-series-3-greta.png"
+"animal-crossing-cards-series-3-greta.png",
+"Animal Crossing"
 ],
 "041d0001018a0502": [
 "Penelope",
-"animal-crossing-cards-series-4-penelope.png"
+"animal-crossing-cards-series-4-penelope.png",
+"Animal Crossing"
 ],
 "041e0001015f0502": [
 "Chadder",
-"animal-crossing-cards-series-3-chadder.png"
+"animal-crossing-cards-series-3-chadder.png",
+"Animal Crossing"
 ],
 "0429000100700502": [
 "Octavian",
-"animal-crossing-cards-series-1-octavian.png"
+"animal-crossing-cards-series-1-octavian.png",
+"Animal Crossing"
 ],
 "042a0001012d0502": [
 "Marina",
-"animal-crossing-cards-series-3-marina.png"
+"animal-crossing-cards-series-3-marina.png",
+"Animal Crossing"
 ],
 "042b000101af0502": [
 "Zucker",
-"animal-crossing-cards-series-4-zucker.png"
+"animal-crossing-cards-series-4-zucker.png",
+"Animal Crossing"
 ],
 "0436000101940502": [
 "Queenie",
-"animal-crossing-cards-series-4-queenie.png"
+"animal-crossing-cards-series-4-queenie.png",
+"Animal Crossing"
 ],
 "0437000101050502": [
 "Gladys",
-"animal-crossing-cards-series-2-gladys.png"
+"animal-crossing-cards-series-2-gladys.png",
+"Animal Crossing"
 ],
 "0438000103000502": [
 "Sandy",
-"animal-crossing-cards-new-leaf-welcome-amiibo-sandy.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-sandy.png",
+"Animal Crossing"
 ],
 "0439000103110502": [
 "Sprocket",
-"animal-crossing-cards-new-leaf-welcome-amiibo-sprocket.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-sprocket.png",
+"Animal Crossing"
 ],
 "043b000103030502": [
 "Julia",
-"animal-crossing-cards-new-leaf-welcome-amiibo-julia.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-julia.png",
+"Animal Crossing"
 ],
 "043c000101cb0502": [
 "Cranston",
-"animal-crossing-cards-series-4-cranston.png"
+"animal-crossing-cards-series-4-cranston.png",
+"Animal Crossing"
 ],
 "043d0001007c0502": [
 "Phil",
-"animal-crossing-cards-series-1-phil.png"
+"animal-crossing-cards-series-1-phil.png",
+"Animal Crossing"
 ],
 "043e000101490502": [
 "Blanche",
-"animal-crossing-cards-series-3-blanche.png"
+"animal-crossing-cards-series-3-blanche.png",
+"Animal Crossing"
 ],
 "043f000101550502": [
 "Flora",
-"animal-crossing-cards-series-3-flora.png"
+"animal-crossing-cards-series-3-flora.png",
+"Animal Crossing"
 ],
 "0440000100ca0502": [
 "Phoebe",
-"animal-crossing-cards-series-2-phoebe.png"
+"animal-crossing-cards-series-2-phoebe.png",
+"Animal Crossing"
 ],
 "044b0001016c0502": [
 "Apollo",
-"animal-crossing-cards-series-3-apollo.png"
+"animal-crossing-cards-series-3-apollo.png",
+"Animal Crossing"
 ],
 "044c0001008e0502": [
 "Amelia",
-"animal-crossing-cards-series-1-amelia.png"
+"animal-crossing-cards-series-1-amelia.png",
+"Animal Crossing"
 ],
 "044d000101930502": [
 "Pierce",
-"animal-crossing-cards-series-4-pierce.png"
+"animal-crossing-cards-series-4-pierce.png",
+"Animal Crossing"
 ],
 "044e000103150502": [
 "Buzz",
-"animal-crossing-cards-new-leaf-welcome-amiibo-buzz.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-buzz.png",
+"Animal Crossing"
 ],
 "0450000100cf0502": [
 "Avery",
-"animal-crossing-cards-series-2-avery.png"
+"animal-crossing-cards-series-2-avery.png",
+"Animal Crossing"
 ],
 "04510001015e0502": [
 "Frank",
-"animal-crossing-cards-series-3-frank.png"
+"animal-crossing-cards-series-3-frank.png",
+"Animal Crossing"
 ],
 "0452000100730502": [
 "Sterling",
-"animal-crossing-cards-series-1-sterling.png"
+"animal-crossing-cards-series-1-sterling.png",
+"Animal Crossing"
 ],
 "0453000101040502": [
 "Keaton",
-"animal-crossing-cards-series-2-keaton.png"
+"animal-crossing-cards-series-2-keaton.png",
+"Animal Crossing"
 ],
 "0454000101ae0502": [
 "Celia",
-"animal-crossing-cards-series-4-celia.png"
+"animal-crossing-cards-series-4-celia.png",
+"Animal Crossing"
 ],
 "045f000101a80502": [
 "Aurora",
-"animal-crossing-cards-series-4-aurora.png"
+"animal-crossing-cards-series-4-aurora.png",
+"Animal Crossing"
 ],
 "0460000100a50502": [
 "Roald",
-"animal-crossing-cards-series-1-roald.png"
+"animal-crossing-cards-series-1-roald.png",
+"Animal Crossing"
 ],
 "0461000101610502": [
 "Cube",
-"animal-crossing-cards-series-3-cube.png"
+"animal-crossing-cards-series-3-cube.png",
+"Animal Crossing"
 ],
 "0462000100f60502": [
 "Hopper",
-"animal-crossing-cards-series-2-hopper.png"
+"animal-crossing-cards-series-2-hopper.png",
+"Animal Crossing"
 ],
 "0463000101310502": [
 "Friga",
-"animal-crossing-cards-series-3-friga.png"
+"animal-crossing-cards-series-3-friga.png",
+"Animal Crossing"
 ],
 "0464000100c00502": [
 "Gwen",
-"animal-crossing-cards-series-2-gwen.png"
+"animal-crossing-cards-series-2-gwen.png",
+"Animal Crossing"
 ],
 "04650001006e0502": [
 "Puck",
-"animal-crossing-cards-series-1-puck.png"
+"animal-crossing-cards-series-1-puck.png",
+"Animal Crossing"
 ],
 "0468000102f20502": [
 "Wade",
-"animal-crossing-cards-new-leaf-welcome-amiibo-wade.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-wade.png",
+"Animal Crossing"
 ],
 "0469000101640502": [
 "Boomer",
-"animal-crossing-cards-series-3-boomer.png"
+"animal-crossing-cards-series-3-boomer.png",
+"Animal Crossing"
 ],
 "046a000101d00502": [
 "Iggly",
-"animal-crossing-cards-series-4-iggly.png"
+"animal-crossing-cards-series-4-iggly.png",
+"Animal Crossing"
 ],
 "046b000101970502": [
 "Tex",
-"animal-crossing-cards-series-4-tex.png"
+"animal-crossing-cards-series-4-tex.png",
+"Animal Crossing"
 ],
 "046c0001008c0502": [
 "Flo",
-"animal-crossing-cards-series-1-flo.png"
+"animal-crossing-cards-series-1-flo.png",
+"Animal Crossing"
 ],
 "046d000100f30502": [
 "Sprinkle",
-"animal-crossing-cards-series-2-sprinkle.png"
+"animal-crossing-cards-series-2-sprinkle.png",
+"Animal Crossing"
 ],
 "0478000101630502": [
 "Curly",
-"animal-crossing-cards-series-3-curly.png"
+"animal-crossing-cards-series-3-curly.png",
+"Animal Crossing"
 ],
 "0479000100920502": [
 "Truffles",
-"animal-crossing-cards-series-1-truffles.png"
+"animal-crossing-cards-series-1-truffles.png",
+"Animal Crossing"
 ],
 "047a000100600502": [
 "Rasher",
-"animal-crossing-cards-series-1-rasher.png"
+"animal-crossing-cards-series-1-rasher.png",
+"Animal Crossing"
 ],
 "047b000100f50502": [
 "Hugh",
-"animal-crossing-cards-series-2-hugh.png"
+"animal-crossing-cards-series-2-hugh.png",
+"Animal Crossing"
 ],
 "047c000101a00502": [
 "Lucy",
-"animal-crossing-cards-series-4-lucy.png"
+"animal-crossing-cards-series-4-lucy.png",
+"Animal Crossing"
 ],
 "047d0001012e0502": [
 "Spork/Crackle",
-"animal-crossing-cards-series-3-spork.png"
+"animal-crossing-cards-series-3-spork.png",
+"Animal Crossing"
 ],
 "04800001008d0502": [
 "Cobb",
-"animal-crossing-cards-series-1-cobb.png"
+"animal-crossing-cards-series-1-cobb.png",
+"Animal Crossing"
 ],
 "0481000102f10502": [
 "Boris",
-"animal-crossing-cards-new-leaf-welcome-amiibo-boris.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-boris.png",
+"Animal Crossing"
 ],
 "0482000102fd0502": [
 "Maggie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-maggie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-maggie.png",
+"Animal Crossing"
 ],
 "0483000101b00502": [
 "Peggy",
-"animal-crossing-cards-series-4-peggy.png"
+"animal-crossing-cards-series-4-peggy.png",
+"Animal Crossing"
 ],
 "04850001014c0502": [
 "Gala",
-"animal-crossing-cards-series-3-gala.png"
+"animal-crossing-cards-series-3-gala.png",
+"Animal Crossing"
 ],
 "0486000100fc0502": [
 "Chops",
-"animal-crossing-cards-series-2-chops.png"
+"animal-crossing-cards-series-2-chops.png",
+"Animal Crossing"
 ],
 "0487000101bf0502": [
 "Kevin",
-"animal-crossing-cards-series-4-kevin.png"
+"animal-crossing-cards-series-4-kevin.png",
+"Animal Crossing"
 ],
 "0488000100980502": [
 "Pancetti",
-"animal-crossing-cards-series-1-pancetti.png"
+"animal-crossing-cards-series-1-pancetti.png",
+"Animal Crossing"
 ],
 "0489000100ef0502": [
 "Agnes",
-"animal-crossing-cards-series-2-agnes.png"
+"animal-crossing-cards-series-2-agnes.png",
+"Animal Crossing"
 ],
 "04940001009a0502": [
 "Bunnie",
-"animal-crossing-cards-series-1-bunnie.png"
+"animal-crossing-cards-series-1-bunnie.png",
+"Animal Crossing"
 ],
 "0495000101920502": [
 "Dotty",
-"animal-crossing-cards-series-4-dotty.png"
+"animal-crossing-cards-series-4-dotty.png",
+"Animal Crossing"
 ],
 "0496000100d90502": [
 "Coco",
-"animal-crossing-cards-series-2-coco.png"
+"animal-crossing-cards-series-2-coco.png",
+"Animal Crossing"
 ],
 "04970001007a0502": [
 "Snake",
-"animal-crossing-cards-series-1-snake.png"
+"animal-crossing-cards-series-1-snake.png",
+"Animal Crossing"
 ],
 "04980001014a0502": [
 "Gaston",
-"animal-crossing-cards-series-3-gaston.png"
+"animal-crossing-cards-series-3-gaston.png",
+"Animal Crossing"
 ],
 "0499000100df0502": [
 "Gabi",
-"animal-crossing-cards-series-2-gabi.png"
+"animal-crossing-cards-series-2-gabi.png",
+"Animal Crossing"
 ],
 "049a0001014e0502": [
 "Pippy",
-"animal-crossing-cards-series-3-pippy.png"
+"animal-crossing-cards-series-3-pippy.png",
+"Animal Crossing"
 ],
 "049b000100610502": [
 "Tiffany",
-"animal-crossing-cards-series-1-tiffany.png"
+"animal-crossing-cards-series-1-tiffany.png",
+"Animal Crossing"
 ],
 "049c000101400502": [
 "Genji",
-"animal-crossing-cards-series-3-genji.png"
+"animal-crossing-cards-series-3-genji.png",
+"Animal Crossing"
 ],
 "049d000100ed0502": [
 "Ruby",
-"animal-crossing-cards-series-2-ruby.png"
+"animal-crossing-cards-series-2-ruby.png",
+"Animal Crossing"
 ],
 "049e000101b70502": [
 "Doc",
-"animal-crossing-cards-series-4-doc.png"
+"animal-crossing-cards-series-4-doc.png",
+"Animal Crossing"
 ],
 "049f000103010502": [
 "Claude",
-"animal-crossing-cards-new-leaf-welcome-amiibo-claude.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-claude.png",
+"Animal Crossing"
 ],
 "04a00001016e0502": [
 "Francine",
-"animal-crossing-cards-series-3-francine.png"
+"animal-crossing-cards-series-3-francine.png",
+"Animal Crossing"
 ],
 "04a10001016f0502": [
 "Chrissy",
-"animal-crossing-cards-series-3-chrissy.png"
+"animal-crossing-cards-series-3-chrissy.png",
+"Animal Crossing"
 ],
 "04a2000102e80502": [
 "Hopkins",
-"animal-crossing-cards-new-leaf-welcome-amiibo-hopkins.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-hopkins.png",
+"Animal Crossing"
 ],
 "04a3000101c90502": [
 "OHare",
-"animal-crossing-cards-series-4-o-hare.png"
+"animal-crossing-cards-series-4-o-hare.png",
+"Animal Crossing"
 ],
 "04a4000100d40502": [
 "Carmen",
-"animal-crossing-cards-series-2-carmen.png"
+"animal-crossing-cards-series-2-carmen.png",
+"Animal Crossing"
 ],
 "04a5000100740502": [
 "Bonbon",
-"animal-crossing-cards-series-1-bonbon.png"
+"animal-crossing-cards-series-1-bonbon.png",
+"Animal Crossing"
 ],
 "04a6000100a30502": [
 "Cole",
-"animal-crossing-cards-series-1-cole.png"
+"animal-crossing-cards-series-1-cole.png",
+"Animal Crossing"
 ],
 "04a7000101a60502": [
 "Mira",
-"animal-crossing-cards-series-4-mira.png"
+"animal-crossing-cards-series-4-mira.png",
+"Animal Crossing"
 ],
 "04a80101031e0502": [
 "Toby",
-"animal-crossing-x-sanrio-cards-toby.png"
+"animal-crossing-x-sanrio-cards-toby.png",
+"Animal Crossing"
 ],
 "04b2000101b90502": [
 "Tank",
-"animal-crossing-cards-series-4-tank.png"
+"animal-crossing-cards-series-4-tank.png",
+"Animal Crossing"
 ],
 "04b3000100dd0502": [
 "Rhonda",
-"animal-crossing-cards-series-2-rhonda.png"
+"animal-crossing-cards-series-2-rhonda.png",
+"Animal Crossing"
 ],
 "04b40001030c0502": [
 "Spike",
-"animal-crossing-cards-new-leaf-welcome-amiibo-spike.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-spike.png",
+"Animal Crossing"
 ],
 "04b6000102ec0502": [
 "Hornsby",
-"animal-crossing-cards-new-leaf-welcome-amiibo-hornsby.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-hornsby.png",
+"Animal Crossing"
 ],
 "04b9000101600502": [
 "Merengue",
-"animal-crossing-cards-series-3-merengue.png"
+"animal-crossing-cards-series-3-merengue.png",
+"Animal Crossing"
 ],
 "04ba0001005d0502": [
 "Renée",
-"animal-crossing-cards-series-1-renee.png"
+"animal-crossing-cards-series-1-renee.png",
+"Animal Crossing"
 ],
 "04c5000101010502": [
 "Vesta",
-"animal-crossing-cards-series-2-vesta.png"
+"animal-crossing-cards-series-2-vesta.png",
+"Animal Crossing"
 ],
 "04c6000101670502": [
 "Baabara",
-"animal-crossing-cards-series-3-baabara.png"
+"animal-crossing-cards-series-3-baabara.png",
+"Animal Crossing"
 ],
 "04c7000100940502": [
 "Eunice",
-"animal-crossing-cards-series-1-eunice.png"
+"animal-crossing-cards-series-1-eunice.png",
+"Animal Crossing"
 ],
 "04c8000102ed0502": [
 "Stella",
-"animal-crossing-cards-new-leaf-welcome-amiibo-stella.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-stella.png",
+"Animal Crossing"
 ],
 "04c90001030d0502": [
 "Cashmere",
-"animal-crossing-cards-new-leaf-welcome-amiibo-cashmere.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-cashmere.png",
+"Animal Crossing"
 ],
 "04cc000100a40502": [
 "Willow",
-"animal-crossing-cards-series-1-willow.png"
+"animal-crossing-cards-series-1-willow.png",
+"Animal Crossing"
 ],
 "04cd000101520502": [
 "Curlos",
-"animal-crossing-cards-series-3-curlos.png"
+"animal-crossing-cards-series-3-curlos.png",
+"Animal Crossing"
 ],
 "04ce000100db0502": [
 "Wendy",
-"animal-crossing-cards-series-2-wendy.png"
+"animal-crossing-cards-series-2-wendy.png",
+"Animal Crossing"
 ],
 "04cf000100e10502": [
 "Timbra",
-"animal-crossing-cards-series-2-timbra.png"
+"animal-crossing-cards-series-2-timbra.png",
+"Animal Crossing"
 ],
 "04d0000101960502": [
 "Frita",
-"animal-crossing-cards-series-4-frita.png"
+"animal-crossing-cards-series-4-frita.png",
+"Animal Crossing"
 ],
 "04d10001009e0502": [
 "Muffy",
-"animal-crossing-cards-series-1-muffy.png"
+"animal-crossing-cards-series-1-muffy.png",
+"Animal Crossing"
 ],
 "04d2000101a70502": [
 "Pietro",
-"animal-crossing-cards-series-4-pietro.png"
+"animal-crossing-cards-series-4-pietro.png",
+"Animal Crossing"
 ],
 "04d30101031b0502": [
 "Étoile",
-"animal-crossing-x-sanrio-cards-etoile.png"
+"animal-crossing-x-sanrio-cards-etoile.png",
+"Animal Crossing"
 ],
 "04dd000100a20502": [
 "Peanut",
-"animal-crossing-cards-series-1-peanut.png"
+"animal-crossing-cards-series-1-peanut.png",
+"Animal Crossing"
 ],
 "04de000100ce0502": [
 "Blaire",
-"animal-crossing-cards-series-2-blaire.png"
+"animal-crossing-cards-series-2-blaire.png",
+"Animal Crossing"
 ],
 "04df000100e80502": [
 "Filbert",
-"animal-crossing-cards-series-2-filbert.png"
+"animal-crossing-cards-series-2-filbert.png",
+"Animal Crossing"
 ],
 "04e0000100f70502": [
 "Pecan",
-"animal-crossing-cards-series-2-pecan.png"
+"animal-crossing-cards-series-2-pecan.png",
+"Animal Crossing"
 ],
 "04e1000101be0502": [
 "Nibbles",
-"animal-crossing-cards-series-4-nibbles.png"
+"animal-crossing-cards-series-4-nibbles.png",
+"Animal Crossing"
 ],
 "04e2000101090502": [
 "Agent S",
-"animal-crossing-cards-series-2-agent-s.png"
+"animal-crossing-cards-series-2-agent-s.png",
+"Animal Crossing"
 ],
 "04e3000101650502": [
 "Caroline",
-"animal-crossing-cards-series-3-caroline.png"
+"animal-crossing-cards-series-3-caroline.png",
+"Animal Crossing"
 ],
 "04e4000101b60502": [
 "Sally",
-"animal-crossing-cards-series-4-sally.png"
+"animal-crossing-cards-series-4-sally.png",
+"Animal Crossing"
 ],
 "04e5000101ad0502": [
 "Static",
-"animal-crossing-cards-series-4-static.png"
+"animal-crossing-cards-series-4-static.png",
+"Animal Crossing"
 ],
 "04e6000100820502": [
 "Mint",
-"animal-crossing-cards-series-1-mint.png"
+"animal-crossing-cards-series-1-mint.png",
+"Animal Crossing"
 ],
 "04e7000101320502": [
 "Ricky",
-"animal-crossing-cards-series-3-ricky.png"
+"animal-crossing-cards-series-3-ricky.png",
+"Animal Crossing"
 ],
 "04e8000101ce0502": [
 "Cally",
-"animal-crossing-cards-series-4-cally.png"
+"animal-crossing-cards-series-4-cally.png",
+"Animal Crossing"
 ],
 "04ea000103180502": [
 "Tasha",
-"animal-crossing-cards-new-leaf-welcome-amiibo-tasha.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-tasha.png",
+"Animal Crossing"
 ],
 "04eb000102f00502": [
 "Sylvana",
-"animal-crossing-cards-new-leaf-welcome-amiibo-sylvana.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-sylvana.png",
+"Animal Crossing"
 ],
 "04ec000100770502": [
 "Poppy",
-"animal-crossing-cards-series-1-poppy.png"
+"animal-crossing-cards-series-1-poppy.png",
+"Animal Crossing"
 ],
 "04ed000100620502": [
 "Sheldon",
-"animal-crossing-cards-series-1-sheldon.png"
+"animal-crossing-cards-series-1-sheldon.png",
+"Animal Crossing"
 ],
 "04ee0001014b0502": [
 "Marshal",
-"animal-crossing-cards-series-3-marshal.png"
+"animal-crossing-cards-series-3-marshal.png",
+"Animal Crossing"
 ],
 "04ef0001013b0502": [
 "Hazel",
-"animal-crossing-cards-series-3-hazel.png"
+"animal-crossing-cards-series-3-hazel.png",
+"Animal Crossing"
 ],
 "04fa000101680502": [
 "Rolf",
-"animal-crossing-cards-series-3-rolf.png"
+"animal-crossing-cards-series-3-rolf.png",
+"Animal Crossing"
 ],
 "04fb000101c60502": [
 "Rowan",
-"animal-crossing-cards-series-4-rowan.png"
+"animal-crossing-cards-series-4-rowan.png",
+"Animal Crossing"
 ],
 "04fc000102ee0502": [
 "Tybalt",
-"animal-crossing-cards-new-leaf-welcome-amiibo-tybalt.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-tybalt.png",
+"Animal Crossing"
 ],
 "04fd0001007b0502": [
 "Bangle",
-"animal-crossing-cards-series-1-bangle.png"
+"animal-crossing-cards-series-1-bangle.png",
+"Animal Crossing"
 ],
 "04fe000100590502": [
 "Leonardo",
-"animal-crossing-cards-series-1-leonardo.png"
+"animal-crossing-cards-series-1-leonardo.png",
+"Animal Crossing"
 ],
 "04ff000101620502": [
 "Claudia",
-"animal-crossing-cards-series-3-claudia.png"
+"animal-crossing-cards-series-3-claudia.png",
+"Animal Crossing"
 ],
 "0500000100e70502": [
 "Bianca",
-"animal-crossing-cards-series-2-bianca.png"
+"animal-crossing-cards-series-2-bianca.png",
+"Animal Crossing"
 ],
 "050b000100990502": [
 "Chief",
-"animal-crossing-cards-series-1-chief.png"
+"animal-crossing-cards-series-1-chief.png",
+"Animal Crossing"
 ],
 "050c000101c10502": [
 "Lobo",
-"animal-crossing-cards-series-4-lobo.png"
+"animal-crossing-cards-series-4-lobo.png",
+"Animal Crossing"
 ],
 "050d000101420502": [
 "Wolfgang",
-"animal-crossing-cards-series-3-wolfgang.png"
+"animal-crossing-cards-series-3-wolfgang.png",
+"Animal Crossing"
 ],
 "050e000100d70502": [
 "Whitney",
-"animal-crossing-cards-series-2-whitney.png"
+"animal-crossing-cards-series-2-whitney.png",
+"Animal Crossing"
 ],
 "050f000103140502": [
 "Dobie",
-"animal-crossing-cards-new-leaf-welcome-amiibo-dobie.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-dobie.png",
+"Animal Crossing"
 ],
 "0510000101070502": [
 "Freya",
-"animal-crossing-cards-series-2-freya.png"
+"animal-crossing-cards-series-2-freya.png",
+"Animal Crossing"
 ],
 "0511000101950502": [
 "Fang",
-"animal-crossing-cards-series-4-fang.png"
+"animal-crossing-cards-series-4-fang.png",
+"Animal Crossing"
 ],
 "0513000102e70502": [
 "Vivian",
-"animal-crossing-cards-new-leaf-welcome-amiibo-vivian.png"
+"animal-crossing-cards-new-leaf-welcome-amiibo-vivian.png",
+"Animal Crossing"
 ],
 "0514000101530502": [
 "Skye",
-"animal-crossing-cards-series-3-skye.png"
+"animal-crossing-cards-series-3-skye.png",
+"Animal Crossing"
 ],
 "05150001005b0502": [
 "Kyle",
-"animal-crossing-cards-series-1-kyle.png"
+"animal-crossing-cards-series-1-kyle.png",
+"Animal Crossing"
 ],
 "0580000000050002": [
 "Fox",
-"super-smash-bros-fox.png"
+"super-smash-bros-fox.png",
+"Super Smash Bros."
 ],
 "05810000001c0002": [
 "Falco",
-"super-smash-bros-falco.png"
+"super-smash-bros-falco.png",
+"Super Smash Bros."
 ],
 "05840000037e0002": [
 "Wolf",
-"super-smash-bros-wolf.png"
+"super-smash-bros-wolf.png",
+"Super Smash Bros."
 ],
 "05c0000000060002": [
 "Samus",
-"super-smash-bros-samus.png"
+"super-smash-bros-samus.png",
+"Super Smash Bros."
 ],
 "05c0000003651302": [
 "Samus Aran",
-"metroid-samus-aran.png"
+"metroid-samus-aran.png",
+"Metroid"
 ],
 "05c0000004121302": [
 "Samus - Metroid Dread",
-"metroid-metroid.png"
+"metroid-metroid.png",
+"Metroid"
 ],
 "05c00000043a1302": [
 "Samus & Vi-O-La",
-"metroid-samus-vi-o-la.png"
+"metroid-samus-vi-o-la.png",
+"Metroid"
 ],
 "05c00000043b1302": [
 "Samus",
-"metroid-samus.png"
+"metroid-samus.png",
+"Metroid"
 ],
 "05c00100001d0002": [
 "Zero Suit Samus",
-"super-smash-bros-zero-suit-samus.png"
+"super-smash-bros-zero-suit-samus.png",
+"Super Smash Bros."
 ],
 "05c1000003661302": [
 "Metroid",
-"metroid-metroid.png"
+"metroid-metroid.png",
+"Metroid"
 ],
 "05c20000037f0002": [
 "Ridley",
-"super-smash-bros-ridley.png"
+"super-smash-bros-ridley.png",
+"Super Smash Bros."
 ],
 "05c3000003800002": [
 "Dark Samus",
-"super-smash-bros-dark-samus.png"
+"super-smash-bros-dark-samus.png",
+"Super Smash Bros."
 ],
 "05c4000004131302": [
 "E.M.M.I.",
-"metroid-e-m-m-i.png"
+"metroid-e-m-m-i.png",
+"Metroid"
 ],
 "05c50000043c1302": [
 "Sylux",
-"metroid-sylux.png"
+"metroid-sylux.png",
+"Metroid"
 ],
 "0600000000120002": [
 "Captain Falcon",
-"super-smash-bros-captain-falcon.png"
+"super-smash-bros-captain-falcon.png",
+"Super Smash Bros."
 ],
 "06400100001e0002": [
 "Olimar",
-"super-smash-bros-olimar.png"
+"super-smash-bros-olimar.png",
+"Super Smash Bros."
 ],
 "06420000035f1102": [
 "Pikmin",
-"pikmin-pikmin.png"
+"pikmin-pikmin.png",
+"Pikmin"
 ],
 "06c00000000f0002": [
 "Little Mac",
-"super-smash-bros-little-mac.png"
+"super-smash-bros-little-mac.png",
+"Super Smash Bros."
 ],
 "0700000000070002": [
 "Wii Fit Trainer",
-"super-smash-bros-wii-fit-trainer.png"
+"super-smash-bros-wii-fit-trainer.png",
+"Super Smash Bros."
 ],
 "0740000000100002": [
 "Pit",
-"super-smash-bros-pit.png"
+"super-smash-bros-pit.png",
+"Super Smash Bros."
 ],
 "0741000000200002": [
 "Dark Pit",
-"super-smash-bros-dark-pit.png"
+"super-smash-bros-dark-pit.png",
+"Super Smash Bros."
 ],
 "07420000001f0002": [
 "Palutena",
-"super-smash-bros-palutena.png"
+"super-smash-bros-palutena.png",
+"Super Smash Bros."
 ],
 "07800000002d0002": [
 "Mr. Game & Watch",
-"super-smash-bros-mr-game-watch.png"
+"super-smash-bros-mr-game-watch.png",
+"Super Smash Bros."
 ],
 "07810000002e0002": [
 "R.O.B. - Famicom",
-"super-smash-bros-r-o-b-famicom.png"
+"super-smash-bros-r-o-b-famicom.png",
+"Super Smash Bros."
 ],
 "0781000000330002": [
 "R.O.B. - NES",
-"super-smash-bros-r-o-b-nes.png"
+"super-smash-bros-r-o-b-nes.png",
+"Super Smash Bros."
 ],
 "07820000002f0002": [
 "Duck Hunt",
-"super-smash-bros-duck-hunt.png"
+"super-smash-bros-duck-hunt.png",
+"Super Smash Bros."
 ],
 "078f000003810002": [
 "Ice Climbers",
-"super-smash-bros-ice-climbers.png"
+"super-smash-bros-ice-climbers.png",
+"Super Smash Bros."
 ],
 "07c0000000210002": [
 "Mii Brawler",
-"super-smash-bros-mii-brawler.png"
+"super-smash-bros-mii-brawler.png",
+"Super Smash Bros."
 ],
 "07c0010000220002": [
 "Mii Swordfighter",
-"super-smash-bros-mii-swordfighter.png"
+"super-smash-bros-mii-swordfighter.png",
+"Super Smash Bros."
 ],
 "07c0020000230002": [
 "Mii Gunner",
-"super-smash-bros-mii-gunner.png"
+"super-smash-bros-mii-gunner.png",
+"Super Smash Bros."
 ],
 "08000100003e0402": [
 "Inkling Girl",
-"splatoon-inkling-girl.png"
+"splatoon-inkling-girl.png",
+"Splatoon"
 ],
 "08000100025f0402": [
 "Inkling Girl - Lime Green",
-"splatoon-inkling-girl-lime-green.png"
+"splatoon-inkling-girl-lime-green.png",
+"Splatoon"
 ],
 "0800010003690402": [
 "Inkling Girl - Neon Pink",
-"splatoon-inkling-girl-neon-pink.png"
+"splatoon-inkling-girl-neon-pink.png",
+"Splatoon"
 ],
 "0800010003820002": [
 "Inkling",
-"super-smash-bros-inkling.png"
+"super-smash-bros-inkling.png",
+"Super Smash Bros."
 ],
 "0800010004150402": [
 "Inkling - Yellow",
-"splatoon-inkling-yellow.png"
+"splatoon-inkling-yellow.png",
+"Splatoon"
 ],
 "08000200003f0402": [
 "Inkling Boy",
-"splatoon-inkling-boy.png"
+"splatoon-inkling-boy.png",
+"Splatoon"
 ],
 "0800020002600402": [
 "Inkling Boy - Purple",
-"splatoon-inkling-boy-purple.png"
+"splatoon-inkling-boy-purple.png",
+"Splatoon"
 ],
 "08000200036a0402": [
 "Inkling Boy - Neon Green",
-"splatoon-inkling-boy-neon-green.png"
+"splatoon-inkling-boy-neon-green.png",
+"Splatoon"
 ],
 "0800030000400402": [
 "Inkling Squid",
-"splatoon-inkling-squid.png"
+"splatoon-inkling-squid.png",
+"Splatoon"
 ],
 "0800030002610402": [
 "Inkling Squid - Orange",
-"splatoon-inkling-squid-orange.png"
+"splatoon-inkling-squid-orange.png",
+"Splatoon"
 ],
 "08000300036b0402": [
 "Inkling Squid - Neon Purple",
-"splatoon-inkling-squid-neon-purple.png"
+"splatoon-inkling-squid-neon-purple.png",
+"Splatoon"
 ],
 "08010000025d0402": [
 "Callie",
-"splatoon-callie.png"
+"splatoon-callie.png",
+"Splatoon"
 ],
 "0801000004360402": [
 "Callie - Alterna",
-"splatoon-callie-alterna.png"
+"splatoon-callie-alterna.png",
+"Splatoon"
 ],
 "08020000025e0402": [
 "Marie",
-"splatoon-marie.png"
+"splatoon-marie.png",
+"Splatoon"
 ],
 "0802000004370402": [
 "Marie - Alterna",
-"splatoon-marie-alterna.png"
+"splatoon-marie-alterna.png",
+"Splatoon"
 ],
 "0803000003760402": [
 "Pearl",
-"splatoon-pearl.png"
+"splatoon-pearl.png",
+"Splatoon"
 ],
 "0803000004380402": [
 "Pearl - Side Order",
-"splatoon-pearl-side-order.png"
+"splatoon-pearl-side-order.png",
+"Splatoon"
 ],
 "0804000003770402": [
 "Marina",
-"splatoon-marina.png"
+"splatoon-marina.png",
+"Splatoon"
 ],
 "0804000004390402": [
 "Marina - Side Order",
-"splatoon-marina-side-order.png"
+"splatoon-marina-side-order.png",
+"Splatoon"
 ],
 "08050100038e0402": [
 "Octoling Girl",
-"splatoon-octoling-girl.png"
+"splatoon-octoling-girl.png",
+"Splatoon"
 ],
 "08050200038f0402": [
 "Octoling Boy",
-"splatoon-octoling-boy.png"
+"splatoon-octoling-boy.png",
+"Splatoon"
 ],
 "08050200041b0402": [
 "Octoling - Blue",
-"splatoon-octoling-blue.png"
+"splatoon-octoling-blue.png",
+"Splatoon"
 ],
 "0805030003900402": [
 "Octoling Octopus",
-"splatoon-octoling-octopus.png"
+"splatoon-octoling-octopus.png",
+"Splatoon"
 ],
 "08060100041c0402": [
 "Smallfry",
-"splatoon-smallfry.png"
+"splatoon-smallfry.png",
+"Splatoon"
 ],
 "0807000004330402": [
 "Shiver",
-"splatoon-shiver.png"
+"splatoon-shiver.png",
+"Splatoon"
 ],
 "0808000004340402": [
 "Frye",
-"splatoon-frye.png"
+"splatoon-frye.png",
+"Splatoon"
 ],
 "0809000004350402": [
 "Big Man",
-"splatoon-big-man.png"
+"splatoon-big-man.png",
+"Splatoon"
 ],
 "09c0010102690e02": [
 "Mario - Soccer",
-"mario-sports-superstars-mario-soccer.png"
+"mario-sports-superstars-mario-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c00201026a0e02": [
 "Mario - Baseball",
-"mario-sports-superstars-mario-baseball.png"
+"mario-sports-superstars-mario-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c00301026b0e02": [
 "Mario - Tennis",
-"mario-sports-superstars-mario-tennis.png"
+"mario-sports-superstars-mario-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c00401026c0e02": [
 "Mario - Golf",
-"mario-sports-superstars-mario-golf.png"
+"mario-sports-superstars-mario-golf.png",
+"Mario Sports Superstars"
 ],
 "09c00501026d0e02": [
 "Mario - Horse Racing",
-"mario-sports-superstars-mario-horse-racing.png"
+"mario-sports-superstars-mario-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c10101026e0e02": [
 "Luigi - Soccer",
-"mario-sports-superstars-luigi-soccer.png"
+"mario-sports-superstars-luigi-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c10201026f0e02": [
 "Luigi - Baseball",
-"mario-sports-superstars-luigi-baseball.png"
+"mario-sports-superstars-luigi-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c1030102700e02": [
 "Luigi - Tennis",
-"mario-sports-superstars-luigi-tennis.png"
+"mario-sports-superstars-luigi-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c1040102710e02": [
 "Luigi - Golf",
-"mario-sports-superstars-luigi-golf.png"
+"mario-sports-superstars-luigi-golf.png",
+"Mario Sports Superstars"
 ],
 "09c1050102720e02": [
 "Luigi - Horse Racing",
-"mario-sports-superstars-luigi-horse-racing.png"
+"mario-sports-superstars-luigi-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c2010102730e02": [
 "Peach - Soccer",
-"mario-sports-superstars-peach-soccer.png"
+"mario-sports-superstars-peach-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c2020102740e02": [
 "Peach - Baseball",
-"mario-sports-superstars-peach-baseball.png"
+"mario-sports-superstars-peach-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c2030102750e02": [
 "Peach - Tennis",
-"mario-sports-superstars-peach-tennis.png"
+"mario-sports-superstars-peach-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c2040102760e02": [
 "Peach - Golf",
-"mario-sports-superstars-peach-golf.png"
+"mario-sports-superstars-peach-golf.png",
+"Mario Sports Superstars"
 ],
 "09c2050102770e02": [
 "Peach - Horse Racing",
-"mario-sports-superstars-peach-horse-racing.png"
+"mario-sports-superstars-peach-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c3010102780e02": [
 "Daisy - Soccer",
-"mario-sports-superstars-daisy-soccer.png"
+"mario-sports-superstars-daisy-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c3020102790e02": [
 "Daisy - Baseball",
-"mario-sports-superstars-daisy-baseball.png"
+"mario-sports-superstars-daisy-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c30301027a0e02": [
 "Daisy - Tennis",
-"mario-sports-superstars-daisy-tennis.png"
+"mario-sports-superstars-daisy-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c30401027b0e02": [
 "Daisy - Golf",
-"mario-sports-superstars-daisy-golf.png"
+"mario-sports-superstars-daisy-golf.png",
+"Mario Sports Superstars"
 ],
 "09c30501027c0e02": [
 "Daisy - Horse Racing",
-"mario-sports-superstars-daisy-horse-racing.png"
+"mario-sports-superstars-daisy-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c40101027d0e02": [
 "Yoshi - Soccer",
-"mario-sports-superstars-yoshi-soccer.png"
+"mario-sports-superstars-yoshi-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c40201027e0e02": [
 "Yoshi - Baseball",
-"mario-sports-superstars-yoshi-baseball.png"
+"mario-sports-superstars-yoshi-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c40301027f0e02": [
 "Yoshi - Tennis",
-"mario-sports-superstars-yoshi-tennis.png"
+"mario-sports-superstars-yoshi-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c4040102800e02": [
 "Yoshi - Golf",
-"mario-sports-superstars-yoshi-golf.png"
+"mario-sports-superstars-yoshi-golf.png",
+"Mario Sports Superstars"
 ],
 "09c4050102810e02": [
 "Yoshi - Horse Racing",
-"mario-sports-superstars-yoshi-horse-racing.png"
+"mario-sports-superstars-yoshi-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c5010102820e02": [
 "Wario - Soccer",
-"mario-sports-superstars-wario-soccer.png"
+"mario-sports-superstars-wario-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c5020102830e02": [
 "Wario - Baseball",
-"mario-sports-superstars-wario-baseball.png"
+"mario-sports-superstars-wario-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c5030102840e02": [
 "Wario - Tennis",
-"mario-sports-superstars-wario-tennis.png"
+"mario-sports-superstars-wario-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c5040102850e02": [
 "Wario - Golf",
-"mario-sports-superstars-wario-golf.png"
+"mario-sports-superstars-wario-golf.png",
+"Mario Sports Superstars"
 ],
 "09c5050102860e02": [
 "Wario - Horse Racing",
-"mario-sports-superstars-wario-horse-racing.png"
+"mario-sports-superstars-wario-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c6010102870e02": [
 "Waluigi - Soccer",
-"mario-sports-superstars-waluigi-soccer.png"
+"mario-sports-superstars-waluigi-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c6020102880e02": [
 "Waluigi - Baseball",
-"mario-sports-superstars-waluigi-baseball.png"
+"mario-sports-superstars-waluigi-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c6030102890e02": [
 "Waluigi - Tennis",
-"mario-sports-superstars-waluigi-tennis.png"
+"mario-sports-superstars-waluigi-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c60401028a0e02": [
 "Waluigi - Golf",
-"mario-sports-superstars-waluigi-golf.png"
+"mario-sports-superstars-waluigi-golf.png",
+"Mario Sports Superstars"
 ],
 "09c60501028b0e02": [
 "Waluigi - Horse Racing",
-"mario-sports-superstars-waluigi-horse-racing.png"
+"mario-sports-superstars-waluigi-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c70101028c0e02": [
 "Donkey Kong - Soccer",
-"mario-sports-superstars-donkey-kong-soccer.png"
+"mario-sports-superstars-donkey-kong-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c70201028d0e02": [
 "Donkey Kong - Baseball",
-"mario-sports-superstars-donkey-kong-baseball.png"
+"mario-sports-superstars-donkey-kong-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c70301028e0e02": [
 "Donkey Kong - Tennis",
-"mario-sports-superstars-donkey-kong-tennis.png"
+"mario-sports-superstars-donkey-kong-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c70401028f0e02": [
 "Donkey Kong - Golf",
-"mario-sports-superstars-donkey-kong-golf.png"
+"mario-sports-superstars-donkey-kong-golf.png",
+"Mario Sports Superstars"
 ],
 "09c7050102900e02": [
 "Donkey Kong - Horse Racing",
-"mario-sports-superstars-donkey-kong-horse-racing.png"
+"mario-sports-superstars-donkey-kong-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c8010102910e02": [
 "Diddy Kong - Soccer",
-"mario-sports-superstars-diddy-kong-soccer.png"
+"mario-sports-superstars-diddy-kong-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c8020102920e02": [
 "Diddy Kong - Baseball",
-"mario-sports-superstars-diddy-kong-baseball.png"
+"mario-sports-superstars-diddy-kong-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c8030102930e02": [
 "Diddy Kong - Tennis",
-"mario-sports-superstars-diddy-kong-tennis.png"
+"mario-sports-superstars-diddy-kong-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c8040102940e02": [
 "Diddy Kong - Golf",
-"mario-sports-superstars-diddy-kong-golf.png"
+"mario-sports-superstars-diddy-kong-golf.png",
+"Mario Sports Superstars"
 ],
 "09c8050102950e02": [
 "Diddy Kong - Horse Racing",
-"mario-sports-superstars-diddy-kong-horse-racing.png"
+"mario-sports-superstars-diddy-kong-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09c9010102960e02": [
 "Bowser - Soccer",
-"mario-sports-superstars-bowser-soccer.png"
+"mario-sports-superstars-bowser-soccer.png",
+"Mario Sports Superstars"
 ],
 "09c9020102970e02": [
 "Bowser - Baseball",
-"mario-sports-superstars-bowser-baseball.png"
+"mario-sports-superstars-bowser-baseball.png",
+"Mario Sports Superstars"
 ],
 "09c9030102980e02": [
 "Bowser - Tennis",
-"mario-sports-superstars-bowser-tennis.png"
+"mario-sports-superstars-bowser-tennis.png",
+"Mario Sports Superstars"
 ],
 "09c9040102990e02": [
 "Bowser - Golf",
-"mario-sports-superstars-bowser-golf.png"
+"mario-sports-superstars-bowser-golf.png",
+"Mario Sports Superstars"
 ],
 "09c90501029a0e02": [
 "Bowser - Horse Racing",
-"mario-sports-superstars-bowser-horse-racing.png"
+"mario-sports-superstars-bowser-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09ca0101029b0e02": [
 "Bowser Jr. - Soccer",
-"mario-sports-superstars-bowser-jr-soccer.png"
+"mario-sports-superstars-bowser-jr-soccer.png",
+"Mario Sports Superstars"
 ],
 "09ca0201029c0e02": [
 "Bowser Jr. - Baseball",
-"mario-sports-superstars-bowser-jr-baseball.png"
+"mario-sports-superstars-bowser-jr-baseball.png",
+"Mario Sports Superstars"
 ],
 "09ca0301029d0e02": [
 "Bowser Jr. - Tennis",
-"mario-sports-superstars-bowser-jr-tennis.png"
+"mario-sports-superstars-bowser-jr-tennis.png",
+"Mario Sports Superstars"
 ],
 "09ca0401029e0e02": [
 "Bowser Jr. - Golf",
-"mario-sports-superstars-bowser-jr-golf.png"
+"mario-sports-superstars-bowser-jr-golf.png",
+"Mario Sports Superstars"
 ],
 "09ca0501029f0e02": [
 "Bowser Jr. - Horse Racing",
-"mario-sports-superstars-bowser-jr-horse-racing.png"
+"mario-sports-superstars-bowser-jr-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09cb010102a00e02": [
 "Boo - Soccer",
-"mario-sports-superstars-boo-soccer.png"
+"mario-sports-superstars-boo-soccer.png",
+"Mario Sports Superstars"
 ],
 "09cb020102a10e02": [
 "Boo - Baseball",
-"mario-sports-superstars-boo-baseball.png"
+"mario-sports-superstars-boo-baseball.png",
+"Mario Sports Superstars"
 ],
 "09cb030102a20e02": [
 "Boo - Tennis",
-"mario-sports-superstars-boo-tennis.png"
+"mario-sports-superstars-boo-tennis.png",
+"Mario Sports Superstars"
 ],
 "09cb040102a30e02": [
 "Boo - Golf",
-"mario-sports-superstars-boo-golf.png"
+"mario-sports-superstars-boo-golf.png",
+"Mario Sports Superstars"
 ],
 "09cb050102a40e02": [
 "Boo - Horse Racing",
-"mario-sports-superstars-boo-horse-racing.png"
+"mario-sports-superstars-boo-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09cc010102a50e02": [
 "Baby Mario - Soccer",
-"mario-sports-superstars-baby-mario-soccer.png"
+"mario-sports-superstars-baby-mario-soccer.png",
+"Mario Sports Superstars"
 ],
 "09cc020102a60e02": [
 "Baby Mario - Baseball",
-"mario-sports-superstars-baby-mario-baseball.png"
+"mario-sports-superstars-baby-mario-baseball.png",
+"Mario Sports Superstars"
 ],
 "09cc030102a70e02": [
 "Baby Mario - Tennis",
-"mario-sports-superstars-baby-mario-tennis.png"
+"mario-sports-superstars-baby-mario-tennis.png",
+"Mario Sports Superstars"
 ],
 "09cc040102a80e02": [
 "Baby Mario - Golf",
-"mario-sports-superstars-baby-mario-golf.png"
+"mario-sports-superstars-baby-mario-golf.png",
+"Mario Sports Superstars"
 ],
 "09cc050102a90e02": [
 "Baby Mario - Horse Racing",
-"mario-sports-superstars-baby-mario-horse-racing.png"
+"mario-sports-superstars-baby-mario-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09cd010102aa0e02": [
 "Baby Luigi - Soccer",
-"mario-sports-superstars-baby-luigi-soccer.png"
+"mario-sports-superstars-baby-luigi-soccer.png",
+"Mario Sports Superstars"
 ],
 "09cd020102ab0e02": [
 "Baby Luigi - Baseball",
-"mario-sports-superstars-baby-luigi-baseball.png"
+"mario-sports-superstars-baby-luigi-baseball.png",
+"Mario Sports Superstars"
 ],
 "09cd030102ac0e02": [
 "Baby Luigi - Tennis",
-"mario-sports-superstars-baby-luigi-tennis.png"
+"mario-sports-superstars-baby-luigi-tennis.png",
+"Mario Sports Superstars"
 ],
 "09cd040102ad0e02": [
 "Baby Luigi - Golf",
-"mario-sports-superstars-baby-luigi-golf.png"
+"mario-sports-superstars-baby-luigi-golf.png",
+"Mario Sports Superstars"
 ],
 "09cd050102ae0e02": [
 "Baby Luigi - Horse Racing",
-"mario-sports-superstars-baby-luigi-horse-racing.png"
+"mario-sports-superstars-baby-luigi-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09ce010102af0e02": [
 "Birdo - Soccer",
-"mario-sports-superstars-birdo-soccer.png"
+"mario-sports-superstars-birdo-soccer.png",
+"Mario Sports Superstars"
 ],
 "09ce020102b00e02": [
 "Birdo - Baseball",
-"mario-sports-superstars-birdo-baseball.png"
+"mario-sports-superstars-birdo-baseball.png",
+"Mario Sports Superstars"
 ],
 "09ce030102b10e02": [
 "Birdo - Tennis",
-"mario-sports-superstars-birdo-tennis.png"
+"mario-sports-superstars-birdo-tennis.png",
+"Mario Sports Superstars"
 ],
 "09ce040102b20e02": [
 "Birdo - Golf",
-"mario-sports-superstars-birdo-golf.png"
+"mario-sports-superstars-birdo-golf.png",
+"Mario Sports Superstars"
 ],
 "09ce050102b30e02": [
 "Birdo - Horse Racing",
-"mario-sports-superstars-birdo-horse-racing.png"
+"mario-sports-superstars-birdo-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09cf010102b40e02": [
 "Rosalina - Soccer",
-"mario-sports-superstars-rosalina-soccer.png"
+"mario-sports-superstars-rosalina-soccer.png",
+"Mario Sports Superstars"
 ],
 "09cf020102b50e02": [
 "Rosalina - Baseball",
-"mario-sports-superstars-rosalina-baseball.png"
+"mario-sports-superstars-rosalina-baseball.png",
+"Mario Sports Superstars"
 ],
 "09cf030102b60e02": [
 "Rosalina - Tennis",
-"mario-sports-superstars-rosalina-tennis.png"
+"mario-sports-superstars-rosalina-tennis.png",
+"Mario Sports Superstars"
 ],
 "09cf040102b70e02": [
 "Rosalina - Golf",
-"mario-sports-superstars-rosalina-golf.png"
+"mario-sports-superstars-rosalina-golf.png",
+"Mario Sports Superstars"
 ],
 "09cf050102b80e02": [
 "Rosalina - Horse Racing",
-"mario-sports-superstars-rosalina-horse-racing.png"
+"mario-sports-superstars-rosalina-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09d0010102b90e02": [
 "Metal Mario - Soccer",
-"mario-sports-superstars-metal-mario-soccer.png"
+"mario-sports-superstars-metal-mario-soccer.png",
+"Mario Sports Superstars"
 ],
 "09d0020102ba0e02": [
 "Metal Mario - Baseball",
-"mario-sports-superstars-metal-mario-baseball.png"
+"mario-sports-superstars-metal-mario-baseball.png",
+"Mario Sports Superstars"
 ],
 "09d0030102bb0e02": [
 "Metal Mario - Tennis",
-"mario-sports-superstars-metal-mario-tennis.png"
+"mario-sports-superstars-metal-mario-tennis.png",
+"Mario Sports Superstars"
 ],
 "09d0040102bc0e02": [
 "Metal Mario - Golf",
-"mario-sports-superstars-metal-mario-golf.png"
+"mario-sports-superstars-metal-mario-golf.png",
+"Mario Sports Superstars"
 ],
 "09d0050102bd0e02": [
 "Metal Mario - Horse Racing",
-"mario-sports-superstars-metal-mario-horse-racing.png"
+"mario-sports-superstars-metal-mario-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "09d1010102be0e02": [
 "Pink Gold Peach - Soccer",
-"mario-sports-superstars-pink-gold-peach-soccer.png"
+"mario-sports-superstars-pink-gold-peach-soccer.png",
+"Mario Sports Superstars"
 ],
 "09d1020102bf0e02": [
 "Pink Gold Peach - Baseball",
-"mario-sports-superstars-pink-gold-peach-baseball.png"
+"mario-sports-superstars-pink-gold-peach-baseball.png",
+"Mario Sports Superstars"
 ],
 "09d1030102c00e02": [
 "Pink Gold Peach - Tennis",
-"mario-sports-superstars-pink-gold-peach-tennis.png"
+"mario-sports-superstars-pink-gold-peach-tennis.png",
+"Mario Sports Superstars"
 ],
 "09d1040102c10e02": [
 "Pink Gold Peach - Golf",
-"mario-sports-superstars-pink-gold-peach-golf.png"
+"mario-sports-superstars-pink-gold-peach-golf.png",
+"Mario Sports Superstars"
 ],
 "09d1050102c20e02": [
 "Pink Gold Peach - Horse Racing",
-"mario-sports-superstars-pink-gold-peach-horse-racing.png"
+"mario-sports-superstars-pink-gold-peach-horse-racing.png",
+"Mario Sports Superstars"
 ],
 "0a00000103ab0502": [
 "Orville",
-"animal-crossing-cards-series-5-orville.png"
+"animal-crossing-cards-series-5-orville.png",
+"Animal Crossing"
 ],
 "0a01000103ac0502": [
 "Wilbur",
-"animal-crossing-cards-series-5-wilbur.png"
+"animal-crossing-cards-series-5-wilbur.png",
+"Animal Crossing"
 ],
 "0a02000103b30502": [
 "C.J.",
-"animal-crossing-cards-series-5-c-j.png"
+"animal-crossing-cards-series-5-c-j.png",
+"Animal Crossing"
 ],
 "0a03000103b40502": [
 "Flick",
-"animal-crossing-cards-series-5-flick.png"
+"animal-crossing-cards-series-5-flick.png",
+"Animal Crossing"
 ],
 "0a04000103b50502": [
 "Daisy Mae",
-"animal-crossing-cards-series-5-daisy-mae.png"
+"animal-crossing-cards-series-5-daisy-mae.png",
+"Animal Crossing"
 ],
 "0a05000103b80502": [
 "Harvey",
-"animal-crossing-cards-series-5-harvey.png"
+"animal-crossing-cards-series-5-harvey.png",
+"Animal Crossing"
 ],
 "0a06000103ba0502": [
 "Wisp",
-"animal-crossing-cards-series-5-wisp.png"
+"animal-crossing-cards-series-5-wisp.png",
+"Animal Crossing"
 ],
 "0a07000103bc0502": [
 "Niko",
-"animal-crossing-cards-series-5-niko.png"
+"animal-crossing-cards-series-5-niko.png",
+"Animal Crossing"
 ],
 "0a08000103bd0502": [
 "Wardell",
-"animal-crossing-cards-series-5-wardell.png"
+"animal-crossing-cards-series-5-wardell.png",
+"Animal Crossing"
 ],
 "0a09000103c00502": [
 "Sherb",
-"animal-crossing-cards-series-5-sherb.png"
+"animal-crossing-cards-series-5-sherb.png",
+"Animal Crossing"
 ],
 "0a0a000103c10502": [
 "Megan",
-"animal-crossing-cards-series-5-megan.png"
+"animal-crossing-cards-series-5-megan.png",
+"Animal Crossing"
 ],
 "0a0b000103c20502": [
 "Dom",
-"animal-crossing-cards-series-5-dom.png"
+"animal-crossing-cards-series-5-dom.png",
+"Animal Crossing"
 ],
 "0a0c000103c30502": [
 "Audie",
-"animal-crossing-cards-series-5-audie.png"
+"animal-crossing-cards-series-5-audie.png",
+"Animal Crossing"
 ],
 "0a0d000103c40502": [
 "Cyd",
-"animal-crossing-cards-series-5-cyd.png"
+"animal-crossing-cards-series-5-cyd.png",
+"Animal Crossing"
 ],
 "0a0e000103c50502": [
 "Judy",
-"animal-crossing-cards-series-5-judy.png"
+"animal-crossing-cards-series-5-judy.png",
+"Animal Crossing"
 ],
 "0a0f000103c60502": [
 "Raymond",
-"animal-crossing-cards-series-5-raymond.png"
+"animal-crossing-cards-series-5-raymond.png",
+"Animal Crossing"
 ],
 "0a10000103c70502": [
 "Reneigh",
-"animal-crossing-cards-series-5-reneigh.png"
+"animal-crossing-cards-series-5-reneigh.png",
+"Animal Crossing"
 ],
 "0a11000103c80502": [
 "Sasha",
-"animal-crossing-cards-series-5-sasha.png"
+"animal-crossing-cards-series-5-sasha.png",
+"Animal Crossing"
 ],
 "0a12000103c90502": [
 "Ione",
-"animal-crossing-cards-series-5-ione.png"
+"animal-crossing-cards-series-5-ione.png",
+"Animal Crossing"
 ],
 "0a13000103ca0502": [
 "Tiansheng",
-"animal-crossing-cards-series-5-tiansheng.png"
+"animal-crossing-cards-series-5-tiansheng.png",
+"Animal Crossing"
 ],
 "0a14000103cb0502": [
 "Shino",
-"animal-crossing-cards-series-5-shino.png"
+"animal-crossing-cards-series-5-shino.png",
+"Animal Crossing"
 ],
 "0a15000103cc0502": [
 "Marlo",
-"animal-crossing-cards-series-5-marlo.png"
+"animal-crossing-cards-series-5-marlo.png",
+"Animal Crossing"
 ],
 "0a16000103cd0502": [
 "Petri",
-"animal-crossing-cards-series-5-petri.png"
+"animal-crossing-cards-series-5-petri.png",
+"Animal Crossing"
 ],
 "0a17000103ce0502": [
 "Cephalobot",
-"animal-crossing-cards-series-5-cephalobot.png"
+"animal-crossing-cards-series-5-cephalobot.png",
+"Animal Crossing"
 ],
 "0a18000103cf0502": [
 "Quinn",
-"animal-crossing-cards-series-5-quinn.png"
+"animal-crossing-cards-series-5-quinn.png",
+"Animal Crossing"
 ],
 "0a19000103d00502": [
 "Chabwick",
-"animal-crossing-cards-series-5-chabwick.png"
+"animal-crossing-cards-series-5-chabwick.png",
+"Animal Crossing"
 ],
 "0a1a000103d10502": [
 "Zoe",
-"animal-crossing-cards-series-5-zoe.png"
+"animal-crossing-cards-series-5-zoe.png",
+"Animal Crossing"
 ],
 "0a1b000103d20502": [
 "Ace",
-"animal-crossing-cards-series-5-ace.png"
+"animal-crossing-cards-series-5-ace.png",
+"Animal Crossing"
 ],
 "0a1c000103d30502": [
 "Rio",
-"animal-crossing-cards-series-5-rio.png"
+"animal-crossing-cards-series-5-rio.png",
+"Animal Crossing"
 ],
 "0a1d000103d40502": [
 "Frett",
-"animal-crossing-cards-series-5-frett.png"
+"animal-crossing-cards-series-5-frett.png",
+"Animal Crossing"
 ],
 "0a1e000103d50502": [
 "Azalea",
-"animal-crossing-cards-series-5-azalea.png"
+"animal-crossing-cards-series-5-azalea.png",
+"Animal Crossing"
 ],
 "0a1f000103d60502": [
 "Roswell",
-"animal-crossing-cards-series-5-roswell.png"
+"animal-crossing-cards-series-5-roswell.png",
+"Animal Crossing"
 ],
 "0a20000103d70502": [
 "Faith",
-"animal-crossing-cards-series-5-faith.png"
+"animal-crossing-cards-series-5-faith.png",
+"Animal Crossing"
 ],
 "0a400000041d0002": [
 "Min Min",
-"super-smash-bros-min-min.png"
+"super-smash-bros-min-min.png",
+"Super Smash Bros."
 ],
 "1902000003830002": [
 "Ivysaur",
-"super-smash-bros-ivysaur.png"
+"super-smash-bros-ivysaur.png",
+"Super Smash Bros."
 ],
 "1906000000240002": [
 "Charizard",
-"super-smash-bros-charizard.png"
+"super-smash-bros-charizard.png",
+"Super Smash Bros."
 ],
 "1907000003840002": [
 "Squirtle",
-"super-smash-bros-squirtle.png"
+"super-smash-bros-squirtle.png",
+"Super Smash Bros."
 ],
 "1919000000090002": [
 "Pikachu",
-"super-smash-bros-pikachu.png"
+"super-smash-bros-pikachu.png",
+"Super Smash Bros."
 ],
 "1927000000260002": [
 "Jigglypuff",
-"super-smash-bros-jigglypuff.png"
+"super-smash-bros-jigglypuff.png",
+"Super Smash Bros."
 ],
 "19960000023d0002": [
 "Mewtwo",
-"super-smash-bros-mewtwo.png"
+"super-smash-bros-mewtwo.png",
+"Super Smash Bros."
 ],
 "19ac000003850002": [
 "Pichu",
-"super-smash-bros-pichu.png"
+"super-smash-bros-pichu.png",
+"Super Smash Bros."
 ],
 "1ac0000000110002": [
 "Lucario",
-"super-smash-bros-lucario.png"
+"super-smash-bros-lucario.png",
+"Super Smash Bros."
 ],
 "1b92000000250002": [
 "Greninja",
-"super-smash-bros-greninja.png"
+"super-smash-bros-greninja.png",
+"Super Smash Bros."
 ],
 "1bd7000003860002": [
 "Incineroar",
-"super-smash-bros-incineroar.png"
+"super-smash-bros-incineroar.png",
+"Super Smash Bros."
 ],
 "1d000001025c0d02": [
 "Shadow Mewtwo",
-"pokemon-shadow-mewtwo.png"
+"pokemon-shadow-mewtwo.png",
+"Pokemon"
 ],
 "1d01000003750d02": [
 "Detective Pikachu",
-"pokemon-detective-pikachu.png"
+"pokemon-detective-pikachu.png",
+"Pokemon"
 ],
 "1d40000003870002": [
 "Pokemon Trainer",
-"super-smash-bros-pokemon-trainer.png"
+"super-smash-bros-pokemon-trainer.png",
+"Super Smash Bros."
 ],
 "1f000000000a0002": [
 "Kirby",
-"super-smash-bros-kirby.png"
+"super-smash-bros-kirby.png",
+"Super Smash Bros."
 ],
 "1f00000002540c02": [
 "Kirby",
-"kirby-kirby.png"
+"kirby-kirby.png",
+"Kirby"
 ],
 "1f00000004c41e03": [
 "Kirby",
-"kirby-kirby.png"
+"kirby-kirby.png",
+"Kirby Air Riders"
 ],
 "1f01000000270002": [
 "Meta Knight",
-"super-smash-bros-meta-knight.png"
+"super-smash-bros-meta-knight.png",
+"Super Smash Bros."
 ],
 "1f01000002550c02": [
 "Meta Knight",
-"kirby-meta-knight.png"
+"kirby-meta-knight.png",
+"Kirby"
 ],
 "1f02000000280002": [
 "King Dedede",
-"super-smash-bros-king-dedede.png"
+"super-smash-bros-king-dedede.png",
+"Super Smash Bros."
 ],
 "1f02000002560c02": [
 "King Dedede",
-"kirby-king-dedede.png"
+"kirby-king-dedede.png",
+"Kirby"
 ],
 "1f03000002570c02": [
 "Waddle Dee",
-"kirby-waddle-dee.png"
+"kirby-waddle-dee.png",
+"Kirby"
 ],
 "1f03010004c91e03": [
 "Bandana Waddle Dee",
-"kirby-air-riders-bandana-waddle-dee-winged-star.png"
+"kirby-air-riders-bandana-waddle-dee-winged-star.png",
+"Kirby Air Riders"
 ],
 "1f400000035e1002": [
 "Qbby",
-"boxboy-qbby.png"
+"boxboy-qbby.png",
+"BoxBoy!"
 ],
 "21000000000b0002": [
 "Marth",
-"super-smash-bros-marth.png"
+"super-smash-bros-marth.png",
+"Super Smash Bros."
 ],
 "2101000000180002": [
 "Ike",
-"super-smash-bros-ike.png"
+"super-smash-bros-ike.png",
+"Super Smash Bros."
 ],
 "2102000000290002": [
 "Lucina",
-"super-smash-bros-lucina.png"
+"super-smash-bros-lucina.png",
+"Super Smash Bros."
 ],
 "21030000002a0002": [
 "Robin",
-"super-smash-bros-robin.png"
+"super-smash-bros-robin.png",
+"Super Smash Bros."
 ],
 "2104000002520002": [
 "Roy",
-"super-smash-bros-roy.png"
+"super-smash-bros-roy.png",
+"Super Smash Bros."
 ],
 "21050000025a0002": [
 "Corrin",
-"super-smash-bros-corrin.png"
+"super-smash-bros-corrin.png",
+"Super Smash Bros."
 ],
 "2105010003630002": [
 "Corrin - Player 2",
-"super-smash-bros-corrin-player-2.png"
+"super-smash-bros-corrin-player-2.png",
+"Super Smash Bros."
 ],
 "2106000003601202": [
 "Alm",
-"fire-emblem-alm.png"
+"fire-emblem-alm.png",
+"Fire Emblem"
 ],
 "2107000003611202": [
 "Celica",
-"fire-emblem-celica.png"
+"fire-emblem-celica.png",
+"Fire Emblem"
 ],
 "21080000036f1202": [
 "Chrom",
-"fire-emblem-chrom.png"
+"fire-emblem-chrom.png",
+"Fire Emblem"
 ],
 "2108000003880002": [
 "Chrom",
-"super-smash-bros-chrom.png"
+"super-smash-bros-chrom.png",
+"Super Smash Bros."
 ],
 "2109000003701202": [
 "Tiki",
-"fire-emblem-tiki.png"
+"fire-emblem-tiki.png",
+"Fire Emblem"
 ],
 "210b000003a50002": [
 "Byleth",
-"super-smash-bros-byleth.png"
+"super-smash-bros-byleth.png",
+"Super Smash Bros."
 ],
 "22400000002b0002": [
 "Shulk",
-"super-smash-bros-shulk.png"
+"super-smash-bros-shulk.png",
+"Super Smash Bros."
 ],
 "22410000041e0002": [
 "Pyra",
-"super-smash-bros-pyra.png"
+"super-smash-bros-pyra.png",
+"Super Smash Bros."
 ],
 "22420000041f0002": [
 "Mythra",
-"super-smash-bros-mythra.png"
+"super-smash-bros-mythra.png",
+"Super Smash Bros."
 ],
 "22430000043d1b02": [
 "Noah",
-"xenoblade-chronicles-noah.png"
+"xenoblade-chronicles-noah.png",
+"Xenoblade Chronicles 3"
 ],
 "22440000043e1b02": [
 "Mio",
-"xenoblade-chronicles-mio.png"
+"xenoblade-chronicles-mio.png",
+"Xenoblade Chronicles 3"
 ],
 "22800000002c0002": [
 "Ness",
-"super-smash-bros-ness.png"
+"super-smash-bros-ness.png",
+"Super Smash Bros."
 ],
 "2281000002510002": [
 "Lucas",
-"super-smash-bros-lucas.png"
+"super-smash-bros-lucas.png",
+"Super Smash Bros."
 ],
 "22c00000003a0202": [
 "Chibi Robo",
-"chibi-robo-chibi-robo.png"
+"chibi-robo-chibi-robo.png",
+"Chibi-Robo!"
 ],
 "3200000000300002": [
 "Sonic",
-"super-smash-bros-sonic.png"
+"super-smash-bros-sonic.png",
+"Super Smash Bros."
 ],
 "32400000025b0002": [
 "Bayonetta",
-"super-smash-bros-bayonetta.png"
+"super-smash-bros-bayonetta.png",
+"Super Smash Bros."
 ],
 "3240010003640002": [
 "Bayonetta - Player 2",
-"super-smash-bros-bayonetta-player-2.png"
+"super-smash-bros-bayonetta-player-2.png",
+"Super Smash Bros."
 ],
 "3340000000320002": [
 "Pac-Man",
-"super-smash-bros-pac-man.png"
+"super-smash-bros-pac-man.png",
+"Super Smash Bros."
 ],
 "3380000003781402": [
 "Solaire of Astora",
-"dark-souls-solaire-of-astora.png"
+"dark-souls-solaire-of-astora.png",
+"Others"
 ],
 "33c0000004200002": [
 "Kazuya",
-"super-smash-bros-kazuya.png"
+"super-smash-bros-kazuya.png",
+"Super Smash Bros."
 ],
 "3480000000310002": [
 "Mega Man",
-"super-smash-bros-mega-man.png"
+"super-smash-bros-mega-man.png",
+"Super Smash Bros."
 ],
 "3480000002580002": [
 "Mega Man - Gold Edition",
-"super-smash-bros-mega-man-gold-edition.png"
+"super-smash-bros-mega-man-gold-edition.png",
+"Super Smash Bros."
 ],
 "3480000003791502": [
 "Mega Man",
-"mega-man-mega-man.png"
+"mega-man-mega-man.png",
+"Mega Man"
 ],
 "34c0000002530002": [
 "Ryu",
-"super-smash-bros-ryu.png"
+"super-smash-bros-ryu.png",
+"Super Smash Bros."
 ],
 "34c0000104a81d02": [
 "Ryu",
-"street-fighter-6-booster-pack-ryu.png"
+"street-fighter-6-booster-pack-ryu.png",
+"Street Fighter 6"
 ],
 "34c0000104cb1d02": [
 "Ryu",
-"street-fighter-6-booster-pack-ryu.png"
+"street-fighter-6-booster-pack-ryu.png",
+"Street Fighter 6"
 ],
 "34c1000003890002": [
 "Ken",
-"super-smash-bros-ken.png"
+"super-smash-bros-ken.png",
+"Super Smash Bros."
 ],
 "34c1000104a91d02": [
 "Ken",
-"street-fighter-6-booster-pack-ken.png"
+"street-fighter-6-booster-pack-ken.png",
+"Street Fighter 6"
 ],
 "34c1000104cc1d02": [
 "Ken",
-"street-fighter-6-booster-pack-ken.png"
+"street-fighter-6-booster-pack-ken.png",
+"Street Fighter 6"
 ],
 "34c2000004aa1d02": [
 "Luke",
-"street-fighter-luke.png"
+"street-fighter-luke.png",
+"Street Fighter 6"
 ],
 "34c2000104ab1d02": [
 "Luke",
-"street-fighter-luke.png"
+"street-fighter-luke.png",
+"Street Fighter 6"
 ],
 "34c2000104cd1d02": [
 "Luke",
-"street-fighter-luke.png"
+"street-fighter-luke.png",
+"Street Fighter 6"
 ],
 "34c3000004ac1d02": [
 "Jamie",
-"street-fighter-jamie.png"
+"street-fighter-jamie.png",
+"Street Fighter 6"
 ],
 "34c3000104ad1d02": [
 "Jamie",
-"street-fighter-jamie.png"
+"street-fighter-jamie.png",
+"Street Fighter 6"
 ],
 "34c3000104ce1d02": [
 "Jamie",
-"street-fighter-jamie.png"
+"street-fighter-jamie.png",
+"Street Fighter 6"
 ],
 "34c4000004ae1d02": [
 "Kimberly",
-"street-fighter-kimberly.png"
+"street-fighter-kimberly.png",
+"Street Fighter 6"
 ],
 "34c4000104af1d02": [
 "Kimberly",
-"street-fighter-kimberly.png"
+"street-fighter-kimberly.png",
+"Street Fighter 6"
 ],
 "34c4000104cf1d02": [
 "Kimberly",
-"street-fighter-kimberly.png"
+"street-fighter-kimberly.png",
+"Street Fighter 6"
 ],
 "34c5000104b01d02": [
 "Chun-Li",
-"street-fighter-6-booster-pack-chun-li.png"
+"street-fighter-6-booster-pack-chun-li.png",
+"Street Fighter 6"
 ],
 "34c5000104d01d02": [
 "Chun-Li",
-"street-fighter-6-booster-pack-chun-li.png"
+"street-fighter-6-booster-pack-chun-li.png",
+"Street Fighter 6"
 ],
 "34c6000104b11d02": [
 "Guile",
-"street-fighter-6-booster-pack-guile.png"
+"street-fighter-6-booster-pack-guile.png",
+"Street Fighter 6"
 ],
 "34c6000104d11d02": [
 "Guile",
-"street-fighter-6-booster-pack-guile.png"
+"street-fighter-6-booster-pack-guile.png",
+"Street Fighter 6"
 ],
 "34c7000104b21d02": [
 "Juri",
-"street-fighter-6-booster-pack-juri.png"
+"street-fighter-6-booster-pack-juri.png",
+"Street Fighter 6"
 ],
 "34c7000104d21d02": [
 "Juri",
-"street-fighter-6-booster-pack-juri.png"
+"street-fighter-6-booster-pack-juri.png",
+"Street Fighter 6"
 ],
 "34c8000104b31d02": [
 "Blanka",
-"street-fighter-6-booster-pack-blanka.png"
+"street-fighter-6-booster-pack-blanka.png",
+"Street Fighter 6"
 ],
 "34c8000104d31d02": [
 "Blanka",
-"street-fighter-6-booster-pack-blanka.png"
+"street-fighter-6-booster-pack-blanka.png",
+"Street Fighter 6"
 ],
 "34c9000104b41d02": [
 "Dhalsim",
-"street-fighter-6-booster-pack-dhalsim.png"
+"street-fighter-6-booster-pack-dhalsim.png",
+"Street Fighter 6"
 ],
 "34c9000104d41d02": [
 "Dhalsim",
-"street-fighter-6-booster-pack-dhalsim.png"
+"street-fighter-6-booster-pack-dhalsim.png",
+"Street Fighter 6"
 ],
 "34ca000104b51d02": [
 "E. Honda",
-"street-fighter-6-booster-pack-e-honda.png"
+"street-fighter-6-booster-pack-e-honda.png",
+"Street Fighter 6"
 ],
 "34ca000104d51d02": [
 "E. Honda",
-"street-fighter-6-booster-pack-e-honda.png"
+"street-fighter-6-booster-pack-e-honda.png",
+"Street Fighter 6"
 ],
 "34cb000104b61d02": [
 "Dee Jay",
-"street-fighter-6-booster-pack-dee-jay.png"
+"street-fighter-6-booster-pack-dee-jay.png",
+"Street Fighter 6"
 ],
 "34cb000104d61d02": [
 "Dee Jay",
-"street-fighter-6-booster-pack-dee-jay.png"
+"street-fighter-6-booster-pack-dee-jay.png",
+"Street Fighter 6"
 ],
 "34cc000104b71d02": [
 "Manon",
-"street-fighter-6-booster-pack-manon.png"
+"street-fighter-6-booster-pack-manon.png",
+"Street Fighter 6"
 ],
 "34cc000104d71d02": [
 "Manon",
-"street-fighter-6-booster-pack-manon.png"
+"street-fighter-6-booster-pack-manon.png",
+"Street Fighter 6"
 ],
 "34cd000104b81d02": [
 "Marisa",
-"street-fighter-6-booster-pack-marisa.png"
+"street-fighter-6-booster-pack-marisa.png",
+"Street Fighter 6"
 ],
 "34cd000104d81d02": [
 "Marisa",
-"street-fighter-6-booster-pack-marisa.png"
+"street-fighter-6-booster-pack-marisa.png",
+"Street Fighter 6"
 ],
 "34ce000104b91d02": [
 "JP",
-"street-fighter-6-booster-pack-jp.png"
+"street-fighter-6-booster-pack-jp.png",
+"Street Fighter 6"
 ],
 "34ce000104d91d02": [
 "JP",
-"street-fighter-6-booster-pack-jp.png"
+"street-fighter-6-booster-pack-jp.png",
+"Street Fighter 6"
 ],
 "34cf000104ba1d02": [
 "Zangief",
-"street-fighter-6-booster-pack-zangief.png"
+"street-fighter-6-booster-pack-zangief.png",
+"Street Fighter 6"
 ],
 "34cf000104da1d02": [
 "Zangief",
-"street-fighter-6-booster-pack-zangief.png"
+"street-fighter-6-booster-pack-zangief.png",
+"Street Fighter 6"
 ],
 "34d0000104bb1d02": [
 "Lily",
-"street-fighter-6-booster-pack-lily.png"
+"street-fighter-6-booster-pack-lily.png",
+"Street Fighter 6"
 ],
 "34d0000104db1d02": [
 "Lily",
-"street-fighter-6-booster-pack-lily.png"
+"street-fighter-6-booster-pack-lily.png",
+"Street Fighter 6"
 ],
 "34d1000104bc1d02": [
 "Cammy",
-"street-fighter-6-booster-pack-cammy.png"
+"street-fighter-6-booster-pack-cammy.png",
+"Street Fighter 6"
 ],
 "34d1000104dc1d02": [
 "Cammy",
-"street-fighter-6-booster-pack-cammy.png"
+"street-fighter-6-booster-pack-cammy.png",
+"Street Fighter 6"
 ],
 "34d2000104bd1d02": [
 "Rashid",
-"street-fighter-6-booster-pack-rashid.png"
+"street-fighter-6-booster-pack-rashid.png",
+"Street Fighter 6"
 ],
 "34d2000104dd1d02": [
 "Rashid",
-"street-fighter-6-booster-pack-rashid.png"
+"street-fighter-6-booster-pack-rashid.png",
+"Street Fighter 6"
 ],
 "34d3000104be1d02": [
 "A.K.I",
-"street-fighter-6-booster-pack-a-k-i.png"
+"street-fighter-6-booster-pack-a-k-i.png",
+"Street Fighter 6"
 ],
 "34d3000104de1d02": [
 "A.K.I",
-"street-fighter-6-booster-pack-a-k-i.png"
+"street-fighter-6-booster-pack-a-k-i.png",
+"Street Fighter 6"
 ],
 "34d4000104bf1d02": [
 "Ed",
-"street-fighter-6-booster-pack-ed.png"
+"street-fighter-6-booster-pack-ed.png",
+"Street Fighter 6"
 ],
 "34d4000104df1d02": [
 "Ed",
-"street-fighter-6-booster-pack-ed.png"
+"street-fighter-6-booster-pack-ed.png",
+"Street Fighter 6"
 ],
 "34d5000104c01d02": [
 "Akuma",
-"street-fighter-6-booster-pack-akuma.png"
+"street-fighter-6-booster-pack-akuma.png",
+"Street Fighter 6"
 ],
 "34d5000104e01d02": [
 "Akuma",
-"street-fighter-6-booster-pack-akuma.png"
+"street-fighter-6-booster-pack-akuma.png",
+"Street Fighter 6"
 ],
 "34d6000104e11d02": [
 "M. Bison",
-"street-fighter-6-booster-pack-m-bison.png"
+"street-fighter-6-booster-pack-m-bison.png",
+"Street Fighter 6"
 ],
 "34d6000104eb1d02": [
 "M. Bison",
-"street-fighter-6-booster-pack-m-bison.png"
+"street-fighter-6-booster-pack-m-bison.png",
+"Street Fighter 6"
 ],
 "34d8000104e31d02": [
 "Elena",
-"street-fighter-6-booster-pack-elena.png"
+"street-fighter-6-booster-pack-elena.png",
+"Street Fighter 6"
 ],
 "34d8000104ec1d02": [
 "Elena",
-"street-fighter-6-booster-pack-elena.png"
+"street-fighter-6-booster-pack-elena.png",
+"Street Fighter 6"
 ],
 "34d9000104e41d02": [
 "Sagat",
-"street-fighter-6-booster-pack-sagat.png"
+"street-fighter-6-booster-pack-sagat.png",
+"Street Fighter 6"
 ],
 "34d9000104ed1d02": [
 "Sagat",
-"street-fighter-6-booster-pack-sagat.png"
+"street-fighter-6-booster-pack-sagat.png",
+"Street Fighter 6"
 ],
 "34da000104e51d02": [
 "C. Viper",
-"street-fighter-6-booster-pack-c-viper.png"
+"street-fighter-6-booster-pack-c-viper.png",
+"Street Fighter 6"
 ],
 "34da000104ee1d02": [
 "C. Viper",
-"street-fighter-6-booster-pack-c-viper.png"
+"street-fighter-6-booster-pack-c-viper.png",
+"Street Fighter 6"
 ],
 "34db000104e61d02": [
 "Alex",
-"street-fighter-6-booster-pack-alex.png"
+"street-fighter-6-booster-pack-alex.png",
+"Street Fighter 6"
 ],
 "34db000104ef1d02": [
 "Alex",
-"street-fighter-6-booster-pack-alex.png"
+"street-fighter-6-booster-pack-alex.png",
+"Street Fighter 6"
 ],
 "34dc000104e71d02": [
 "Ingrid",
-"street-fighter-6-booster-pack-ingrid.png"
+"street-fighter-6-booster-pack-ingrid.png",
+"Street Fighter 6"
 ],
 "34dc000104f01d02": [
 "Ingrid",
-"street-fighter-6-booster-pack-ingrid.png"
+"street-fighter-6-booster-pack-ingrid.png",
+"Street Fighter 6"
 ],
 "3500010002e10f02": [
 "One-Eyed Rathalos and Rider - Male",
-"monster-hunter-stories-one-eyed-rathalos-and-rider-girl.png"
+"monster-hunter-stories-one-eyed-rathalos-and-rider-girl.png",
+"Monster Hunter"
 ],
 "3500020002e20f02": [
 "One-Eyed Rathalos and Rider - Female",
-"monster-hunter-stories-one-eyed-rathalos-and-rider-girl.png"
+"monster-hunter-stories-one-eyed-rathalos-and-rider-girl.png",
+"Monster Hunter"
 ],
 "3501000002e30f02": [
 "Nabiru",
-""
+"",
+"Monster Hunter"
 ],
 "3502010002e40f02": [
 "Rathian and Cheval",
-"monster-hunter-stories-rathian-and-cheval.png"
+"monster-hunter-stories-rathian-and-cheval.png",
+"Monster Hunter"
 ],
 "3503010002e50f02": [
 "Barioth and Ayuria",
-"monster-hunter-stories-barioth-and-ayuria.png"
+"monster-hunter-stories-barioth-and-ayuria.png",
+"Monster Hunter"
 ],
 "3504010002e60f02": [
 "Qurupeco and Dan",
-"monster-hunter-stories-qurupeco-and-dan.png"
+"monster-hunter-stories-qurupeco-and-dan.png",
+"Monster Hunter"
 ],
 "35050000040c0f02": [
 "Razewing Ratha",
-"monster-hunter-stories-razewing-ratha.png"
+"monster-hunter-stories-razewing-ratha.png",
+"Monster Hunter"
 ],
 "35060000040d0f02": [
 "Ena",
-"monster-hunter-stories-ena.png"
+"monster-hunter-stories-ena.png",
+"Monster Hunter"
 ],
 "35070000040e0f02": [
 "Tsukino",
-"monster-hunter-stories-tsukino.png"
+"monster-hunter-stories-tsukino.png",
+"Monster Hunter"
 ],
 "35080000040f1802": [
 "Magnamalo",
-"monster-hunter-rise-magnamalo.png"
+"monster-hunter-rise-magnamalo.png",
+"Monster Hunter Rise"
 ],
 "3509000004101802": [
 "Palico",
-"monster-hunter-rise-palico.png"
+"monster-hunter-rise-palico.png",
+"Monster Hunter Rise"
 ],
 "35090100042b1802": [
 "Palico",
-"monster-hunter-rise-palico.png"
+"monster-hunter-rise-palico.png",
+"Monster Hunter Rise"
 ],
 "350a000004111802": [
 "Palamute",
-"monster-hunter-rise-palamute.png"
+"monster-hunter-rise-palamute.png",
+"Monster Hunter Rise"
 ],
 "350a0100042c1802": [
 "Palamute",
-"monster-hunter-rise-palamute.png"
+"monster-hunter-rise-palamute.png",
+"Monster Hunter Rise"
 ],
 "350b0000042d1802": [
 "Malzeno",
-"monster-hunter-rise-malzeno.png"
+"monster-hunter-rise-malzeno.png",
+"Monster Hunter Rise"
 ],
 "35c0000002500a02": [
 "Shovel Knight",
-"shovel-knight-shovel-knight.png"
+"shovel-knight-shovel-knight.png",
+"Shovel Knight"
 ],
 "35c0000003920a02": [
 "Shovel Knight - Gold Edition",
-"shovel-knight-shovel-knight-gold-edition.png"
+"shovel-knight-shovel-knight-gold-edition.png",
+"Shovel Knight"
 ],
 "35c10000036c0a02": [
 "Plague Knight",
-"shovel-knight-plague-knight.png"
+"shovel-knight-plague-knight.png",
+"Shovel Knight"
 ],
 "35c20000036d0a02": [
 "Specter Knight",
-"shovel-knight-specter-knight.png"
+"shovel-knight-specter-knight.png",
+"Shovel Knight"
 ],
 "35c30000036e0a02": [
 "King Knight",
-"shovel-knight-king-knight.png"
+"shovel-knight-king-knight.png",
+"Shovel Knight"
 ],
 "3600000002590002": [
 "Cloud",
-"super-smash-bros-cloud.png"
+"super-smash-bros-cloud.png",
+"Super Smash Bros."
 ],
 "3600010003620002": [
 "Cloud - Player 2",
-"super-smash-bros-cloud-player-2.png"
+"super-smash-bros-cloud-player-2.png",
+"Super Smash Bros."
 ],
 "3601000004210002": [
 "Sephiroth",
-"super-smash-bros-sephiroth.png"
+"super-smash-bros-sephiroth.png",
+"Super Smash Bros."
 ],
 "3640000003a20002": [
 "Hero",
-"super-smash-bros-hero.png"
+"super-smash-bros-hero.png",
+"Super Smash Bros."
 ],
 "3740000103741402": [
 "Super Mario Cereal",
-"super-mario-cereal-super-mario-cereal.png"
+"super-mario-cereal-super-mario-cereal.png",
+"Others"
 ],
 "37800000038a0002": [
 "Snake",
-"super-smash-bros-snake.png"
+"super-smash-bros-snake.png",
+"Super Smash Bros."
 ],
 "37c00000038b0002": [
 "Simon",
-"super-smash-bros-simon.png"
+"super-smash-bros-simon.png",
+"Super Smash Bros."
 ],
 "37c10000038c0002": [
 "Richter",
-"super-smash-bros-richter.png"
+"super-smash-bros-richter.png",
+"Super Smash Bros."
 ],
 "3800000103931702": [
 "Pawapuro",
-"power-pros-pawapuro.png"
+"power-pros-pawapuro.png",
+"Power Pros"
 ],
 "3801000103941702": [
 "Ikari",
-"power-pros-ikari.png"
+"power-pros-ikari.png",
+"Power Pros"
 ],
 "3802000103951702": [
 "Yabe",
-"power-pros-yabe.png"
+"power-pros-yabe.png",
+"Power Pros"
 ],
 "3803000103961702": [
 "Hayakawa",
-"power-pros-hayakawa.png"
+"power-pros-hayakawa.png",
+"Power Pros"
 ],
 "3804000103971702": [
 "Ganda",
-"power-pros-ganda.png"
+"power-pros-ganda.png",
+"Power Pros"
 ],
 "3805000103981702": [
 "Daijobu",
-"power-pros-daijobu.png"
+"power-pros-daijobu.png",
+"Power Pros"
 ],
 "3840000104241902": [
 "Yuga Ohdo",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-yuga-ohdo.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-yuga-ohdo.png",
+"Yu-Gi-Oh!"
 ],
 "3841000104251902": [
 "Tatsuhisa “Luke” Kamijō",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-tatsuhisa-luke-kamijo.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-tatsuhisa-luke-kamijo.png",
+"Yu-Gi-Oh!"
 ],
 "3842000104261902": [
 "Gakuto Sōgetsu",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-gakuto-sogetsu.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-gakuto-sogetsu.png",
+"Yu-Gi-Oh!"
 ],
 "3843000104271902": [
 "Romin Kirishima",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-romin-kirishima.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-romin-kirishima.png",
+"Yu-Gi-Oh!"
 ],
 "3844000104281902": [
 "Roa Kirishima",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-roa-kirishima.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-roa-kirishima.png",
+"Yu-Gi-Oh!"
 ],
 "3845000104291902": [
 "Nail Saionji",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-nail-saionji.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-nail-saionji.png",
+"Yu-Gi-Oh!"
 ],
 "38460001042a1902": [
 "Asana Mutsuba",
-"yu-gi-oh-rush-duel-saikyo-battle-royale-asana-mutsuba.png"
+"yu-gi-oh-rush-duel-saikyo-battle-royale-asana-mutsuba.png",
+"Yu-Gi-Oh!"
 ],
 "38c0000003911602": [
 "Loot Goblin",
-"diablo-loot-goblin.png"
+"diablo-loot-goblin.png",
+"Diablo"
 ],
 "3a00000003a10002": [
 "Joker",
-"super-smash-bros-joker.png"
+"super-smash-bros-joker.png",
+"Super Smash Bros."
 ],
 "3b40000003a30002": [
 "Banjo & Kazooie",
-"super-smash-bros-banjo-kazooie.png"
+"super-smash-bros-banjo-kazooie.png",
+"Super Smash Bros."
 ],
 "3c80000003a40002": [
 "Terry",
-"super-smash-bros-terry.png"
+"super-smash-bros-terry.png",
+"Super Smash Bros."
 ],
 "3c80000104e81d02": [
 "Terry",
-"street-fighter-6-booster-pack-terry.png"
+"street-fighter-6-booster-pack-terry.png",
+"Street Fighter 6"
 ],
 "3c80000104f11d02": [
 "Terry",
-"street-fighter-6-booster-pack-terry.png"
+"street-fighter-6-booster-pack-terry.png",
+"Street Fighter 6"
 ],
 "3c81000104f21d02": [
 "Mai",
-"street-fighter-6-booster-pack-mai.png"
+"street-fighter-6-booster-pack-mai.png",
+"Street Fighter 6"
 ],
 "3c81000104f31d02": [
 "Mai",
-"street-fighter-6-booster-pack-mai.png"
+"street-fighter-6-booster-pack-mai.png",
+"Street Fighter 6"
 ],
 "3dc0000004220002": [
 "Steve",
-"super-smash-bros-steve.png"
+"super-smash-bros-steve.png",
+"Super Smash Bros."
 ],
 "3dc1000004230002": [
 "Alex",
-"super-smash-bros-alex.png"
+"super-smash-bros-alex.png",
+"Super Smash Bros."
 ],
 "3f000000042e0002": [
 "Sora",
-"super-smash-bros-sora.png"
+"super-smash-bros-sora.png",
+"Super Smash Bros."
 ]
 }

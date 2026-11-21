@@ -245,12 +245,20 @@ void QtConfig::ReadPathValues() {
     const int amiibo_library_size = BeginArray(std::string("amiibo_library"));
     for (int i = 0; i < amiibo_library_size; ++i) {
         SetArrayIndex(i);
-        const std::string path = ReadStringSetting(std::string("path"));
-        if (!path.empty()) {
-            UISettings::values.amiibo_library.append(QString::fromStdString(path));
+        UISettings::AmiiboEntry entry;
+        entry.path = QString::fromStdString(ReadStringSetting(std::string("path")));
+        entry.name = QString::fromStdString(ReadStringSetting(std::string("name")));
+        entry.group = QString::fromStdString(ReadStringSetting(std::string("group")));
+        entry.favorite = ReadBooleanSetting(std::string("favorite"), std::make_optional(false));
+        if (!entry.path.isEmpty()) {
+            UISettings::values.amiibo_library.append(entry);
         }
     }
     EndArray();
+    UISettings::values.amiibo_view =
+        QString::fromStdString(ReadStringSetting(std::string("amiibo_view")));
+    UISettings::values.amiibo_sort =
+        static_cast<int>(ReadIntegerSetting(std::string("amiibo_sort"), 0));
 
     ReadCategory(Settings::Category::Paths);
 
@@ -491,10 +499,16 @@ void QtConfig::SavePathValues() {
     BeginArray(std::string("amiibo_library"));
     for (int i = 0; i < UISettings::values.amiibo_library.size(); ++i) {
         SetArrayIndex(i);
-        WriteStringSetting(std::string("path"),
-                           UISettings::values.amiibo_library[i].toStdString());
+        const auto& entry = UISettings::values.amiibo_library[i];
+        WriteStringSetting(std::string("path"), entry.path.toStdString());
+        WriteStringSetting(std::string("name"), entry.name.toStdString());
+        WriteStringSetting(std::string("group"), entry.group.toStdString());
+        WriteBooleanSetting(std::string("favorite"), entry.favorite, std::make_optional(false));
     }
     EndArray();
+    WriteStringSetting(std::string("amiibo_view"), UISettings::values.amiibo_view.toStdString());
+    WriteIntegerSetting(std::string("amiibo_sort"), UISettings::values.amiibo_sort,
+                        std::make_optional(0));
 
     EndGroup();
 }

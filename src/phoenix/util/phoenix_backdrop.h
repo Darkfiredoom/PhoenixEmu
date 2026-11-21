@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <map>
+#include <tuple>
 #include <vector>
 
 #include <QImage>
@@ -17,14 +19,16 @@
 
 #include "common/common_types.h"
 #include "phoenix/util/phoenix_theme.h"
+#include "qt_common/config/uisettings.h"
 
 /// PhoenixEmu's moving backdrop for the home view and the loading screen: a warm dark base, the
 /// picked game's picture blurred into an ambient glow, and cozy sunbeams with dust motes.
 namespace PhoenixBackdrop {
 
 /// A blurred copy of `picture` covering `size` (cropped to its shape, never stretched): made
-/// small, blurred there, then scaled up once. Rebuild it when the size changes.
-inline QPixmap MakeAmbient(const QPixmap& picture, QSize size) {
+/// small, blurred there, then scaled up once. Rebuild it when the size changes. `soft` keeps
+/// more of the picture (a banner background) instead of a glow of its colours.
+inline QPixmap MakeAmbient(const QPixmap& picture, QSize size, bool soft = false) {
     if (picture.isNull() || size.isEmpty()) {
         return {};
     }
@@ -38,7 +42,8 @@ inline QPixmap MakeAmbient(const QPixmap& picture, QSize size) {
         const int h = int(crop.width() / target_aspect);
         crop = {0, (crop.height() - h) / 2, crop.width(), h};
     }
-    const QSize small{std::max(8, size.width() / 10), std::max(8, size.height() / 10)};
+    const int divisor = soft ? 6 : 10;
+    const QSize small{std::max(8, size.width() / divisor), std::max(8, size.height() / divisor)};
     QImage image = picture.copy(crop)
                        .scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
                        .toImage()
@@ -46,7 +51,7 @@ inline QPixmap MakeAmbient(const QPixmap& picture, QSize size) {
     // Three box blur passes (close to a Gaussian), each across then down.
     const int w = image.width();
     const int h = image.height();
-    constexpr int radius = 3;
+    const int radius = soft ? 2 : 3;
     std::vector<QRgb> line(std::max(w, h));
     for (int pass = 0; pass < 3; ++pass) {
         for (int y = 0; y < h; ++y) {
@@ -89,7 +94,81 @@ inline QPixmap MakeAmbient(const QPixmap& picture, QSize size) {
 /// every frame, then Paint.
 class Scene {
 public:
+    /// Customize's choices for the background and its animation (UISettings::home_bg_* and
+    /// home_anim_*).
+    struct Options {
+        enum class Kind { Animated = 0, Picture = 1, Solid = 2, Gradient = 3 };
+        enum class Particles { None = 0, Dust = 1, Embers = 2, Both = 3 };
+        enum class Motion { Natural = 0, Rise = 1, Fall = 2, Swirl = 3 };
+        Kind kind = Kind::Animated;
+        QString picture;
+        QColor color{0x2E, 0x0C, 0x08};
+        QColor color2{0x0F, 0x08, 0x06};
+        int angle = 135;
+        bool animate = true;
+        bool rays = true;
+        Particles particles = Particles::Both;
+        Motion motion = Motion::Natural;
+        int amount = 100; ///< Percent of the usual number of particles
+        int speed = 100;  ///< Percent of the usual pace
+        bool game_glow = true;
+        bool pulse = true;
+        bool vignette = true;
+        bool operator==(const Options&) const = default;
+
+        static Options FromSettings() {
+            const auto& v = UISettings::values;
+            Options o;
+            o.kind = static_cast<Kind>(std::min<u32>(v.home_bg_kind.GetValue(), 3));
+            o.picture = QString::fromStdString(v.home_bg_picture.GetValue());
+            if (const QColor c{QString::fromStdString(v.home_bg_color.GetValue())}; c.isValid()) {
+                o.color = c;
+            }
+            if (const QColor c{QString::fromStdString(v.home_bg_color2.GetValue())}; c.isValid()) {
+                o.color2 = c;
+            }
+            o.angle = static_cast<int>(v.home_bg_angle.GetValue());
+            o.animate = v.home_anim_enabled.GetValue();
+            o.rays = v.home_anim_rays.GetValue();
+            o.particles = static_cast<Particles>(std::min<u32>(v.home_anim_particles.GetValue(), 3));
+            o.motion = static_cast<Motion>(std::min<u32>(v.home_anim_motion.GetValue(), 3));
+            o.amount = static_cast<int>(v.home_anim_amount.GetValue());
+            o.speed = static_cast<int>(v.home_anim_speed.GetValue());
+            // The banner background is the same layer, stronger and sharper.
+            o.game_glow =
+                v.home_anim_game_glow.GetValue() || v.carousel_banner_background.GetValue();
+            o.pulse = v.home_anim_pulse.GetValue();
+            o.vignette = v.home_anim_vignette.GetValue();
+            return o;
+        }
+    };
+
+    /// Takes new choices; the particles are scattered again when their kind or number changes.
+    void SetOptions(const Options& new_options) {
+        if (new_options == options) {
+            return;
+        }
+        if (new_options.particles != options.particles || new_options.amount != options.amount ||
+            new_options.motion != options.motion) {
+            motes.clear();
+        }
+        options = new_options;
+        ++style_serial;
+    }
+    [[nodiscard]] const Options& GetOptions() const {
+        return options;
+    }
+    /// Whether anything moves: the view's frame timer can stop when nothing does.
+    [[nodiscard]] bool Moving() const {
+        return options.animate &&
+               (options.rays || options.pulse || options.particles != Options::Particles::None);
+    }
+
     void Step(qreal dt, const QRectF& area) {
+        if (!options.animate) {
+            return;
+        }
+        dt *= options.speed / 100.0;
         time += dt;
         if (area.isEmpty()) {
             return;
@@ -97,13 +176,36 @@ public:
         auto* const random = QRandomGenerator::global();
         if (motes.empty() || bounds != area) {
             bounds = area;
-            motes.resize(std::clamp(int(area.width() * area.height() / 12000), 40, 90));
+            const int usual = std::clamp(int(area.width() * area.height() / 12000), 40, 90);
+            motes.resize(options.particles == Options::Particles::None
+                             ? 0
+                             : std::max(1, usual * options.amount / 100));
             for (Mote& mote : motes) {
-                Spawn(mote, area, random);
+                Spawn(mote, area, random, options.particles);
             }
         }
         for (Mote& mote : motes) {
-            if (mote.is_ember) {
+            if (options.motion == Options::Motion::Fall) {
+                // Falling like snow: down, with a gentle side-to-side sway.
+                const qreal sway = std::sin(time * mote.pulse_rate * 0.5 + mote.seed);
+                mote.pos.rx() += sway * mote.speed * 0.6 * dt;
+                mote.pos.ry() += (mote.speed * 1.1 + 6.0) * dt;
+                if (mote.pos.y() > area.bottom() + 12) {
+                    mote.pos.setY(area.top() - 10);
+                    mote.pos.setX(area.left() + random->generateDouble() * area.width());
+                }
+                continue;
+            }
+            if (options.motion == Options::Motion::Swirl) {
+                // A slow whirl around the middle, each particle on its own ring.
+                const QPointF centre = area.center();
+                const QPointF d = mote.pos - centre;
+                const qreal radius = std::max(20.0, std::hypot(d.x(), d.y()));
+                const qreal angle = std::atan2(d.y(), d.x()) + (mote.speed * 1.4 + 4.0) / radius * dt;
+                mote.pos = centre + QPointF(std::cos(angle), std::sin(angle)) * radius;
+                continue;
+            }
+            if (mote.is_ember || options.motion == Options::Motion::Rise) {
                 // Rising incandescent ember: buoyant upward drift with gentle side-to-side harmonic sway
                 const qreal sway = std::sin(time * mote.pulse_rate + mote.seed);
                 mote.pos.rx() += sway * (mote.speed * 0.75) * dt;
@@ -137,6 +239,40 @@ public:
         }
     }
 
+    /// The average colour of the layers that don't move inside `rect` (view coordinates), as
+    /// last painted: what text drawn there stands on. Invalid before the first Paint.
+    [[nodiscard]] QColor AverageBehind(const QRect& rect) const {
+        const QRect clipped = rect.intersected(QRect(QPoint(0, 0), still.size()));
+        if (still.isNull() || clipped.isEmpty()) {
+            return {};
+        }
+        const auto key = std::make_tuple(still_serial, clipped.x(), clipped.y(), clipped.width(),
+                                         clipped.height());
+        if (const auto it = average_cache.find(key); it != average_cache.end()) {
+            return it->second;
+        }
+        const QImage small = still.copy(clipped)
+                                 .scaled(8, 8, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+                                 .toImage()
+                                 .convertToFormat(QImage::Format_RGB32);
+        qint64 r = 0, g = 0, b = 0;
+        for (int y = 0; y < small.height(); ++y) {
+            for (int x = 0; x < small.width(); ++x) {
+                const QRgb pixel = small.pixel(x, y);
+                r += qRed(pixel);
+                g += qGreen(pixel);
+                b += qBlue(pixel);
+            }
+        }
+        const qint64 n = qint64(small.width()) * small.height();
+        const QColor average(int(r / n), int(g / n), int(b / n));
+        if (average_cache.size() > 32) {
+            average_cache.clear();
+        }
+        average_cache.emplace(key, average);
+        return average;
+    }
+
     void Paint(QPainter& p, const QRect& area, const QPixmap& ambient, qreal ambient_strength,
                const QPixmap& previous = {}, qreal previous_strength = 0.0) const {
         p.save();
@@ -144,23 +280,25 @@ public:
         // The layers that don't move (base, the game's blurred picture, the glow where the light
         // comes in, the vignette) in one picture, made again only when they change.
         const auto strength = [](qreal v) { return int(std::clamp(v, 0.0, 1.0) * 64 + 0.5); };
-        const std::array<qint64, 6> key{area.width(), area.height(), ambient.cacheKey(),
-                                        previous.cacheKey(), strength(ambient_strength),
-                                        strength(previous_strength)};
+        if (!options.game_glow) {
+            ambient_strength = previous_strength = 0.0;
+        }
+        const std::array<qint64, 7> key{area.width(),         area.height(),
+                                        ambient.cacheKey(),   previous.cacheKey(),
+                                        strength(ambient_strength), strength(previous_strength),
+                                        qint64(style_serial)};
         if (still_generation != PhoenixTheme::Generation()) {
             still_generation = PhoenixTheme::Generation();
             still_key = {}; // the Customize menu's colours changed
         }
         if (key != still_key || still.size() != area.size()) {
             still_key = key;
+            ++still_serial;
             still = QPixmap(area.size());
             QPainter s{&still};
             s.setRenderHint(QPainter::Antialiasing);
             const QRect local{QPoint(0, 0), area.size()};
-            QLinearGradient base{local.topLeft(), local.bottomLeft()};
-            base.setColorAt(0, PhoenixTheme::Recolor(QColor(0x24, 0x1B, 0x12)));
-            base.setColorAt(1, PhoenixTheme::Recolor(QColor(0x10, 0x0C, 0x08)));
-            s.fillRect(local, base);
+            PaintBase(s, local);
             const auto draw_ambient = [&](const QPixmap& pixmap, qreal opacity) {
                 if (pixmap.isNull() || opacity <= 0.0) {
                     return;
@@ -175,7 +313,7 @@ public:
             const qreal reach = std::hypot(local.width(), local.height()) * 1.15;
             s.setPen(Qt::NoPen);
             s.setCompositionMode(QPainter::CompositionMode_Screen);
-            QRadialGradient bloom{source, reach * 0.6};
+            QRadialGradient bloom{source, options.rays ? reach * 0.6 : 1.0};
             bloom.setColorAt(0, PhoenixTheme::Recolor(QColor(0xFF, 0xE2, 0x9A, 64)));
             bloom.setColorAt(0.5, PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x5A, 16)));
             bloom.setColorAt(1, PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x5A, 0)));
@@ -186,7 +324,7 @@ public:
             QRadialGradient vignette{QPointF(local.width() * 0.35, local.height() * 0.3),
                                      unit * 0.95};
             vignette.setColorAt(0.45, QColor(0, 0, 0, 0));
-            vignette.setColorAt(1, QColor(0, 0, 0, 170));
+            vignette.setColorAt(1, QColor(0, 0, 0, options.vignette ? 170 : 0));
             s.setBrush(vignette);
             s.drawRect(local);
         }
@@ -195,7 +333,7 @@ public:
         p.setCompositionMode(QPainter::CompositionMode_Screen);
         // Dynamic subtle radiant warmth that breathes softly from the source corner
         const qreal reach = std::hypot(area.width(), area.height()) * 1.15;
-        const qreal breath = 0.5 + 0.5 * std::sin(time * 0.65);
+        const qreal breath = options.pulse ? 0.5 + 0.5 * std::sin(time * 0.65) : 0.0;
         if (breath > 0.01) {
             p.setOpacity(0.06 * breath);
             QRadialGradient warm_pulse{Source(QRectF(area)), reach * 0.85};
@@ -206,12 +344,56 @@ public:
             p.setOpacity(1.0);
         }
 
-        PaintSun(p, area);
+        if (options.rays) {
+            PaintSun(p, area);
+        }
         PaintMotes(p, area);
         p.restore();
     }
 
 private:
+    /// The bottom layer: the theme's warm gradient, a picture, one colour or a gradient.
+    void PaintBase(QPainter& s, const QRect& local) const {
+        switch (options.kind) {
+        case Options::Kind::Picture: {
+            const QPixmap picture{options.picture};
+            if (!picture.isNull()) {
+                const qreal scale = std::max(qreal(local.width()) / picture.width(),
+                                             qreal(local.height()) / picture.height());
+                const QSizeF shown{local.width() / scale, local.height() / scale};
+                s.drawPixmap(QRectF(local), picture,
+                             QRectF((picture.width() - shown.width()) / 2,
+                                    (picture.height() - shown.height()) / 2, shown.width(),
+                                    shown.height()));
+                return;
+            }
+            break; // a picture that went missing: the theme's gradient
+        }
+        case Options::Kind::Solid:
+            s.fillRect(local, options.color);
+            return;
+        case Options::Kind::Gradient: {
+            // Across the view at the chosen angle (0 is left to right, 90 top to bottom).
+            const qreal radians = options.angle * 3.14159265 / 180.0;
+            const QPointF centre = QRectF(local).center();
+            const qreal half = 0.5 * (std::abs(local.width() * std::cos(radians)) +
+                                      std::abs(local.height() * std::sin(radians)));
+            const QPointF along{std::cos(radians) * half, std::sin(radians) * half};
+            QLinearGradient gradient{centre - along, centre + along};
+            gradient.setColorAt(0, options.color);
+            gradient.setColorAt(1, options.color2);
+            s.fillRect(local, gradient);
+            return;
+        }
+        case Options::Kind::Animated:
+            break;
+        }
+        QLinearGradient base{local.topLeft(), local.bottomLeft()};
+        base.setColorAt(0, PhoenixTheme::Recolor(QColor(0x24, 0x1B, 0x12)));
+        base.setColorAt(1, PhoenixTheme::Recolor(QColor(0x10, 0x0C, 0x08)));
+        s.fillRect(local, base);
+    }
+
     struct Beam {
         qreal angle;     // radians from the source, pointing down and right
         qreal spread;    // half width, radians
@@ -229,7 +411,8 @@ private:
         qreal pulse_rate = 1.0;
     };
 
-    static void Spawn(Mote& mote, const QRectF& area, QRandomGenerator* random) {
+    static void Spawn(Mote& mote, const QRectF& area, QRandomGenerator* random,
+                      Options::Particles particles) {
         const auto uniform = [random] { return random->generateDouble(); };
         mote.pos = {area.left() + uniform() * area.width(), area.top() + uniform() * area.height()};
         mote.heading = uniform() * 6.2832;
@@ -237,7 +420,8 @@ private:
         mote.seed = uniform() * 100;
         mote.speed = 3 + uniform() * 9;
         mote.size = 0.9 + uniform() * 1.8;
-        mote.is_ember = uniform() < 0.38;
+        mote.is_ember = particles == Options::Particles::Embers ||
+                        (particles == Options::Particles::Both && uniform() < 0.38);
         mote.pulse_rate = 1.2 + uniform() * 2.8;
     }
 
@@ -388,9 +572,11 @@ private:
             } else {
                 // Motes catch the light: bright inside a beam, barely there in the shade.
                 const QPointF d = mote.pos - source;
+                // Without the sunbeams there is nothing to catch: an even glow instead.
                 const qreal light =
-                    std::min(1.0, 1.5 * LightAt(beams, std::atan2(d.y(), d.x()),
-                                                std::hypot(d.x(), d.y()) / reach));
+                    options.rays ? std::min(1.0, 1.5 * LightAt(beams, std::atan2(d.y(), d.x()),
+                                                               std::hypot(d.x(), d.y()) / reach))
+                                 : 0.45;
                 const qreal twinkle = 0.8 + 0.2 * std::sin(time * 2.3 + mote.seed);
                 const qreal alpha = (30 + 225 * light) * twinkle / 255.0;
                 const qreal r = mote.size * (1.0 + 1.6 * light) * 2.4;
@@ -463,14 +649,18 @@ private:
     mutable qreal rays_time = -1.0;
     mutable QPixmap rays_scaled;              ///< `rays` at the view's size
     mutable QPixmap still;                    ///< The layers that don't move (Paint)
-    mutable std::array<qint64, 6> still_key{};
+    mutable std::array<qint64, 7> still_key{};
     mutable u32 still_generation = ~0U; ///< PhoenixTheme::Generation `still` was drawn for
+    mutable u64 still_serial = 0;       ///< Counts the times `still` was drawn again
+    mutable std::map<std::tuple<u64, int, int, int, int>, QColor> average_cache;
     mutable std::vector<uint16_t> pixel_bin;  ///< Per pixel of `rays`: its angle bin
     mutable std::vector<float> pixel_fall;    ///< Per pixel of `rays`: the distance falloff
     mutable qreal angle_min = 0.0;
     mutable qreal angle_max = 1.0;
 
     std::vector<Mote> motes;
+    Options options;
+    u64 style_serial = 0; ///< Counts option changes, part of `still`'s key
     QRectF bounds;
     qreal time = 0;
 };

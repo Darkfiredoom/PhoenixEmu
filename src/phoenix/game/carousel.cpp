@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 
 #include <QDateTime>
 #include <QElapsedTimer>
@@ -12,6 +14,8 @@
 #include <QResizeEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmapCache>
+#include <QWheelEvent>
 #include <QRadialGradient>
 #include <QTimer>
 #include <QPropertyAnimation>
@@ -174,6 +178,8 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
     setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // The row glides by setting the bar's value; the stack has nothing to scroll.
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     setEditTriggers(QAbstractItemView::NoEditTriggers);
     setContextMenuPolicy(Qt::CustomContextMenu);
@@ -202,6 +208,18 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
     connect(m_userButton, &QPushButton::clicked, this, [this] {
         emit UserMenuRequested(m_userButton->mapToGlobal(QPoint(0, m_userButton->height())));
     });
+    m_customizeButton = new QPushButton(tr("Customize"), viewport());
+    m_customizeButton->setObjectName(QStringLiteral("HomeUserButton")); // the same pill
+    m_customizeButton->setCursor(Qt::PointingHandCursor);
+    m_customizeButton->setToolTip(tr("Customize the home screen"));
+    connect(m_customizeButton, &QPushButton::clicked, this, &GameCarousel::CustomizeRequested);
+    m_controllersButton = new QPushButton(viewport());
+    m_controllersButton->setObjectName(QStringLiteral("HomeUserButton")); // the same pill
+    m_controllersButton->setCursor(Qt::PointingHandCursor);
+    m_controllersButton->setToolTip(tr("Connected controllers and their buttons"));
+    connect(m_controllersButton, &QPushButton::clicked, this,
+            &GameCarousel::ControllersRequested);
+    SetControllerCount(0);
     // Console hero play button: launches the picked game directly
     m_playButton = new QPushButton(tr("▶  Play Game"), viewport());
     m_playButton->setObjectName(QStringLiteral("HomeHeroPlayButton"));
@@ -280,10 +298,36 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
         if (!isVisible() || QGuiApplication::applicationState() != Qt::ApplicationActive) {
             return;
         }
+        // Customize's background and animation choices, picked up as they change.
+        m_scene->SetOptions(PhoenixBackdrop::Scene::Options::FromSettings());
+        if (UISettings::values.carousel_banner_background.GetValue() != m_ambientSoft) {
+            RebuildAmbient();
+            m_ambientPrevious = {};
+            viewport()->update();
+        }
+        if (!m_scene->Moving()) {
+            // A still background: repaint only when something changed (no CPU spent per frame).
+            if (m_scene->GetOptions() != m_lastStillOptions) {
+                m_lastStillOptions = m_scene->GetOptions();
+                viewport()->update();
+            }
+            return;
+        }
+        m_lastStillOptions = {};
         m_scene->Step(dt, QRectF(viewport()->rect()));
         viewport()->update();
     });
     motion->start(33);
+
+    // The stack slides between games.
+    m_positionAnimation = new QVariantAnimation(this);
+    m_positionAnimation->setDuration(240);
+    m_positionAnimation->setEasingCurve(QEasingCurve::OutCubic);
+    connect(m_positionAnimation, &QVariantAnimation::valueChanged, this,
+            [this](const QVariant& value) {
+                m_position = value.toReal();
+                viewport()->update();
+            });
 }
 
 GameCarousel::~GameCarousel() {
@@ -291,7 +335,8 @@ GameCarousel::~GameCarousel() {
 }
 
 void GameCarousel::RebuildAmbient() {
-    m_ambient = PhoenixBackdrop::MakeAmbient(m_ambientSource, viewport()->size());
+    m_ambientSoft = UISettings::values.carousel_banner_background.GetValue();
+    m_ambient = PhoenixBackdrop::MakeAmbient(m_ambientSource, viewport()->size(), m_ambientSoft);
 }
 
 void GameCarousel::resizeEvent(QResizeEvent* event) {
@@ -312,6 +357,17 @@ void GameCarousel::SetUserName(const QString& name) {
     PlaceAddButton();
 }
 
+void GameCarousel::SetControllerCount(int count) {
+    if (m_controllersButton == nullptr || count == m_controllerCount) {
+        return;
+    }
+    m_controllerCount = count;
+    m_controllersButton->setText(count == 0   ? tr("No controllers")
+                                 : count == 1 ? tr("1 controller")
+                                              : tr("%1 controllers").arg(count));
+    PlaceAddButton();
+}
+
 void GameCarousel::PlaceAddButton() {
     if (m_addButton == nullptr) {
         return;
@@ -323,11 +379,28 @@ void GameCarousel::PlaceAddButton() {
     if (m_addButton->pos() != place) {
         m_addButton->move(place);
     }
+    int left_edge = place.x();
     if (m_userButton != nullptr && m_userButton->isVisible()) {
         m_userButton->adjustSize();
         const QPoint user_place{place.x() - 10 - m_userButton->width(), clock_bottom};
         if (m_userButton->pos() != user_place) {
             m_userButton->move(user_place);
+        }
+        left_edge = user_place.x();
+    }
+    if (m_customizeButton != nullptr) {
+        m_customizeButton->adjustSize();
+        const QPoint brush_place{left_edge - 10 - m_customizeButton->width(), clock_bottom};
+        if (m_customizeButton->pos() != brush_place) {
+            m_customizeButton->move(brush_place);
+        }
+        left_edge = brush_place.x();
+    }
+    if (m_controllersButton != nullptr) {
+        m_controllersButton->adjustSize();
+        const QPoint pads_place{left_edge - 10 - m_controllersButton->width(), clock_bottom};
+        if (m_controllersButton->pos() != pads_place) {
+            m_controllersButton->move(pads_place);
         }
     }
     if (m_playButton != nullptr) {
@@ -343,6 +416,9 @@ void GameCarousel::PlaceAddButton() {
         }
     }
     if (m_sizeSlider != nullptr) {
+        // The stack's card size is Customize's; the slider sizes the row's tiles.
+        m_sizeSlider->setVisible(!Stacked());
+        m_sizeIcon->setVisible(!Stacked());
         const QPoint slider_place{viewport()->width() - 40 - m_sizeSlider->width(),
                                   viewport()->height() - 36};
         if (m_sizeSlider->pos() != slider_place) {
@@ -379,6 +455,45 @@ void GameCarousel::PlaceAddButton() {
     }
 }
 
+void GameCarousel::UpdateButtonContrast() {
+    if (m_addButton == nullptr || m_userButton == nullptr) {
+        return;
+    }
+    // Their pill is a light wash of the accent over whatever is behind it.
+    const QColor accent = PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D));
+    QColor hardest;
+    for (QPushButton* const button :
+         {m_addButton, m_userButton, m_customizeButton, m_controllersButton}) {
+        if (!button->isVisible()) {
+            continue;
+        }
+        const QColor behind = m_scene->AverageBehind(button->geometry());
+        if (!behind.isValid()) {
+            return;
+        }
+        const QColor pill = QColor::fromRgbF(behind.redF() * 0.85 + accent.redF() * 0.15,
+                                             behind.greenF() * 0.85 + accent.greenF() * 0.15,
+                                             behind.blueF() * 0.85 + accent.blueF() * 0.15);
+        if (!hardest.isValid() || PhoenixTheme::Luminance(pill) > PhoenixTheme::Luminance(hardest)) {
+            hardest = pill; // the lightest pill is the hardest to read on
+        }
+    }
+    if (!hardest.isValid()) {
+        return;
+    }
+    const QColor text = PhoenixTheme::Readable(PhoenixTheme::Recolor(QColor(0xFF, 0xD9, 0x66)), hardest);
+    const QString name = text.name(QColor::HexRgb);
+    if (name == m_buttonTextColor) {
+        return;
+    }
+    m_buttonTextColor = name;
+    const QString style = QStringLiteral("QPushButton:!hover { color: %1; }").arg(name);
+    m_addButton->setStyleSheet(style);
+    m_userButton->setStyleSheet(style);
+    m_customizeButton->setStyleSheet(style);
+    m_controllersButton->setStyleSheet(style);
+}
+
 void GameCarousel::UpdateMusicButton() {
     const bool playing = !UISettings::values.menu_muted.GetValue() &&
                          UISettings::values.menu_sound_volume.GetValue() > 0;
@@ -398,8 +513,10 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         if (m_ambient.size() != area.size() && !m_ambientSource.isNull()) {
             RebuildAmbient();
         }
-        m_scene->Paint(painter, area, m_ambient, 0.5 * m_ambientFade, m_ambientPrevious,
-                       0.5 * (1.0 - m_ambientFade));
+        // The picked game's picture: a soft glow of its colours, or (banner) nearly the picture.
+        const qreal strength = m_ambientSoft ? 0.72 : 0.5;
+        m_scene->Paint(painter, area, m_ambient, strength * m_ambientFade, m_ambientPrevious,
+                       strength * (1.0 - m_ambientFade));
 
         // A greeting on the left, the clock on the right.
         const int hour = QTime::currentTime().hour();
@@ -414,17 +531,32 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         small.setPixelSize(std::clamp(area.height() / 34, 12, 16));
         const int left = 40;
         const int top = 18;
+        // The text stands on the game's blurred picture and the theme's colours: each line is
+        // made readable against what is behind it, with a shadow of the opposite brightness.
+        const auto draw_readable = [&](const QPoint& baseline, const QString& text,
+                                       const QColor& color) {
+            const QFontMetrics metrics{painter.font()};
+            const QRect box{baseline.x(), baseline.y() - metrics.ascent(),
+                            metrics.horizontalAdvance(text), metrics.height()};
+            const QColor behind = m_scene->AverageBehind(box);
+            const QColor shown = behind.isValid() ? PhoenixTheme::Readable(color, behind) : color;
+            const bool light = PhoenixTheme::Luminance(shown) > 0.35;
+            painter.setPen(light ? QColor(0, 0, 0, 120) : QColor(255, 255, 255, 110));
+            painter.drawText(baseline + QPoint(1, 1), text);
+            painter.setPen(shown);
+            painter.drawText(baseline, text);
+        };
         painter.setFont(big);
-        painter.setPen(PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA)));
         const QFontMetrics big_metrics{big};
-        painter.drawText(QPoint(left, top + big_metrics.ascent()), greeting);
+        draw_readable(QPoint(left, top + big_metrics.ascent()), greeting,
+                      PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA)));
         painter.setFont(small);
-        painter.setPen(PhoenixTheme::Recolor(QColor(0xE8, 0xD9, 0xB5, 190)));
         const QFontMetrics small_metrics{small};
-        painter.drawText(QPoint(left + 2, top + big_metrics.height() + small_metrics.ascent()),
-                         model() != nullptr && model()->rowCount() > 0
-                             ? tr("Pick a game and let's play.")
-                             : tr("Add a game folder to get started."));
+        draw_readable(QPoint(left + 2, top + big_metrics.height() + small_metrics.ascent()),
+                      model() != nullptr && model()->rowCount() > 0
+                          ? tr("Pick a game and let's play.")
+                          : tr("Add a game folder to get started."),
+                      PhoenixTheme::Recolor(QColor(0xE8, 0xD9, 0xB5, 190)));
         // A quote under it, smaller, in italics and fainter, cut short with "..." if the window
         // is narrow (it stays clear of the clock).
         QFont tiny = font();
@@ -440,17 +572,12 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         const QPoint at{left + 2, top + big_metrics.height() + small_metrics.height() + 4 +
                                       tiny_metrics.ascent()};
         painter.setFont(tiny);
-        // A soft shadow keeps it readable where a sunbeam crosses it.
-        painter.setPen(QColor(0, 0, 0, 110));
-        painter.drawText(at + QPoint(1, 1), shown);
-        painter.setPen(PhoenixTheme::Recolor(QColor(0xF0, 0xE2, 0xC0, 175)));
-        painter.drawText(at, shown);
+        draw_readable(at, shown, PhoenixTheme::Recolor(QColor(0xF0, 0xE2, 0xC0, 175)));
         painter.setFont(big);
-        painter.setPen(PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)));
         const QString time = QTime::currentTime().toString(QStringLiteral("h:mm"));
-        painter.drawText(QPoint(area.width() - left - big_metrics.horizontalAdvance(time),
-                                top + big_metrics.ascent()),
-                         time);
+        draw_readable(QPoint(area.width() - left - big_metrics.horizontalAdvance(time),
+                             top + big_metrics.ascent()),
+                      time, PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)));
 
         if (currentIndex().isValid() && m_playButton != nullptr && m_playButton->isVisible()) {
             const QModelIndex current = currentIndex();
@@ -464,7 +591,9 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
             painter.setFont(meta_font);
             const QFontMetrics meta_metrics{meta_font};
 
-            const QString badge = QStringLiteral("SWITCH 2 READY");
+            const QString badge = current.data(GameListItemPath::Switch2Role).toBool()
+                                      ? tr("SWITCH 2")
+                                      : tr("SWITCH");
             const int badge_w = meta_metrics.horizontalAdvance(badge) + 14;
             const int badge_h = 22;
             const QRect badge_rect{text_x, hero_y - badge_h / 2, badge_w, badge_h};
@@ -482,6 +611,12 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
             }
         }
     }
+    UpdateButtonContrast();
+    if (Stacked()) {
+        QPainter painter{viewport()};
+        PaintStack(painter);
+        return;
+    }
     QListView::paintEvent(event);
 }
 
@@ -497,6 +632,22 @@ void GameCarousel::SetModel(GameListModel* model) {
     };
     connect(model, &QAbstractItemModel::rowsInserted, this, pick_first);
     connect(model, &QAbstractItemModel::modelReset, this, pick_first);
+    // Pictures are looked up after the games are listed: the picked game's may arrive later.
+    connect(model, &QAbstractItemModel::dataChanged, this,
+            [this](const QModelIndex& top_left, const QModelIndex& bottom_right) {
+                const QModelIndex current = currentIndex();
+                if (!current.isValid() || current.row() < top_left.row() ||
+                    current.row() > bottom_right.row()) {
+                    return;
+                }
+                const QPixmap picture =
+                    current.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+                if (picture.cacheKey() != m_ambientSource.cacheKey()) {
+                    m_ambientSource = picture;
+                    RebuildAmbient();
+                    viewport()->update();
+                }
+            });
 
     // The picked tile springs up: a short animation with a little overshoot.
     if (m_liftAnimation == nullptr) {
@@ -531,10 +682,14 @@ void GameCarousel::SetModel(GameListModel* model) {
                 }
                 m_ambientAnimation->stop();
                 m_ambientAnimation->start();
-                // Glide the row so the picked game is in view (no jump).
                 if (!current.isValid()) {
                     return;
                 }
+                if (Stacked()) {
+                    MoveTo(PositionOf(current.row()));
+                    return;
+                }
+                // Glide the row so the picked game is in view (no jump).
                 const QRect tile = visualRect(current);
                 QScrollBar* const bar = horizontalScrollBar();
                 const int target = std::clamp(
@@ -588,10 +743,464 @@ void GameCarousel::UpdateIconSize() {
 }
 
 QModelIndex GameCarousel::indexAt(const QPoint& point) const {
+    if (Stacked()) {
+        return StackIndexAt(point);
+    }
     QModelIndex index = QListView::indexAt(point);
     if (!index.isValid())
         return {};
     if (m_gameCard && !m_gameCard->hitTest(point, index, this, visualRect(index)))
         return {};
     return index;
+}
+
+// The stack: one big card in the middle, its neighbours tucked behind it on both sides, each
+// smaller, tilted and fogged with its distance (geometry after Eglantine's home screen
+// redesign, src/yuzu/game/carousel.cpp on its ui/homescreen-redesign branch).
+namespace {
+
+constexpr std::array<qreal, 5> CardSizeFractions{1.0, 0.75, 2.0 / 3.0, 0.5, 1.0 / 3.0};
+constexpr qreal PeekFraction = 0.12;
+constexpr qreal ScaleStep = 0.90;
+constexpr qreal MinScale = 0.40;
+constexpr qreal TiltSqueeze = 0.14;
+constexpr qreal TiltHeight = 0.95;
+constexpr int FogPerStep = 55;
+constexpr int FogMax = 170;
+constexpr int StackTitleReserve = 56;
+
+struct StackMetrics {
+    QPointF center;
+    qreal card_w = 0;
+    qreal card_h = 0;
+    qreal peek = 0;
+};
+
+StackMetrics MetricsFor(const QRect& area) {
+    StackMetrics m;
+    const size_t size_index =
+        std::min<size_t>(UISettings::values.carousel_card_size.GetValue(), CardSizeFractions.size() - 1);
+    m.card_h = std::max<qreal>(120.0, area.height() * CardSizeFractions[size_index]);
+    m.card_w = GameCard::CurrentStyle() == GameCard::Style::Cartridge
+                   ? m.card_h * GameCard::CartridgeAspect
+                   : m.card_h;
+    m.center = QRectF(area).center();
+    m.peek = std::clamp(m.card_w * PeekFraction, qreal(28), qreal(96));
+    return m;
+}
+
+/// The card's untilted rectangle `depth` steps from the middle: a card further out tucks under
+/// the one in front, peeking `peek` past its edge. Fractional depths slide smoothly.
+QRectF CardRect(qreal depth, const StackMetrics& m) {
+    const qreal d = std::abs(depth);
+    const qreal fade = std::min(d, 1.0);
+    const qreal scale = std::max(MinScale, std::pow(ScaleStep, d));
+    const qreal w = m.card_w * scale * (1.0 - TiltSqueeze * fade);
+    const qreal h = m.card_h * scale;
+    const qreal y = m.center.y() - h / 2.0;
+    const qreal centered = m.center.x() - m.card_w / 2.0;
+    if (depth > 0.0) {
+        const qreal stacked = m.center.x() + m.card_w / 2.0 + m.peek - w;
+        const qreal left = depth < 1.0 ? centered + (stacked - centered) * depth
+                                       : stacked + (depth - 1.0) * m.peek;
+        return {left, y, w, h};
+    }
+    if (depth < 0.0) {
+        const qreal stacked = m.center.x() - m.card_w / 2.0 - m.peek;
+        const qreal left = depth > -1.0 ? centered + (stacked - centered) * (-depth)
+                                        : stacked + (depth + 1.0) * m.peek;
+        return {left, y, w, h};
+    }
+    return {m.center.x() - w / 2.0, y, w, h};
+}
+
+/// Solid near the middle, dissolving at the stack's far ends.
+qreal StackAlpha(qreal depth, int count) {
+    const qreal d = std::abs(depth);
+    const qreal solid = std::max<qreal>(1.0, count - 2.0);
+    if (d <= solid) {
+        return 1.0;
+    }
+    const qreal t = std::min<qreal>(1.0, (d - solid) / std::max<qreal>(1.0, count - solid));
+    return 1.0 - t * t * (3.0 - 2.0 * t);
+}
+
+/// The game's picture cover-cropped to `size` device pixels, once per picture and size.
+QPixmap CoverArt(const QPixmap& picture, QSize size) {
+    if (picture.isNull() || size.isEmpty()) {
+        return {};
+    }
+    // In 16 px steps, so the slide reuses a few sizes.
+    size = QSize((size.width() + 15) / 16 * 16, (size.height() + 15) / 16 * 16);
+    const QString key = QStringLiteral("phoenix-stack-%1-%2x%3")
+                            .arg(picture.cacheKey())
+                            .arg(size.width())
+                            .arg(size.height());
+    QPixmap art;
+    if (QPixmapCache::find(key, &art)) {
+        return art;
+    }
+    const QPixmap scaled =
+        picture.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    art = scaled.copy((scaled.width() - size.width()) / 2, (scaled.height() - size.height()) / 2,
+                      size.width(), size.height());
+    QPixmapCache::insert(key, art);
+    return art;
+}
+
+QPixmap PictureOf(const QModelIndex& index) {
+    QPixmap picture = index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+    if (picture.isNull()) {
+        picture = index.data(Qt::DecorationRole).value<QPixmap>();
+    }
+    return picture;
+}
+
+/// The solid part of the cartridge frame (its SVG has a clear margin around it).
+QRectF CartridgeBody(const QRectF& cart) {
+    const qreal sx = cart.width() / GameCard::CartridgeBase.width();
+    const qreal sy = cart.height() / GameCard::CartridgeBase.height();
+    return {cart.left() + 13.0 * sx, cart.top() + 8.0 * sy, 205.0 * sx, 297.0 * sy};
+}
+
+void DrawStackCard(QPainter& p, const QModelIndex& index, const QRectF& rect, qreal depth,
+                   qreal alpha, qreal dpr) {
+    const qreal d = std::abs(depth);
+    const bool centered = d < 0.01;
+    const GameCard::Style style = GameCard::CurrentStyle();
+    const bool cartridge = style == GameCard::Style::Cartridge;
+    const QRectF local{0, 0, rect.width(), rect.height()};
+
+    // The card maps onto a trapezoid: the edge facing the middle keeps its height, the far edge
+    // is shorter, so it reads as turned away.
+    QTransform tilt = QTransform::fromTranslate(rect.left(), rect.top());
+    if (!centered) {
+        const qreal far_h = rect.height() * (1.0 + (TiltHeight - 1.0) * std::min(d, 1.0));
+        const qreal yc = rect.center().y();
+        const QPolygonF from{local.topLeft(), local.topRight(), local.bottomRight(),
+                             local.bottomLeft()};
+        QPolygonF to;
+        if (depth > 0.0) {
+            to << rect.topLeft() << QPointF(rect.right(), yc - far_h / 2)
+               << QPointF(rect.right(), yc + far_h / 2) << rect.bottomLeft();
+        } else {
+            to << QPointF(rect.left(), yc - far_h / 2) << rect.topRight() << rect.bottomRight()
+               << QPointF(rect.left(), yc + far_h / 2);
+        }
+        if (!QTransform::quadToQuad(from, to, tilt)) {
+            return;
+        }
+    }
+
+    p.save();
+    p.setOpacity(alpha);
+    p.setTransform(tilt);
+    const QPixmap picture = PictureOf(index);
+    const QRectF body = cartridge ? CartridgeBody(local) : local;
+    const qreal radius = cartridge ? 18.0 * local.width() / GameCard::CartridgeBase.width()
+                                   : local.width() * 0.08;
+    if (centered) {
+        // A soft shadow under the card in the middle.
+        p.setPen(Qt::NoPen);
+        for (int spread = 1; spread <= 5; ++spread) {
+            p.setBrush(QColor(0, 0, 0, 14));
+            p.drawRoundedRect(body.adjusted(-spread, -spread + 3, spread, spread + 3),
+                              radius + spread, radius + spread);
+        }
+    }
+    QPainterPath body_clip;
+    body_clip.addRoundedRect(body, radius, radius);
+    p.setClipPath(body_clip);
+    QRectF art_rect = local;
+    if (cartridge) {
+        const QPixmap frame = GameCard::CartridgePixmap(qRound(local.height()), dpr);
+        p.drawPixmap(local, frame, QRectF(frame.rect()));
+        art_rect = GameCard::CartridgeLabelRect(local);
+        QPainterPath label_clip;
+        label_clip.addRoundedRect(art_rect, art_rect.width() * 0.04, art_rect.width() * 0.04);
+        p.setClipPath(label_clip, Qt::IntersectClip);
+    }
+    const QPixmap art = CoverArt(picture, (art_rect.size() * dpr).toSize());
+    if (!art.isNull()) {
+        p.drawPixmap(art_rect, art, QRectF(art.rect()));
+    } else {
+        QLinearGradient fill{art_rect.topLeft(), art_rect.bottomRight()};
+        fill.setColorAt(0, PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)));
+        fill.setColorAt(1, PhoenixTheme::Recolor(QColor(0xE8, 0x9E, 0x10)));
+        p.fillRect(art_rect, fill);
+    }
+    p.setClipPath(body_clip);
+    if (style == GameCard::Style::Badge) {
+        p.drawPixmap(local,
+                     GameCard::PlatformBorderPixmap(index.data(GameListItemPath::Switch2Role).toBool(),
+                                                    qRound(local.width()), dpr),
+                     QRectF(QPointF(0, 0), QSizeF(qRound(local.width() * dpr),
+                                                  qRound(local.width() * dpr))));
+    }
+    // Further back, further into the fog.
+    if (!centered) {
+        p.fillRect(body, PhoenixTheme::Recolor(QColor(0x14, 0x10, 0x0C,
+                                                      std::min(FogMax, qRound(d * FogPerStep)))));
+    }
+    p.setClipping(false);
+    if (centered && style == GameCard::Style::Plain) {
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)), 3));
+        p.drawRoundedRect(local.adjusted(1.5, 1.5, -1.5, -1.5), radius, radius);
+    }
+    p.restore();
+}
+
+} // Anonymous namespace
+
+bool GameCarousel::Stacked() {
+    return UISettings::values.carousel_layout.GetValue() == 0;
+}
+
+std::vector<int> GameCarousel::VisibleRows() const {
+    std::vector<int> rows;
+    if (model() == nullptr) {
+        return rows;
+    }
+    for (int row = 0; row < model()->rowCount(); ++row) {
+        if (!isRowHidden(row)) {
+            rows.push_back(row);
+        }
+    }
+    return rows;
+}
+
+int GameCarousel::PositionOf(int row) const {
+    const std::vector<int> rows = VisibleRows();
+    const auto it = std::find(rows.begin(), rows.end(), row);
+    return it == rows.end() ? -1 : static_cast<int>(it - rows.begin());
+}
+
+void GameCarousel::MoveTo(int position) {
+    if (position < 0) {
+        return;
+    }
+    m_positionAnimation->stop();
+    if (!isVisible() || std::abs(m_position - position) > 12.0) {
+        m_position = position; // a jump across the list: no slide past every game
+        viewport()->update();
+        return;
+    }
+    m_positionAnimation->setStartValue(m_position);
+    m_positionAnimation->setEndValue(qreal(position));
+    m_positionAnimation->start();
+}
+
+QRect GameCarousel::StackArea() const {
+    // Below the greeting and the buttons under the clock, above the play button row.
+    const int clock_bottom = 18 + std::clamp(viewport()->height() / 18, 18, 30) + 16;
+    const int top = clock_bottom + 44;
+    const int title = UISettings::values.show_game_name.GetValue() ? StackTitleReserve : 8;
+    const int bottom = viewport()->height() - 64 - title;
+    return QRect(0, top, viewport()->width(), std::max(120, bottom - top));
+}
+
+void GameCarousel::PaintStack(QPainter& p) {
+    const std::vector<int> rows = VisibleRows();
+    if (rows.empty()) {
+        return;
+    }
+    // Rows still arriving (the scan) or a filter move the picked game: follow it when no slide
+    // is running.
+    if (m_positionAnimation->state() != QAbstractAnimation::Running && currentIndex().isValid()) {
+        const auto it = std::find(rows.begin(), rows.end(), currentIndex().row());
+        if (it != rows.end()) {
+            m_position = static_cast<qreal>(it - rows.begin());
+        }
+    }
+    m_position = std::clamp(m_position, 0.0, qreal(rows.size() - 1));
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    const StackMetrics m = MetricsFor(StackArea());
+    const int count = static_cast<int>(UISettings::values.carousel_side_count.GetValue());
+    const qreal dpr = p.device() ? p.device()->devicePixelRatioF() : 1.0;
+
+    struct Card {
+        int position;
+        qreal depth;
+    };
+    std::vector<Card> cards;
+    const int base = static_cast<int>(std::floor(m_position));
+    for (int position = std::max(0, base - count - 1);
+         position <= std::min<int>(static_cast<int>(rows.size()) - 1, base + count + 1);
+         ++position) {
+        cards.push_back({position, position - m_position});
+    }
+    // The farthest first, so the middle card sits on top.
+    std::sort(cards.begin(), cards.end(), [](const Card& a, const Card& b) {
+        if (!qFuzzyCompare(std::abs(a.depth) + 1.0, std::abs(b.depth) + 1.0)) {
+            return std::abs(a.depth) > std::abs(b.depth);
+        }
+        return a.depth > b.depth;
+    });
+    for (const Card& card : cards) {
+        const qreal alpha = StackAlpha(card.depth, count);
+        const QRectF rect = CardRect(card.depth, m);
+        if (alpha <= 0.0 || rect.right() < 0.0 || rect.left() >= viewport()->width()) {
+            continue;
+        }
+        DrawStackCard(p, model()->index(rows[static_cast<size_t>(card.position)], 0), rect,
+                      card.depth, alpha, dpr);
+    }
+
+    // The middle card's name in a pill under it, fading in as it settles.
+    if (!UISettings::values.show_game_name.GetValue() || cards.empty()) {
+        return;
+    }
+    const Card& nearest = cards.back();
+    if (std::abs(nearest.depth) >= 0.5) {
+        return;
+    }
+    const QString title = model()
+                              ->index(rows[static_cast<size_t>(nearest.position)], 0)
+                              .data(Qt::DisplayRole)
+                              .toString()
+                              .split(QLatin1Char('\n'))
+                              .first();
+    QFont font = p.font();
+    font.setBold(true);
+    font.setPixelSize(std::clamp(static_cast<int>(m.card_w / 13), 13, 22));
+    const QFontMetrics metrics{font};
+    const QString shown = metrics.elidedText(title, Qt::ElideRight, static_cast<int>(m.card_w * 1.6));
+    const int width = metrics.horizontalAdvance(shown);
+    const QRectF slot = CardRect(0.0, m);
+    const QRectF pill{slot.center().x() - width / 2.0 - 16, slot.bottom() + 14, width + 32.0,
+                      metrics.height() + 12.0};
+    p.setOpacity(std::max(0.0, 1.0 - 2.0 * std::abs(nearest.depth)));
+    p.setFont(font);
+    p.setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)).darker(150), 1));
+    p.setBrush(PhoenixTheme::Recolor(QColor(0x20, 0x16, 0x10, 235)));
+    p.drawRoundedRect(pill, pill.height() / 2.0, pill.height() / 2.0);
+    p.setPen(PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA)));
+    p.drawText(pill, Qt::AlignCenter, shown);
+    p.setOpacity(1.0);
+}
+
+QModelIndex GameCarousel::StackIndexAt(const QPoint& point) const {
+    const std::vector<int> rows = VisibleRows();
+    if (rows.empty()) {
+        return {};
+    }
+    const StackMetrics m = MetricsFor(StackArea());
+    const bool cartridge = GameCard::CurrentStyle() == GameCard::Style::Cartridge;
+    const int count = static_cast<int>(UISettings::values.carousel_side_count.GetValue()) + 1;
+    int best = -1;
+    qreal best_depth = 0;
+    for (int position = 0; position < static_cast<int>(rows.size()); ++position) {
+        const qreal depth = position - m_position;
+        if (std::abs(depth) > count) {
+            continue;
+        }
+        const QRectF rect = CardRect(depth, m);
+        const QRectF hit = cartridge ? CartridgeBody(rect) : rect;
+        if (hit.contains(QPointF(point)) && (best < 0 || std::abs(depth) < std::abs(best_depth))) {
+            best = position;
+            best_depth = depth;
+        }
+    }
+    return best < 0 ? QModelIndex{} : model()->index(rows[static_cast<size_t>(best)], 0);
+}
+
+QRect GameCarousel::visualRect(const QModelIndex& index) const {
+    if (!Stacked()) {
+        return QListView::visualRect(index);
+    }
+    const int position = index.isValid() ? PositionOf(index.row()) : -1;
+    if (position < 0) {
+        return {};
+    }
+    return CardRect(position - m_position, MetricsFor(StackArea())).toAlignedRect();
+}
+
+void GameCarousel::scrollTo(const QModelIndex& index, ScrollHint hint) {
+    if (!Stacked()) {
+        QListView::scrollTo(index, hint);
+        return;
+    }
+    if (index.isValid()) {
+        MoveTo(PositionOf(index.row()));
+    }
+}
+
+QModelIndex GameCarousel::moveCursor(CursorAction cursor_action, Qt::KeyboardModifiers modifiers) {
+    if (!Stacked()) {
+        return QListView::moveCursor(cursor_action, modifiers);
+    }
+    const std::vector<int> rows = VisibleRows();
+    if (rows.empty()) {
+        return {};
+    }
+    const int last = static_cast<int>(rows.size()) - 1;
+    int position = currentIndex().isValid() ? std::max(0, PositionOf(currentIndex().row())) : 0;
+    switch (cursor_action) {
+    case MoveLeft:
+    case MoveUp:
+        position = std::max(0, position - 1);
+        break;
+    case MoveRight:
+    case MoveDown:
+        position = std::min(last, position + 1);
+        break;
+    case MoveHome:
+        position = 0;
+        break;
+    case MoveEnd:
+        position = last;
+        break;
+    case MovePageUp:
+        position = std::max(0, position - 4);
+        break;
+    case MovePageDown:
+        position = std::min(last, position + 4);
+        break;
+    default:
+        break;
+    }
+    return model()->index(rows[static_cast<size_t>(position)], 0);
+}
+
+void GameCarousel::setSelection(const QRect& rect, QItemSelectionModel::SelectionFlags command) {
+    if (!Stacked()) {
+        QListView::setSelection(rect, command);
+        return;
+    }
+    if (const QModelIndex index = StackIndexAt(rect.center()); index.isValid()) {
+        selectionModel()->select(index, command);
+    }
+}
+
+QRegion GameCarousel::visualRegionForSelection(const QItemSelection& selection) const {
+    if (!Stacked()) {
+        return QListView::visualRegionForSelection(selection);
+    }
+    QRegion region;
+    for (const QItemSelectionRange& range : selection) {
+        for (int row = range.top(); row <= range.bottom(); ++row) {
+            region += visualRect(model()->index(row, 0));
+        }
+    }
+    return region;
+}
+
+void GameCarousel::wheelEvent(QWheelEvent* event) {
+    if (!Stacked()) {
+        QListView::wheelEvent(event);
+        return;
+    }
+    // One step of the wheel, one game.
+    const int delta = event->angleDelta().x() + event->angleDelta().y();
+    const std::vector<int> rows = VisibleRows();
+    if (delta == 0 || rows.empty()) {
+        event->ignore();
+        return;
+    }
+    int position = currentIndex().isValid() ? std::max(0, PositionOf(currentIndex().row())) : 0;
+    position = std::clamp(position + (delta > 0 ? -1 : 1), 0, static_cast<int>(rows.size()) - 1);
+    setCurrentIndex(model()->index(rows[static_cast<size_t>(position)], 0));
+    event->accept();
 }

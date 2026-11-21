@@ -80,6 +80,7 @@ enum class DumpRomFSTarget;
 class GameListPlaceholder;
 
 class AmiiboLibraryDialog;
+class CustomizePanel;
 class QtAmiiboSettingsDialog;
 class QtControllerSelectorDialog;
 class QtProfileSelectionDialog;
@@ -304,7 +305,8 @@ private:
     void ConnectMenuEvents();
     /// The Customize menu (theme, accent and background colours, button shape).
     void SetupCustomizeMenu();
-    void FillCustomizeMenu(QMenu* menu);
+    /// Opens or closes the Customize panel beside the game list.
+    void ToggleCustomizePanel();
     /// The User menu (menu bar and the home view's user button): pick the current user.
     void SetupUserMenu();
     void FillUserMenu(QMenu* menu);
@@ -730,6 +732,11 @@ private:
     QtNXWebEngineView* web_applet = nullptr;
 
     AmiiboLibraryDialog* amiibo_library = nullptr;
+    CustomizePanel* customize_panel = nullptr;
+    /// The Configure page OnConfigure opens on next (5 is Controls), then back to the first.
+    int configure_start_page = 0;
+    /// Counts the connected gamepads for the home view.
+    QTimer controller_count_timer;
 
     // True if load file select is visible
     bool is_load_file_select_active{};

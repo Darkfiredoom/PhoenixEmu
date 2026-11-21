@@ -508,6 +508,15 @@ void GameList::SetupViews() {
     carousel_view->SetModel(item_model);
     connect(carousel_view, &GameCarousel::AddDirectoryRequested, this, &GameList::AddDirectory);
     connect(carousel_view, &GameCarousel::UserMenuRequested, this, &GameList::UserMenuRequested);
+    connect(carousel_view, &GameCarousel::CustomizeRequested, this, &GameList::CustomizeRequested);
+    connect(carousel_view, &GameCarousel::ControllersRequested, this,
+            &GameList::ControllersRequested);
+}
+
+void GameList::SetControllerCount(int count) {
+    if (carousel_view != nullptr) {
+        carousel_view->SetControllerCount(count);
+    }
 }
 
 void GameList::SetUserName(const QString& name) {

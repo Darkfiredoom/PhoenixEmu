@@ -49,6 +49,9 @@ class ConfigureDialog : public QDialog {
     Q_OBJECT
 
 public:
+    /// Opens on one of the left list's pages (0 General ... 5 Controls).
+    void OpenPage(int row);
+
     explicit ConfigureDialog(QWidget* parent, HotkeyRegistry& registry_,
                              InputCommon::InputSubsystem* input_subsystem,
                              std::vector<VkDeviceInfo::Record>& vk_device_records,

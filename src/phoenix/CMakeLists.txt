@@ -184,8 +184,10 @@ add_executable(phoenix
     nx2_switches.h
     nx2_switches_dialog.h
     nx2_switches_dialog.cpp
-    customize_dialog.h
-    customize_dialog.cpp
+    customize_panel.h
+    customize_panel.cpp
+    controllers_dialog.h
+    controllers_dialog.cpp
     pipeline_visualizer_dialog.h
     pipeline_visualizer_dialog.cpp
 

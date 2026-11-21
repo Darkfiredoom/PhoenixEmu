@@ -179,6 +179,11 @@ void SetAnalogParam(const Common::ParamPackage& input_param, Common::ParamPackag
 } // namespace
 
 QString ConfigureInputPlayer::ButtonToText(const Common::ParamPackage& param) {
+    return InputBindingText(input_subsystem, param);
+}
+
+QString InputBindingText(InputCommon::InputSubsystem* input_subsystem,
+                         const Common::ParamPackage& param) {
     if (!param.Has("engine")) {
         return QObject::tr("[not set]");
     }

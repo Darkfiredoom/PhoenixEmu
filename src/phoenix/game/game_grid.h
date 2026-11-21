@@ -21,6 +21,10 @@ public:
 
     QModelIndex indexAt(const QPoint& point) const override;
 
+protected:
+    /// With cartridge cards: a game card case behind them, a recessed slot for each.
+    void paintEvent(QPaintEvent* event) override;
+
 private:
     GameCard* m_gameCard = nullptr;
 };

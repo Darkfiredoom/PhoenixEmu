@@ -195,6 +195,12 @@ void ConfigureDialog::HandleApplyButtonClicked() {
 
 Q_DECLARE_METATYPE(QList<QWidget*>);
 
+void ConfigureDialog::OpenPage(int row) {
+    if (row >= 0 && row < ui->selectorList->count()) {
+        ui->selectorList->setCurrentRow(row);
+    }
+}
+
 void ConfigureDialog::PopulateSelectionList() {
     const std::array<std::pair<QString, QList<QWidget*>>, 6> items{
         {{tr("General"),

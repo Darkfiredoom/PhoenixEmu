@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <QImageReader>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmapCache>
 #include "game_card.h"
 #include "phoenix/util/phoenix_theme.h"
 #include "qt_common/config/uisettings.h"
@@ -21,6 +23,72 @@ GameCard::GameCard(QObject* parent) : QStyledItemDelegate{parent} {
     setObjectName("GameCard");
 }
 
+GameCard::Style GameCard::CurrentStyle() {
+    return static_cast<Style>(std::min<u32>(UISettings::values.game_card_style.GetValue(), 2));
+}
+
+QPixmap GameCard::PlatformBorderPixmap(bool is_switch2, int size, qreal dpr) {
+    // Scaling the 1024 px frame on every paint is far too slow for a moving view: once per size.
+    const QString key = QStringLiteral("phoenix-border-%1-%2-%3")
+                            .arg(is_switch2 ? 2 : 1)
+                            .arg(size)
+                            .arg(dpr);
+    QPixmap border;
+    if (QPixmapCache::find(key, &border)) {
+        return border;
+    }
+    border.load(is_switch2 ? QStringLiteral(":/game_borders/switch2.png")
+                           : QStringLiteral(":/game_borders/switch1.png"));
+    if (border.isNull()) {
+        return border;
+    }
+    const int pixels = std::max(1, qRound(size * dpr));
+    border = border.scaled(pixels, pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    border.setDevicePixelRatio(dpr);
+    QPixmapCache::insert(key, border);
+    return border;
+}
+
+QPixmap GameCard::CartridgePixmap(int height_px, qreal dpr) {
+    // In 32 px steps, so the picked tile's spring animation reuses a few renders of the SVG.
+    const int bucket = std::max(32, (std::max(1, height_px) + 31) / 32 * 32);
+    const QString key = QStringLiteral("phoenix-cartridge-%1-%2").arg(bucket).arg(dpr);
+    QPixmap cartridge;
+    if (QPixmapCache::find(key, &cartridge)) {
+        return cartridge;
+    }
+    QImageReader reader(QStringLiteral(":/game_borders/game_cartridge.svg"));
+    reader.setScaledSize(QSize(qRound(bucket * CartridgeAspect * dpr), qRound(bucket * dpr)));
+    const QImage image = reader.read();
+    if (image.isNull()) {
+        return {};
+    }
+    cartridge = QPixmap::fromImage(image);
+    QPixmapCache::insert(key, cartridge);
+    return cartridge;
+}
+
+QRectF GameCard::CartridgeLabelRect(const QRectF& cartridge_rect) {
+    const qreal sx = cartridge_rect.width() / CartridgeBase.width();
+    const qreal sy = cartridge_rect.height() / CartridgeBase.height();
+    return {cartridge_rect.left() + CartridgeLabel.x() * sx,
+            cartridge_rect.top() + CartridgeLabel.y() * sy, CartridgeLabel.width() * sx,
+            CartridgeLabel.height() * sy};
+}
+
+void GameCard::DrawCoverCropped(QPainter& painter, const QPixmap& pixmap, const QRectF& target) {
+    if (pixmap.isNull() || target.isEmpty()) {
+        return;
+    }
+    const qreal scale =
+        std::max(target.width() / pixmap.width(), target.height() / pixmap.height());
+    const qreal src_w = target.width() / scale;
+    const qreal src_h = target.height() / scale;
+    painter.drawPixmap(target, pixmap,
+                       QRectF((pixmap.width() - src_w) / 2, (pixmap.height() - src_h) / 2, src_w,
+                              src_h));
+}
+
 void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
                      const QModelIndex& index) const {
     if (!index.isValid())
@@ -37,10 +105,12 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
 
     const QRect cardRect = getCardRect(option, index);
 
+    // Cartridges sit in the grid's case (GameGrid paints its slots): no card panel behind them.
+    const bool in_case = CurrentStyle() == Style::Cartridge;
     QPalette palette = option.palette;
     QColor backgroundColor = palette.window().color();
     QColor borderColor = palette.dark().color();
-    QColor textColor = palette.text().color();
+    QColor textColor = in_case ? QColor(0xF2, 0xEE, 0xE6) : palette.text().color();
 
     // highlight on select or hover: an ember outline, as on the home view
     QPen borderPen{borderColor, 1};
@@ -53,11 +123,14 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
         borderPen = QPen(PhoenixTheme::Recolor(EmberBase).darker(130), 1);
     }
 
-    painter->setBrush(backgroundColor);
-    painter->setPen(borderPen);
-    painter->drawRoundedRect(cardRect, cardCornerRadius, cardCornerRadius);
+    if (!in_case) {
+        painter->setBrush(backgroundColor);
+        painter->setPen(borderPen);
+        painter->drawRoundedRect(cardRect, cardCornerRadius, cardCornerRadius);
+    }
 
-    if ((option.state & QStyle::State_Selected) || (option.state & QStyle::State_MouseOver)) {
+    if (!in_case &&
+        ((option.state & QStyle::State_Selected) || (option.state & QStyle::State_MouseOver))) {
         QLinearGradient cardSheen{cardRect.topLeft(),
                                   QPointF(cardRect.left(), cardRect.top() + cardRect.height() * 0.45)};
         cardSheen.setColorAt(0.0, QColor(255, 255, 255, (option.state & QStyle::State_Selected) ? 45 : 25));
@@ -74,7 +147,32 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
     QPixmap icon_pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
 
     QRect iconRect;
-    if (!icon_pixmap.isNull()) {
+    const Style style = CurrentStyle();
+    const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+    if (!icon_pixmap.isNull() && style == Style::Cartridge) {
+        // The portrait cartridge replaces the square icon; the art sits in its label.
+        const int cart_w = qRound(icon_size * CartridgeAspect);
+        iconRect = {cardRect.left() + (cardRect.width() - cart_w) / 2,
+                    cardRect.top() + cardMargin - 1, cart_w, static_cast<int>(icon_size)};
+        painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+        painter->drawPixmap(iconRect, CartridgePixmap(static_cast<int>(icon_size), dpr));
+        const QRectF label = CartridgeLabelRect(QRectF(iconRect));
+        painter->save();
+        QPainterPath label_clip;
+        label_clip.addRoundedRect(label, label.width() * 0.04, label.width() * 0.04);
+        painter->setClipPath(label_clip);
+        DrawCoverCropped(*painter, icon_pixmap, label);
+        painter->restore();
+        if (option.state & (QStyle::State_Selected | QStyle::State_MouseOver)) {
+            // Picked out of its slot: an outline in the accent colour.
+            const bool selected = (option.state & QStyle::State_Selected) != 0;
+            painter->setBrush(Qt::NoBrush);
+            QColor ring = PhoenixTheme::Recolor(EmberBase);
+            ring.setAlpha(selected ? 255 : 140);
+            painter->setPen(QPen(ring, selected ? 3 : 2));
+            painter->drawRoundedRect(QRectF(iconRect).adjusted(-3, -3, 3, 3), 12, 12);
+        }
+    } else if (!icon_pixmap.isNull()) {
         QSize scaled = icon_pixmap.size();
         scaled.scale(icon_size, icon_size, Qt::KeepAspectRatio);
 
@@ -89,6 +187,11 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
         painter->setClipPath(clip_path);
         painter->drawPixmap(iconRect, icon_pixmap);
         painter->restore();
+        if (style == Style::Badge) {
+            const QPixmap border = PlatformBorderPixmap(
+                index.data(GameListItemPath::Switch2Role).toBool(), iconRect.width(), dpr);
+            painter->drawPixmap(iconRect, border);
+        }
     } else {
         iconRect = {cardRect.left() + cardMargin, cardRect.top() + cardMargin,
                     static_cast<int>(icon_size), static_cast<int>(icon_size)};
@@ -134,7 +237,15 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
     } else if (hovered) {
         tile_rect.translate(0, -3);
     }
-    const qreal radius = tile_rect.width() * 0.11;
+    const Style style = CurrentStyle();
+    const bool cartridge = style == Style::Cartridge;
+    if (cartridge) {
+        const int width = qRound(tile_rect.height() * CartridgeAspect);
+        tile_rect = QRect(tile_rect.center().x() - width / 2, tile_rect.top(), width,
+                          tile_rect.height());
+    }
+    const qreal radius = tile_rect.width() * (cartridge ? 0.08 : 0.11);
+    const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
 
     // A soft shadow under the tile.
     painter->setPen(Qt::NoPen);
@@ -157,9 +268,21 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         }
     }
 
+    // A cartridge frame goes under the art; the art then fills its label.
+    QRect art_rect = tile_rect;
+    qreal art_radius = radius;
+    if (cartridge) {
+        const QPixmap frame = CartridgePixmap(tile_rect.height(), dpr);
+        if (!frame.isNull()) {
+            painter->drawPixmap(tile_rect, frame);
+        }
+        art_rect = CartridgeLabelRect(QRectF(tile_rect)).toRect();
+        art_radius = art_rect.width() * 0.04;
+    }
+
     // The picture fills the tile (cropped to a square), or an ember tile with the initials.
     QPainterPath clip;
-    clip.addRoundedRect(QRectF(tile_rect), radius, radius);
+    clip.addRoundedRect(QRectF(art_rect), art_radius, art_radius);
     painter->setClipPath(clip);
     QPixmap picture = index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
     if (picture.isNull()) {
@@ -168,8 +291,7 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
     const QString title =
         index.data(Qt::DisplayRole).toString().split(QLatin1Char('\n')).first();
     if (!picture.isNull()) {
-        const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
-        const QSize target = tile_rect.size() * dpr;
+        const QSize target = art_rect.size() * dpr;
         // Scaled once per picture and size (this ran every frame of the moving home view).
         const QString key = QStringLiteral("%1-%2x%3")
                                 .arg(picture.cacheKey())
@@ -187,44 +309,53 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         const QRect source{(scaled.width() - target.width()) / 2,
                            (scaled.height() - target.height()) / 2, target.width(),
                            target.height()};
-        painter->drawPixmap(tile_rect, scaled, source);
+        painter->drawPixmap(art_rect, scaled, source);
     } else {
-        QLinearGradient fill{tile_rect.topLeft(), tile_rect.bottomRight()};
+        QLinearGradient fill{art_rect.topLeft(), art_rect.bottomRight()};
         fill.setColorAt(0, PhoenixTheme::Recolor(EmberBase));
         fill.setColorAt(1, PhoenixTheme::Recolor(EmberDeepBase));
-        painter->fillRect(tile_rect, fill);
+        painter->fillRect(art_rect, fill);
         QFont font = option.font;
         font.setBold(true);
-        font.setPixelSize(tile_rect.height() / 4);
+        font.setPixelSize(art_rect.height() / 4);
         painter->setFont(font);
         painter->setPen(PhoenixTheme::Recolor(QColor(0x3A, 0x26, 0x00)));
-        painter->drawText(tile_rect, Qt::AlignCenter, title.left(2).toUpper());
+        painter->drawText(art_rect, Qt::AlignCenter, title.left(2).toUpper());
     }
     // Glassmorphic specular sheen across the upper area
-    QLinearGradient sheen{tile_rect.topLeft(),
-                          QPointF(tile_rect.left(), tile_rect.top() + tile_rect.height() * 0.42)};
+    QLinearGradient sheen{art_rect.topLeft(),
+                          QPointF(art_rect.left(), art_rect.top() + art_rect.height() * 0.42)};
     sheen.setColorAt(0.0, QColor(255, 255, 255, selected ? 65 : (hovered ? 35 : 18)));
     sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
-    painter->fillRect(tile_rect, sheen);
-
-    if (!selected) {
-        // The others step back a little.
-        painter->fillRect(tile_rect, QColor(10, 8, 4, hovered ? 25 : 80));
-    }
+    painter->fillRect(art_rect, sheen);
     painter->setClipping(false);
 
-    // Outline: thick ember when selected, a soft cream line on hover.
+    // The badge frame (its middle is clear) sits on the art and is the tile's outline.
+    if (style == Style::Badge) {
+        painter->drawPixmap(tile_rect,
+                            PlatformBorderPixmap(index.data(GameListItemPath::Switch2Role).toBool(),
+                                                 tile_rect.width(), dpr));
+    }
+    if (!selected) {
+        // The others step back a little.
+        QPainterPath dim;
+        dim.addRoundedRect(QRectF(cartridge ? tile_rect : art_rect), radius, radius);
+        painter->fillPath(dim, QColor(10, 8, 4, hovered ? 25 : 80));
+    }
+
+    // Outline: thick ember when selected, a soft cream line on hover. A badge or cartridge frame
+    // is its own outline.
     painter->setBrush(Qt::NoBrush);
-    if (selected) {
+    if (style == Style::Plain && selected) {
         painter->setPen(QPen(PhoenixTheme::Recolor(EmberBase), std::max(3, tile / 70)));
         painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
         // Inner luminous glass rim
         painter->setPen(QPen(QColor(255, 255, 255, 110), 1));
         painter->drawRoundedRect(QRectF(tile_rect).adjusted(1.5, 1.5, -1.5, -1.5), radius - 1.0, radius - 1.0);
-    } else if (hovered) {
+    } else if (style == Style::Plain && hovered) {
         painter->setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA, 170)), 2));
         painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
-    } else {
+    } else if (style == Style::Plain) {
         painter->setPen(QPen(PhoenixTheme::Recolor(QColor(0xFF, 0xFF, 0xFF, 28)), 1));
         painter->drawRoundedRect(QRectF(tile_rect), radius, radius);
     }
@@ -289,8 +420,9 @@ QRect GameCard::getCardRect(const QStyleOptionViewItem& option, const QModelInde
     } else {
         // carousel mode: the tile (PaintHomeTile)
         const int tile = m_contentSize.width();
-        return QRect(option.rect.center().x() - tile / 2 + HomeInset,
-                     option.rect.top() + (option.rect.height() - tile) / 2 - 16, tile, tile);
+        const int width = CurrentStyle() == Style::Cartridge ? qRound(tile * CartridgeAspect) : tile;
+        return QRect(option.rect.center().x() - width / 2 + HomeInset,
+                     option.rect.top() + (option.rect.height() - tile) / 2 - 16, width, tile);
         card_left = option.rect.left() + cardMargin + 4;
 
         // the delegate itself takes up the full height, but the card itself

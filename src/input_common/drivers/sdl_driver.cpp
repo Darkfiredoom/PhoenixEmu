@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <numbers>
 #include "common/logging.h"
 #include "common/math_util.h"
@@ -415,7 +416,17 @@ public:
         return "Unknown";
     }
 
+    /// When the player last pressed something on it (SDL event time): the home screen shows the
+    /// controller in use (after Jinra's controller page).
+    void MarkActive(u64 timestamp) {
+        last_input_activity.store(timestamp, std::memory_order_relaxed);
+    }
+    u64 GetLastActivity() const {
+        return last_input_activity.load(std::memory_order_relaxed);
+    }
+
 private:
+    std::atomic<u64> last_input_activity{};
     Common::UUID guid;
     int port;
     std::unique_ptr<SDL_Joystick, decltype(&SDL_CloseJoystick)> sdl_joystick;
@@ -641,6 +652,7 @@ void SDLDriver::HandleGameControllerEvent(const SDL_Event& event) {
     case SDL_EVENT_JOYSTICK_BUTTON_DOWN: {
         if (const auto joystick = GetSDLJoystickBySDLID(event.jbutton.which)) {
             const PadIdentifier identifier = joystick->GetPadIdentifier();
+            joystick->MarkActive(event.jbutton.timestamp);
             SetButton(identifier, event.jbutton.button, true);
         }
         break;
@@ -648,6 +660,9 @@ void SDLDriver::HandleGameControllerEvent(const SDL_Event& event) {
     case SDL_EVENT_JOYSTICK_HAT_MOTION: {
         if (const auto joystick = GetSDLJoystickBySDLID(event.jhat.which)) {
             const PadIdentifier identifier = joystick->GetPadIdentifier();
+            if (event.jhat.value != 0) {
+                joystick->MarkActive(event.jhat.timestamp);
+            }
             SetHatButton(identifier, event.jhat.hat, event.jhat.value);
         }
         break;
@@ -790,6 +805,7 @@ std::vector<Common::ParamPackage> SDLDriver::GetInputDevices() const {
                 {"display", std::move(name)},
                 {"guid", joystick->GetGUID().RawString()},
                 {"port", std::to_string(joystick->GetPort())},
+                {"last_active", std::to_string(joystick->GetLastActivity())},
             });
             if (joystick->IsJoyconLeft()) {
                 joycon_pairs.insert_or_assign(joystick->GetPort(), joystick);

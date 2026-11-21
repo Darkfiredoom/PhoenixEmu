@@ -91,6 +91,52 @@ inline void Configure(const QColor& accent, const QColor& background, Shape shap
     return color;
 }
 
+/// WCAG relative luminance, 0 (black) to 1 (white).
+[[nodiscard]] inline double Luminance(const QColor& color) {
+    const auto channel = [](double v) {
+        return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel(color.redF()) + 0.7152 * channel(color.greenF()) +
+           0.0722 * channel(color.blueF());
+}
+
+/// WCAG contrast ratio, 1 to 21.
+[[nodiscard]] inline double Contrast(const QColor& a, const QColor& b) {
+    const double la = Luminance(a);
+    const double lb = Luminance(b);
+    return (std::max(la, lb) + 0.05) / (std::min(la, lb) + 0.05);
+}
+
+/// `text` as drawn over `background`, moved towards white (or black on a light background)
+/// until it stands out by `ratio`. An accent-coloured clock on a background of the same hue
+/// otherwise fades into it. Transparent text is made more opaque as it moves.
+[[nodiscard]] inline QColor Readable(const QColor& text, const QColor& background,
+                                     double ratio = 4.5) {
+    const auto over = [&](const QColor& c) {
+        const qreal a = c.alphaF();
+        return QColor::fromRgbF(c.redF() * a + background.redF() * (1 - a),
+                                c.greenF() * a + background.greenF() * (1 - a),
+                                c.blueF() * a + background.blueF() * (1 - a));
+    };
+    if (Contrast(over(text), background) >= ratio) {
+        return text;
+    }
+    const bool light_text = Luminance(background) < 0.2;
+    const QColor target = light_text ? QColor(Qt::white) : QColor(Qt::black);
+    QColor mixed = target;
+    for (int step = 1; step <= 10; ++step) {
+        const qreal t = step / 10.0;
+        mixed = QColor::fromRgbF(text.redF() + (target.redF() - text.redF()) * t,
+                                 text.greenF() + (target.greenF() - text.greenF()) * t,
+                                 text.blueF() + (target.blueF() - text.blueF()) * t,
+                                 text.alphaF() + (1.0 - text.alphaF()) * t);
+        if (Contrast(over(mixed), background) >= ratio) {
+            break;
+        }
+    }
+    return mixed;
+}
+
 /// A corner radius as the button shape has it.
 [[nodiscard]] inline qreal Radius(qreal radius) {
     switch (Detail::shape) {

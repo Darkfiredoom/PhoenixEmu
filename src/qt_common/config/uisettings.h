@@ -255,6 +255,36 @@ struct Values {
     Setting<u32> theme_shape{linkage, 0, "theme_shape", Category::Ui};
     /// The home view's tile size, in percent of the size that suits the window (its slider).
     Setting<u32, true> home_tile_scale{linkage, 100, 60, 160, "home_tile_scale", Category::UiGameList};
+    /// How game cards look: 0 plain tiles, 1 a Switch or Switch 2 badge frame, 2 a cartridge.
+    Setting<u32, true> game_card_style{linkage, 1, 0, 2, "game_card_style", Category::UiGameList};
+    /// The home view's carousel: 0 a stack (one big card, the others tilted behind it), 1 a row.
+    Setting<u32, true> carousel_layout{linkage, 0, 0, 1, "carousel_layout", Category::UiGameList};
+    /// The centred card's share of the height: 0 full, 1 3/4, 2 2/3, 3 1/2, 4 1/3.
+    Setting<u32, true> carousel_card_size{linkage, 2, 0, 4, "carousel_card_size", Category::UiGameList};
+    Setting<u32, true> carousel_side_count{linkage, 5, 3, 8, "carousel_side_count", Category::UiGameList};
+    /// The picked game's picture as the home background, sharp rather than a soft glow.
+    Setting<bool> carousel_banner_background{linkage, true, "carousel_banner_background",
+                                             Category::UiGameList};
+    /// The home screen's background: 0 the animated scene, 1 a picture, 2 one colour, 3 a gradient.
+    Setting<u32, true> home_bg_kind{linkage, 0, 0, 3, "home_bg_kind", Category::UiGameList};
+    Setting<std::string> home_bg_picture{linkage, {}, "home_bg_picture", Category::UiGameList};
+    /// Pictures used before, newest first, joined by '|'.
+    Setting<std::string> home_bg_recent{linkage, {}, "home_bg_recent", Category::UiGameList};
+    Setting<std::string> home_bg_color{linkage, "#2e0c08", "home_bg_color", Category::UiGameList};
+    Setting<std::string> home_bg_color2{linkage, "#0f0806", "home_bg_color2", Category::UiGameList};
+    Setting<u32, true> home_bg_angle{linkage, 135, 0, 359, "home_bg_angle", Category::UiGameList};
+    /// The moving parts over any background.
+    Setting<bool> home_anim_enabled{linkage, true, "home_anim_enabled", Category::UiGameList};
+    Setting<bool> home_anim_rays{linkage, true, "home_anim_rays", Category::UiGameList};
+    /// 0 none, 1 dust, 2 embers, 3 both.
+    Setting<u32, true> home_anim_particles{linkage, 3, 0, 3, "home_anim_particles", Category::UiGameList};
+    /// 0 natural (dust wanders, embers rise), 1 everything rises, 2 everything falls, 3 swirl.
+    Setting<u32, true> home_anim_motion{linkage, 0, 0, 3, "home_anim_motion", Category::UiGameList};
+    Setting<u32, true> home_anim_amount{linkage, 100, 25, 200, "home_anim_amount", Category::UiGameList};
+    Setting<u32, true> home_anim_speed{linkage, 100, 25, 300, "home_anim_speed", Category::UiGameList};
+    Setting<bool> home_anim_game_glow{linkage, true, "home_anim_game_glow", Category::UiGameList};
+    Setting<bool> home_anim_pulse{linkage, true, "home_anim_pulse", Category::UiGameList};
+    Setting<bool> home_anim_vignette{linkage, true, "home_anim_vignette", Category::UiGameList};
 
     std::atomic_bool is_game_list_reload_pending{false};
     Setting<bool> cache_game_list{linkage, true, "cache_game_list", Category::UiGameList};

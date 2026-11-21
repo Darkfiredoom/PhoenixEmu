@@ -78,6 +78,8 @@ public:
 
     /// The current user's name on the home view.
     void SetUserName(const QString& name);
+    /// How many gamepads are connected, for the home view.
+    void SetControllerCount(int count);
 
     QString GetLastFilterResultItem() const;
     void ClearFilter();
@@ -132,6 +134,8 @@ signals:
     void EditNxMetadataRequested(const std::string& game_path);
     void CopyTIDRequested(u64 program_id);
     void UserMenuRequested(const QPoint& global_pos);
+    void CustomizeRequested();
+    void ControllersRequested();
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);
     void OpenPerGameGeneralRequested(const std::string& file);

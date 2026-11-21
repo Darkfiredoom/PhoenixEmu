@@ -60,7 +60,8 @@
 #include "phoenix/util/menu_sounds.h"
 #include "phoenix/util/fit_window.h"
 #include "phoenix/game/game_list.h"
-#include "phoenix/customize_dialog.h"
+#include "phoenix/controllers_dialog.h"
+#include "phoenix/customize_panel.h"
 #include "phoenix/nup_dialogs.h"
 #include "phoenix/recommended_settings_dialog.h"
 #include "phoenix/shader_warm_dialog.h"
@@ -2032,10 +2033,64 @@ void MainWindow::ConnectWidgetEvents() {
 }
 
 void MainWindow::SetupCustomizeMenu() {
-    // In the menu bar before Help; rebuilt each time it opens, so the ticks are current.
-    auto* const menu = new QMenu(tr("&Customize"), this);
-    menuBar()->insertMenu(ui->menu_Help->menuAction(), menu);
-    connect(menu, &QMenu::aboutToShow, this, [this, menu] { FillCustomizeMenu(menu); });
+    // One item in the menu bar, before Help: every choice is on the panel it opens.
+    auto* const action = new QAction(tr("&Customize"), this);
+    menuBar()->insertAction(ui->menu_Help->menuAction(), action);
+    connect(action, &QAction::triggered, this, &MainWindow::ToggleCustomizePanel);
+    connect(game_list, &GameList::CustomizeRequested, this, &MainWindow::ToggleCustomizePanel);
+
+    // The home view's controller chip and window (after Jinra's Home).
+    connect(game_list, &GameList::ControllersRequested, this, [this] {
+        ControllersDialog dialog{input_subsystem.get(), [this] {
+                                     configure_start_page = 5;
+                                     OnConfigure();
+                                 },
+                                 this};
+        dialog.exec();
+    });
+    controller_count_timer.setInterval(1000);
+    connect(&controller_count_timer, &QTimer::timeout, this, [this] {
+        if (emulation_running || !game_list->isVisible()) {
+            return;
+        }
+        game_list->SetControllerCount(
+            static_cast<int>(ControllersDialog::ConnectedPads(input_subsystem.get()).size()));
+    });
+    controller_count_timer.start();
+}
+
+void MainWindow::ToggleCustomizePanel() {
+    if (customize_panel == nullptr) {
+        customize_panel = new CustomizePanel(
+            [this](bool restyle) {
+                if (restyle) {
+                    ApplyCustomization();
+                    return;
+                }
+                for (QWidget* const child : game_list->findChildren<QWidget*>()) {
+                    child->update();
+                }
+            },
+            [this](Settings::GameListMode mode) { SetGameListMode(mode); },
+            [this](u32 size) {
+                // As View > Game Icon Size does.
+                UISettings::values.game_icon_size.SetValue(size);
+                CheckIconSize();
+                game_list->UpdateIconSizes();
+                game_list->RefreshGameDirectory();
+            },
+            this);
+        connect(customize_panel, &CustomizePanel::CloseRequested, customize_panel,
+                &QWidget::hide);
+        ui->horizontalLayout->addWidget(customize_panel);
+        customize_panel->hide();
+    }
+    if (customize_panel->isVisible()) {
+        customize_panel->hide();
+        return;
+    }
+    customize_panel->Refresh();
+    customize_panel->setVisible(!emulation_running);
 }
 
 void MainWindow::ApplyCustomization() {
@@ -2124,157 +2179,6 @@ void MainWindow::UpdateHomeUserName() {
         name = tr("User %1").arg(Settings::values.current_user.GetValue() + 1);
     }
     game_list->SetUserName(name);
-}
-
-void MainWindow::FillCustomizeMenu(QMenu* menu) {
-    menu->clear();
-    const auto swatch = [](const QColor& color) {
-        QPixmap pixmap(16, 16);
-        pixmap.fill(Qt::transparent);
-        QPainter painter{&pixmap};
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(QPen(QColor(255, 255, 255, 90), 1));
-        painter.setBrush(color);
-        painter.drawEllipse(QRectF(1.5, 1.5, 13, 13));
-        return QIcon{pixmap};
-    };
-
-    // Everything below in one window, with bigger swatches.
-    menu->addAction(tr("Appearance..."), [this] {
-        CustomizeDialog dialog{[this] { ApplyCustomization(); }, this};
-        dialog.exec();
-    });
-    menu->addSeparator();
-
-    // Theme: PhoenixEmu's, or the classic ones (build 11's default was Dark Colorful).
-    QMenu* const theme_menu = menu->addMenu(tr("Theme"));
-    auto* const themes = new QActionGroup(theme_menu);
-    struct ThemeChoice {
-        QString name;
-        const char* key;
-    };
-    for (const ThemeChoice& choice : {
-             ThemeChoice{tr("PhoenixEmu"), "phoenix"},
-             ThemeChoice{tr("Classic (Dark Colorful, the old look)"), "colorful_dark"},
-             ThemeChoice{tr("Classic Midnight Blue"), "colorful_midnight_blue"},
-             ThemeChoice{tr("System (follows your desktop)"), "default"},
-         }) {
-        QAction* const action = theme_menu->addAction(choice.name, [this, key = choice.key] {
-            UISettings::values.theme = key;
-            ApplyCustomization();
-        });
-        action->setCheckable(true);
-        action->setChecked(UISettings::values.theme == choice.key);
-        themes->addAction(action);
-    }
-    const bool phoenix = UISettings::values.theme == "phoenix";
-    menu->addSeparator();
-
-    // A colour: presets, and Custom... (a colour wheel).
-    using Swatch = CustomizeDialog::Swatch;
-    const auto colour_menu = [&](const QString& title, Setting<std::string>& setting,
-                                 const QColor& theme_default, const std::vector<Swatch>& presets) {
-        QMenu* const sub = menu->addMenu(title);
-        sub->setEnabled(phoenix);
-        if (!phoenix) {
-            sub->setToolTip(tr("For the PhoenixEmu theme"));
-        }
-        const QColor current = setting.GetValue().empty()
-                                   ? theme_default
-                                   : QColor(QString::fromStdString(setting.GetValue()));
-        auto* const group = new QActionGroup(sub);
-        bool matched = false;
-        for (const Swatch& preset : presets) {
-            QAction* const action =
-                sub->addAction(swatch(preset.color), preset.name, [this, &setting, preset, theme_default] {
-                    setting = preset.color == theme_default
-                                  ? std::string{}
-                                  : preset.color.name(QColor::HexRgb).toStdString();
-                    ApplyCustomization();
-                });
-            action->setCheckable(true);
-            const bool is_current = preset.color == current;
-            matched = matched || is_current;
-            action->setChecked(is_current);
-            group->addAction(action);
-        }
-        sub->addSeparator();
-        QAction* const custom = sub->addAction(
-            swatch(matched ? QColor(Qt::transparent) : current), tr("Custom..."),
-            [this, &setting, current, title] {
-                const QColor chosen = QColorDialog::getColor(current, this, title);
-                if (chosen.isValid()) {
-                    setting = chosen.name(QColor::HexRgb).toStdString();
-                    ApplyCustomization();
-                }
-            });
-        custom->setCheckable(true);
-        custom->setChecked(!matched);
-        group->addAction(custom);
-    };
-    colour_menu(tr("Accent Colour"), UISettings::values.theme_accent, PhoenixTheme::DefaultAccent,
-                CustomizeDialog::AccentPresets());
-    colour_menu(tr("Background Colour"), UISettings::values.theme_background,
-                PhoenixTheme::DefaultBackground, CustomizeDialog::BackgroundPresets());
-
-    // Button shape.
-    QMenu* const shape_menu = menu->addMenu(tr("Button Shape"));
-    shape_menu->setEnabled(phoenix);
-    auto* const shapes = new QActionGroup(shape_menu);
-    const u32 current_shape = UISettings::values.theme_shape.GetValue();
-    for (const auto& [value, name] : std::initializer_list<std::pair<u32, QString>>{
-             {0, tr("Rounded Pills (default)")}, {1, tr("Soft Corners")}, {2, tr("Square")}}) {
-        QAction* const action = shape_menu->addAction(name, [this, shape = value] {
-            UISettings::values.theme_shape = shape;
-            ApplyCustomization();
-        });
-        action->setCheckable(true);
-        action->setChecked(current_shape == value);
-        shapes->addAction(action);
-    }
-
-    menu->addSeparator();
-    QMenu* const audio_menu = menu->addMenu(tr("Home Screen Audio"));
-    QAction* const music_act = audio_menu->addAction(tr("Play Game Music in Home Menu"), [](bool checked) {
-        UISettings::values.menu_game_music = checked;
-    });
-    music_act->setCheckable(true);
-    music_act->setChecked(UISettings::values.menu_game_music.GetValue());
-
-    QAction* const random_act = audio_menu->addAction(tr("Soundtrack Mode (Random Songs)"), [](bool checked) {
-        UISettings::values.menu_music_random = checked;
-    });
-    random_act->setCheckable(true);
-    random_act->setChecked(UISettings::values.menu_music_random.GetValue());
-    random_act->setEnabled(UISettings::values.menu_game_music.GetValue());
-
-    QAction* const ambient_act = audio_menu->addAction(tr("Play Ambient Warmth Hum"), [](bool checked) {
-        UISettings::values.menu_ambient = checked;
-    });
-    ambient_act->setCheckable(true);
-    ambient_act->setChecked(UISettings::values.menu_ambient.GetValue());
-
-    QAction* const sounds_act = audio_menu->addAction(tr("Play Navigation Sound Effects"), [](bool checked) {
-        UISettings::values.menu_sounds = checked;
-    });
-    sounds_act->setCheckable(true);
-    sounds_act->setChecked(UISettings::values.menu_sounds.GetValue());
-
-    audio_menu->addSeparator();
-    QAction* const mute_all_act = audio_menu->addAction(tr("Mute All Home Menu Sounds"), [](bool checked) {
-        UISettings::values.menu_muted = checked;
-    });
-    mute_all_act->setCheckable(true);
-    mute_all_act->setChecked(UISettings::values.menu_muted.GetValue());
-
-    menu->addSeparator();
-    menu->addAction(tr("Reset to Defaults"), [this] {
-        UISettings::values.theme = "phoenix";
-        UISettings::values.theme_accent = std::string{};
-        UISettings::values.theme_background = std::string{};
-        UISettings::values.theme_shape = 0;
-        ApplyCustomization();
-    });
 }
 
 void MainWindow::ConnectMenuEvents() {
@@ -3163,6 +3067,9 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
     if (ui->action_Single_Window_Mode->isChecked()) {
         game_list->hide();
         game_list_placeholder->hide();
+    }
+    if (customize_panel != nullptr) {
+        customize_panel->hide(); // it customizes the home screen
     }
     status_bar_update_timer.start(500);
     renderer_status_button->setDisabled(true);
@@ -4859,6 +4766,7 @@ void MainWindow::OnConfigure() {
                                      !multiplayer_state->IsHostingPublicRoom());
     connect(&configure_dialog, &ConfigureDialog::LanguageChanged, this,
             &MainWindow::OnLanguageChanged);
+    configure_dialog.OpenPage(std::exchange(configure_start_page, 0));
     connect(&configure_dialog, &ConfigureDialog::ExternalContentDirsChanged, this,
             &MainWindow::OnGameListRefresh);
 

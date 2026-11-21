@@ -320,6 +320,7 @@ LoadingScreen::LoadingScreen(QWidget* parent)
     scene = std::make_shared<PhoenixBackdrop::Scene>();
     flame_progress = new FlameProgress(this);
     static_cast<FlameProgress*>(flame_progress)->on_frame = [this](qreal dt) {
+        scene->SetOptions(PhoenixBackdrop::Scene::Options::FromSettings());
         scene->Step(dt, QRectF(rect()));
         update();
     };

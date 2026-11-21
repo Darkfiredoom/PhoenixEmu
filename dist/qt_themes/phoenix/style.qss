@@ -3338,3 +3338,63 @@ QPushButton#HomeMusicButton:hover {
     background-color: rgba(255, 200, 61, 75);
     border: 1px solid rgba(255, 224, 150, 180);
 }
+
+/* The Customize panel beside the game list. */
+QFrame#CustomizePanel {
+    background-color: #1C1811;
+    border-left: 1px solid #3A3022;
+}
+
+QFrame#CustomizePanel QScrollArea,
+QWidget#CustomizePanelBody {
+    background: transparent;
+}
+
+QLabel#CustomizePanelTitle {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+QLabel#CustomizeSectionTitle {
+    font-size: 15px;
+    font-weight: bold;
+    color: #FFD966;
+}
+
+QToolButton#CustomizeSwatch {
+    padding: 0px;
+    margin: 0px;
+    min-width: 0px;
+    border: none;
+    background: transparent;
+}
+
+QPushButton#CustomizeSegment {
+    min-width: 0px;
+    min-height: 26px;
+    max-height: 30px;
+    font-size: 12px;
+    background-color: rgba(255, 200, 61, 20);
+    border: 1px solid rgba(255, 200, 61, 60);
+    border-radius: 8px;
+    padding: 2px 2px;
+    color: #E8D9B5;
+}
+
+QPushButton#CustomizeSegment:hover {
+    background-color: rgba(255, 200, 61, 50);
+}
+
+QPushButton#CustomizeSegment:checked {
+    background-color: #FFC83D;
+    border-color: #FFC83D;
+    color: #2A1C00;
+    font-weight: bold;
+}
+
+QLabel#CustomizePicturePreview {
+    background-color: #14110C;
+    border: 1px solid #3A3022;
+    border-radius: 8px;
+    color: #A8987A;
+}

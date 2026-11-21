@@ -40,6 +40,10 @@ namespace Ui {
 class ConfigureInputPlayer;
 } // namespace Ui
 
+/// A binding as Configure > Controls shows it ("Button A", "Axis 2", a key name).
+QString InputBindingText(InputCommon::InputSubsystem* input_subsystem,
+                         const Common::ParamPackage& param);
+
 namespace Core::HID {
 class HIDCore;
 class EmulatedController;

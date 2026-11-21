@@ -8,6 +8,12 @@ SPDX-License-Identifier: GPL-2.0-or-later
         <file alias="phoenixemu.ico">../../dist/phoenixemu.ico</file>
         <file alias="phoenixemu.png">../../dist/phoenixemu.png</file>
     </qresource>
+    <!-- Platform frames and the cartridge, from Eglantine's home screen redesign (GPL-3.0). -->
+    <qresource prefix="/game_borders">
+        <file alias="switch1.png">../../dist/icons/game_borders/switch1.png</file>
+        <file alias="switch2.png">../../dist/icons/game_borders/switch2.png</file>
+        <file alias="game_cartridge.svg">../../dist/icons/game_borders/game_cartridge.svg</file>
+    </qresource>
     <qresource prefix="/amiibo">
         <file alias="amiibo_table.json">../../dist/amiibo_table.json</file>
     </qresource>

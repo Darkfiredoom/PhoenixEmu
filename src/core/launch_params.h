@@ -36,6 +36,10 @@ struct LaunchParams {
     u16 port = Network::DefaultRoomPort;
     bool use_multiplayer = false;
     bool fullscreen = false;
+    // --steam (or a game started by Steam, which sets SteamGameId): the game fullscreen at once,
+    // no close question, and PhoenixEmu quits when the game stops, so a Steam library entry
+    // behaves like the game itself.
+    bool from_steam = false;
     bool force_null_render = false;
     bool force_single_core = false;
     // print

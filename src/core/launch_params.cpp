@@ -50,6 +50,7 @@ LaunchParams ParseLaunchParams(Core::System& system, int argc, char *argv[], wch
         {"clear-nup-icon", no_argument, 0, 0x105},
         {"clear-nup-version", no_argument, 0, 0x106},
         {"clear-nup-publisher", no_argument, 0, 0x107},
+        {"steam", no_argument, 0, 0x108},
         {0, 0, 0, 0},
         // clang-format on
     };
@@ -105,6 +106,9 @@ LaunchParams ParseLaunchParams(Core::System& system, int argc, char *argv[], wch
                 break;
             case 0x107:
                 p.edit_nup_publisher = std::string{};
+                break;
+            case 0x108:
+                p.from_steam = true;
                 break;
             case 'i': {
                 p.input_profile = std::string(optarg);
@@ -233,6 +237,7 @@ void ApplyLaunchParams(LaunchParams const& lp) noexcept {
             " [options] <filename>\n"
             "-c, --config          Load the specified configuration file\n"
             "-f, --fullscreen      Start in fullscreen mode\n"
+            "--steam               Started from Steam: the game fullscreen, quit when it stops\n"
             "-g, --game            File path of the game to load\n"
             "-h, --help            Display this help and exit\n"
             "-m, --multiplayer=nick:password@address:port"

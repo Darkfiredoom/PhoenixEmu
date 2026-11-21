@@ -738,6 +738,7 @@ private:
     AmiiboLibraryDialog* amiibo_library = nullptr;
     CustomizePanel* customize_panel = nullptr;
     GameDetailsPanel* game_details_panel = nullptr;
+    bool steam_launch = false; ///< Started from Steam: fullscreen, quit when the game stops
     bool game_details_closed = false; ///< Hidden with its close button until the next pick
     /// The "Are you sure you want to close?" box while it is open (ConfirmClose).
     QPointer<QMessageBox> close_question;

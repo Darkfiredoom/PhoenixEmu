@@ -913,9 +913,17 @@ MainWindow::MainWindow(bool has_broken_vulkan)
     if (launch) {
         const auto& lp = *launch;
 
+        // Steam sets SteamGameId for every game it starts, non-Steam games included: entries
+        // made before --steam existed behave the same.
+        const char* const steam_game = std::getenv("SteamGameId");
+        steam_launch = !lp.filepath.empty() &&
+                       (lp.from_steam || (steam_game != nullptr && *steam_game != '\0'));
+        if (steam_launch) {
+            LOG_INFO(Frontend, "Started from Steam: the game fullscreen, quitting when it stops");
+        }
         // Override fullscreen setting if gamepath or argument is provided
         if (!lp.filepath.empty() || lp.fullscreen) {
-            ui->action_Fullscreen->setChecked(lp.fullscreen);
+            ui->action_Fullscreen->setChecked(lp.fullscreen || steam_launch);
         }
 
         if (!lp.filepath.empty()) {
@@ -3525,6 +3533,12 @@ void MainWindow::OnEmulationStopped() {
     }
     game_list->SetFilterFocus();
     UpdateGameDetailsPanel();
+    if (steam_launch) {
+        // Back to Steam rather than to the game list: the library entry is the game.
+        steam_launch = false;
+        LOG_INFO(Frontend, "The game started from Steam stopped: quitting");
+        QTimer::singleShot(0, this, [this] { close(); });
+    }
     tas_label->clear();
     input_subsystem->GetTas()->Stop();
     OnTasStateChanged();
@@ -4100,7 +4114,7 @@ void MainWindow::OnGameListSteamShortcut(u64 program_id, const std::string& game
         }
         result = SteamShortcuts::Add(game_path, name,
                                      QtCommon::GetEdenCommand(),
-                                     fmt::format("-g \"{:s}\"", game_path), icon);
+                                     fmt::format("--steam -g \"{:s}\"", game_path), icon);
     } else {
         result = SteamShortcuts::Remove(game_path);
     }
@@ -7305,6 +7319,10 @@ bool MainWindow::SelectRomFSDumpTarget(const FileSys::ContentProvider& installed
 }
 
 bool MainWindow::ConfirmClose() {
+    // Steam's own Exit Game is the player's answer already.
+    if (steam_launch) {
+        return true;
+    }
     if (QtCommon::emu_thread == nullptr ||
         UISettings::values.confirm_before_stopping.GetValue() == ConfirmStop::Ask_Never)
         return true;

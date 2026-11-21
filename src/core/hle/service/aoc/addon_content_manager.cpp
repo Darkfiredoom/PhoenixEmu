@@ -8,6 +8,8 @@
 #include <numeric>
 #include <vector>
 
+#include <fmt/ranges.h>
+
 #include "common/logging.h"
 #include "common/settings.h"
 #include "core/core.h"
@@ -52,6 +54,27 @@ static std::vector<u64> AccumulateAOCTitleIDs(Core::System& system) {
             }),
         add_on_content.end());
     return add_on_content;
+}
+
+// Include add-ons carried by the opened container without duplicating installed titles.
+static std::vector<u64> AllAOCTitleIDs(Core::System& system,
+                                      const std::vector<u64>& installed, bool log_carried = false) {
+    std::vector<u64> all = installed;
+    std::vector<u64> carried;
+    const auto status = system.GetAppLoader().ReadAddOnTitleIds(carried);
+    if (log_carried) {
+        LOG_DEBUG(Service_AOC, "ListAddOnContent: ReadAddOnTitleIds status={}, carried=[{:016X}]",
+                    static_cast<u16>(status), fmt::join(carried, ", "));
+    }
+    if (status != Loader::ResultStatus::Success) {
+        return all;
+    }
+    for (const u64 title_id : carried) {
+        if (std::find(all.begin(), all.end(), title_id) == all.end()) {
+            all.push_back(title_id);
+        }
+    }
+    return all;
 }
 
 IAddOnContentManager::IAddOnContentManager(Core::System& system_)
@@ -104,8 +127,9 @@ Result IAddOnContentManager::CountAddOnContent(Out<u32> out_count, ClientProcess
         R_SUCCEED();
     }
 
+    const auto all = AllAOCTitleIDs(system, add_on_content);
     *out_count = static_cast<u32>(
-        std::count_if(add_on_content.begin(), add_on_content.end(),
+        std::count_if(all.begin(), all.end(),
                       [current](u64 tid) { return CheckAOCTitleIDMatchesBase(tid, current); }));
 
     R_SUCCEED();
@@ -122,7 +146,7 @@ Result IAddOnContentManager::ListAddOnContent(Out<u32> out_count,
     std::vector<u32> out;
     const auto& disabled = Settings::values.disabled_addons[current];
     if (std::find(disabled.begin(), disabled.end(), "DLC") == disabled.end()) {
-        for (u64 content_id : add_on_content) {
+        for (u64 content_id : AllAOCTitleIDs(system, add_on_content, true)) {
             if (FileSys::GetBaseTitleID(content_id) != current) {
                 continue;
             }
@@ -150,12 +174,15 @@ Result IAddOnContentManager::GetAddOnContentBaseId(Out<u64> out_title_id,
                                    system.GetContentProvider()};
 
     const auto res = pm.GetControlMetadata();
-    if (res.first == nullptr) {
-        *out_title_id = FileSys::GetAOCBaseTitleID(title_id);
-        R_SUCCEED();
+    const u64 metadata_base = res.first ? res.first->GetDLCBaseTitleId() : 0;
+    std::vector<u64> carried;
+    if (metadata_base == 0 &&
+        system.GetAppLoader().ReadAddOnTitleIds(carried) != Loader::ResultStatus::Success) {
+        carried.clear();
     }
-
-    *out_title_id = res.first->GetDLCBaseTitleId();
+    *out_title_id = FileSys::ResolveAOCBaseTitleID(title_id, metadata_base, carried);
+    LOG_INFO(Service_AOC, "title_id={:016X}, dlc_base_title_id={:016X}, returned={:016X}, fallback={}",
+                title_id, metadata_base, *out_title_id, metadata_base == 0);
 
     R_SUCCEED();
 }

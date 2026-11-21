@@ -1563,7 +1563,7 @@ jobjectArray Java_org_phoenix_phoenix_1emu_NativeLibrary_getPatchesForFile(JNIEn
     FileSys::VirtualFile update_raw;
     loader->ReadUpdateRaw(update_raw);
 
-    auto patches = pm.GetPatches(update_raw);
+    auto patches = pm.GetPatches(update_raw, loader.get());
     jobjectArray jpatchArray =
         env->NewObjectArray(patches.size(), Common::Android::GetPatchClass(), nullptr);
     int i = 0;

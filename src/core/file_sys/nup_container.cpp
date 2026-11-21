@@ -529,6 +529,36 @@ bool NupContainer::IsNupFile(const VirtualFile& file) {
     return magic == HeaderMagic;
 }
 
+std::optional<u64> NupContainer::PeekBaseTitleId(const VirtualFile& file) {
+    if (file == nullptr || file->GetSize() < SuperblockSize) {
+        return std::nullopt;
+    }
+    Superblock super{};
+    if (file->ReadObject(&super, 0) != sizeof(Superblock) || super.magic != HeaderMagic) {
+        return std::nullopt;
+    }
+    // A container holds a base, its updates and its add-ons; this bounds the read on a bad file.
+    constexpr u32 MaxPeekedPackages = 1024;
+    const u64 records_size = static_cast<u64>(super.package_count) * PackageRecordSize;
+    if (super.package_count > MaxPeekedPackages || super.toc_offset > file->GetSize() ||
+        super.toc_size < TocHeaderSize || records_size > super.toc_size - TocHeaderSize) {
+        return std::nullopt;
+    }
+    const auto records = file->ReadBytes(static_cast<std::size_t>(records_size),
+                                         static_cast<std::size_t>(super.toc_offset + TocHeaderSize));
+    if (records.size() != records_size) {
+        return std::nullopt;
+    }
+    for (u32 i = 0; i < super.package_count; ++i) {
+        PackageRecord record{};
+        std::memcpy(&record, records.data() + i * PackageRecordSize, sizeof(record));
+        if (record.kind == static_cast<u8>(PackageKind::Base)) {
+            return record.title_id;
+        }
+    }
+    return std::nullopt;
+}
+
 NupContainer::NupContainer(VirtualFile file_, std::size_t memory_cache_cap,
                            std::filesystem::path spill_dir_)
     : file(std::move(file_)), cache(std::make_shared<NupDecompressCache>()) {

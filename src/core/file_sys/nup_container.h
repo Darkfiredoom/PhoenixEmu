@@ -70,6 +70,11 @@ public:
     static bool IsNupFile(const VirtualFile& file);
 
     /// Recursively merges overlay into a copy of base; overlay paths win.
+    /// Title ID of the base package, read from the package records alone (unverified, without
+    /// parsing or hashing the rest of the table of contents). Useful when scanning a folder of
+    /// containers for an update's companion base.
+    static std::optional<u64> PeekBaseTitleId(const VirtualFile& file);
+
     static VirtualDir MergeShadowDirs(const VirtualDir& base, const VirtualDir& overlay);
 
     /// Zstd members larger than half of `memory_cache_cap` are decompressed to a temporary file

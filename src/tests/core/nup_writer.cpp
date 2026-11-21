@@ -16,8 +16,12 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
+#include "common/settings.h"
+#include "core/file_sys/common_funcs.h"
+#include "core/file_sys/content_archive.h"
 #include "core/file_sys/nup_container.h"
 #include "core/file_sys/nup_writer.h"
+#include "core/file_sys/romfs.h"
 #include "core/file_sys/control_metadata.h"
 #include "core/file_sys/vfs/vfs_real.h"
 #include "core/file_sys/vfs/vfs_vector.h"
@@ -1098,4 +1102,141 @@ TEST_CASE("NUP loader leaves standalone update metadata unchanged", "[nup][loade
     u64 program_id{};
     REQUIRE(loader.ReadProgramId(program_id) == Loader::ResultStatus::Success);
     REQUIRE(program_id == TitleId);
+}
+
+TEST_CASE("A missing DLC base uses only unambiguous carried IDs from the caller's family",
+          "[nup][loader-addons]") {
+    constexpr u64 program = 0x040074A01BF12000;
+    constexpr std::array ids{program + 0x3001, program + 0x1001, program + 0x1002};
+    CHECK(FileSys::ResolveAOCBaseTitleID(program, 0, ids) == program + 0x1000);
+    CHECK(FileSys::ResolveAOCBaseTitleID(program, program + 0x1800, ids) == program + 0x1800);
+    CHECK(FileSys::ResolveAOCBaseTitleID(program, 0, {}) == program + 0x1000);
+    constexpr std::array other_namespace{program + 1};
+    CHECK(FileSys::ResolveAOCBaseTitleID(program, 0, other_namespace) == program);
+    constexpr std::array mixed{program + 1, program + 0x1001};
+    CHECK(FileSys::ResolveAOCBaseTitleID(program, 0, mixed) == program + 0x1000);
+}
+
+TEST_CASE("NUP loader serves the newest carried add-on and rejects foreign titles",
+          "[nup][loader-addons]") {
+    TempDir t;
+    const auto root = t.path / "Game";
+    MakeDump(root);
+    Put(root / "dlc/0400ABCD00011001/7/romfs/addon.bin", "newer addon");
+    Put(root / "dlc/0400ABCD00022001/0/romfs/foreign.bin", "foreign");
+    const auto archive = t.path / "Game.nup";
+    REQUIRE(FileSys::Nup::PackDump(root, archive) == FileSys::Nup::PackResult::Success);
+
+    FileSys::RealVfsFilesystem real;
+    Loader::AppLoader_NUP loader{real.OpenFile(archive.string(), FileSys::OpenMode::Read)};
+    std::vector<u64> ids;
+    REQUIRE(loader.ReadAddOnTitleIds(ids) == Loader::ResultStatus::Success);
+    REQUIRE(ids == std::vector<u64>{TitleId + 0x1001, TitleId + 0x12001});
+
+    FileSys::NACP control;
+    REQUIRE(loader.ReadControlData(control) == Loader::ResultStatus::Success);
+    REQUIRE(control.GetDLCBaseTitleId() == TitleId + 0x1000);
+    FileSys::VirtualFile romfs;
+    REQUIRE(loader.ReadAddOnRomFS(control.GetDLCBaseTitleId() + 1, romfs) ==
+            Loader::ResultStatus::Success);
+    const auto tree = FileSys::ExtractRomFS(romfs);
+    REQUIRE(tree != nullptr);
+    REQUIRE(Read(tree->GetFile("addon.bin")) == "newer addon");
+    FileSys::VirtualFile cached;
+    REQUIRE(loader.ReadAddOnRomFS(TitleId + 0x1001, cached) == Loader::ResultStatus::Success);
+    CHECK(cached == romfs);
+
+    FileSys::VirtualFile missing;
+    CHECK(loader.ReadAddOnRomFS(TitleId + 0x1002, missing) == Loader::ResultStatus::ErrorNoRomFS);
+    CHECK(missing == nullptr);
+    CHECK(loader.ReadAddOnRomFS(TitleId + 0x12001, missing) ==
+          Loader::ResultStatus::ErrorNoRomFS);
+
+    const auto previous = Settings::values.disabled_addons;
+    Settings::values.disabled_addons[TitleId] = {"DLC"};
+    CHECK(loader.ReadAddOnRomFS(TitleId + 0x1001, missing) == Loader::ResultStatus::ErrorNoRomFS);
+    Settings::values.disabled_addons = previous;
+}
+
+TEST_CASE("NUP update disable keys select the base program and RomFS", "[nup][loader-addons]") {
+    TempDir t;
+    const auto root = t.path / "Game";
+    MakeDump(root);
+    const auto archive = t.path / "Game.nup";
+    REQUIRE(FileSys::Nup::PackDump(root, archive) == FileSys::Nup::PackResult::Success);
+    FileSys::RealVfsFilesystem real;
+    const auto open = [&] {
+        return Loader::AppLoader_NUP{real.OpenFile(archive.string(), FileSys::OpenMode::Read)};
+    };
+    const auto previous = Settings::values.disabled_addons;
+    SECTION("plain Update key") {
+        Settings::values.disabled_addons[TitleId] = {"Update"};
+    }
+    SECTION("versioned Update key") {
+        Settings::values.disabled_addons[TitleId] = {"Update@131072"};
+    }
+    auto loader = open();
+    const auto patches = loader.GetCarriedPatches();
+    REQUIRE(patches.size() == 2);
+    CHECK(patches[0].name == "Update");
+    CHECK_FALSE(patches[0].enabled);
+    CHECK(patches[0].source == FileSys::PatchSource::Packed);
+    CHECK(patches[1].name == "DLC");
+    CHECK(patches[1].enabled);
+    std::string version;
+    REQUIRE(loader.ReadDisplayVersion(version) == Loader::ResultStatus::Success);
+    CHECK(version == "1.0.0");
+    FileSys::VirtualFile romfs;
+    REQUIRE(loader.ReadRomFS(romfs) == Loader::ResultStatus::Success);
+    CHECK(PackedTree(FileSys::ExtractRomFS(romfs)) == SourceTree(root / "Base/RomFS"));
+    Settings::values.disabled_addons = previous;
+}
+
+TEST_CASE("NUP update-only file uses a matching sibling base without borrowing another game",
+          "[nup][loader-addons]") {
+    TempDir t;
+    constexpr u64 OtherTitle = 0x0400ABCD00020000ULL;
+    Put(t.path / "Other/ExeFS/main", "other main");
+    Put(t.path / "Other/ExeFS/main.npdm", Npdm(OtherTitle));
+    Put(t.path / "Other/RomFS/other.bin", "other");
+    Put(t.path / "Base/ExeFS/main", "base main");
+    Put(t.path / "Base/ExeFS/main.npdm", Npdm(TitleId));
+    Put(t.path / "Base/RomFS/base.bin", "base");
+    Put(t.path / "Base/RomFS/shared.bin", "old");
+    Put(t.path / "Update/updates/65536/exefs/main", "update main");
+    Put(t.path / "Update/updates/65536/exefs/main.npdm", Npdm(TitleId));
+    Put(t.path / "Update/updates/65536/romfs/shared.bin", "new");
+    const auto out = t.path / "out";
+    fs::create_directories(out);
+    REQUIRE(FileSys::Nup::PackDump(t.path / "Other", out / "A Other.NUP") ==
+            FileSys::Nup::PackResult::Success);
+    REQUIRE(FileSys::Nup::PackDump(t.path / "Base", out / "Base.nup") ==
+            FileSys::Nup::PackResult::Success);
+    REQUIRE(FileSys::Nup::PackDump(t.path / "Update", out / "Update.nup") ==
+            FileSys::Nup::PackResult::Success);
+    FileSys::RealVfsFilesystem real;
+    Loader::AppLoader_NUP loader{real.OpenFile((out / "Update.nup").string(),
+                                               FileSys::OpenMode::Read)};
+    CHECK(loader.IsUpdateOnly());
+    u64 program_id{};
+    REQUIRE(loader.ReadProgramId(program_id) == Loader::ResultStatus::Success);
+    CHECK(program_id == TitleId);
+    FileSys::VirtualFile romfs;
+    REQUIRE(loader.ReadRomFS(romfs) == Loader::ResultStatus::Success);
+    CHECK(PackedTree(FileSys::ExtractRomFS(romfs)) ==
+          std::map<std::string, std::string>{{"base.bin", "base"}, {"shared.bin", "new"}});
+    CHECK(loader.GetCarriedPatches().empty());
+
+    const auto alone = t.path / "alone";
+    fs::create_directories(alone);
+    fs::copy_file(out / "A Other.NUP", alone / "A Other.NUP");
+    fs::copy_file(out / "Update.nup", alone / "Update.nup");
+    Loader::AppLoader_NUP standalone{
+        real.OpenFile((alone / "Update.nup").string(), FileSys::OpenMode::Read)};
+    REQUIRE(standalone.ReadProgramId(program_id) == Loader::ResultStatus::Success);
+    CHECK(program_id == TitleId);
+    FileSys::VirtualFile alone_romfs;
+    REQUIRE(standalone.ReadRomFS(alone_romfs) == Loader::ResultStatus::Success);
+    CHECK(PackedTree(FileSys::ExtractRomFS(alone_romfs)) ==
+          std::map<std::string, std::string>{{"shared.bin", "new"}});
 }

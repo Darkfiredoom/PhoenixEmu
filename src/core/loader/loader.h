@@ -26,6 +26,7 @@ class System;
 
 namespace FileSys {
 class NACP;
+struct Patch;
 } // namespace FileSys
 
 namespace Kernel {
@@ -359,6 +360,23 @@ public:
 
     // ReadMainBuildId as the uppercase hex string the NPLN patch catalogue keys on.
     std::optional<std::string> ReadMainBuildIdHex(Core::System& system);
+
+    /// Add-on title IDs carried by the application's file rather than installed content.
+    /// Implementations append unique IDs and leave out_file/output containers alone on failure.
+    virtual ResultStatus ReadAddOnTitleIds(std::vector<u64>& out_title_ids) {
+        return ResultStatus::ErrorNotImplemented;
+    }
+
+    /// Opens add-on RomFS carried by the application's file. Installed content takes precedence.
+    virtual ResultStatus ReadAddOnRomFS(u64 title_id, FileSys::VirtualFile& out_file) {
+        return ResultStatus::ErrorNotImplemented;
+    }
+
+    /// Updates/DLC carried by the file, for the existing per-game add-on list. These are not
+    /// installed-content entries and must not replace a user's installed update selection.
+    virtual ResultStatus ReadCarriedPatches(std::vector<FileSys::Patch>& out_patches) const {
+        return ResultStatus::ErrorNotImplemented;
+    }
 
     using Modules = std::map<VAddr, std::string>;
 

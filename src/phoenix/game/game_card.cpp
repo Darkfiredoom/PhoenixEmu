@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <QGuiApplication>
 #include <QImageReader>
 #include <QPainter>
 #include <QPainterPath>
@@ -24,7 +25,7 @@ GameCard::GameCard(QObject* parent) : QStyledItemDelegate{parent} {
 }
 
 GameCard::Style GameCard::CurrentStyle() {
-    return static_cast<Style>(std::min<u32>(UISettings::values.game_card_style.GetValue(), 2));
+    return static_cast<Style>(std::min<u32>(UISettings::values.game_card_style.GetValue(), 3));
 }
 
 QPixmap GameCard::PlatformBorderPixmap(bool is_switch2, int size, qreal dpr) {
@@ -49,23 +50,188 @@ QPixmap GameCard::PlatformBorderPixmap(bool is_switch2, int size, qreal dpr) {
     return border;
 }
 
-QPixmap GameCard::CartridgePixmap(int height_px, qreal dpr) {
+QPixmap GameCard::CartridgePixmap(int height_px, qreal dpr, bool is_switch2) {
     // In 32 px steps, so the picked tile's spring animation reuses a few renders of the SVG.
     const int bucket = std::max(32, (std::max(1, height_px) + 31) / 32 * 32);
-    const QString key = QStringLiteral("phoenix-cartridge-%1-%2").arg(bucket).arg(dpr);
+    const QString key = QStringLiteral("phoenix-cartridge-%1-%2-%3")
+                            .arg(bucket)
+                            .arg(dpr)
+                            .arg(is_switch2 ? 2 : 1);
     QPixmap cartridge;
     if (QPixmapCache::find(key, &cartridge)) {
         return cartridge;
     }
     QImageReader reader(QStringLiteral(":/game_borders/game_cartridge.svg"));
     reader.setScaledSize(QSize(qRound(bucket * CartridgeAspect * dpr), qRound(bucket * dpr)));
-    const QImage image = reader.read();
+    QImage image = reader.read();
     if (image.isNull()) {
         return {};
+    }
+    if (!is_switch2) {
+        // Switch 1 game cards are dark grey plastic: every red pixel (the body, and the red band
+        // and corners of the label that show around the art's rounded corners) turned grey, its
+        // shading kept.
+        image = image.convertToFormat(QImage::Format_ARGB32);
+        for (int y = 0; y < image.height(); ++y) {
+            auto* const row = reinterpret_cast<QRgb*>(image.scanLine(y));
+            for (int x = 0; x < image.width(); ++x) {
+                const QRgb c = row[x];
+                const int r = qRed(c), g = qGreen(c), b = qBlue(c);
+                if (qAlpha(c) == 0 || r < g + 40 || r < b + 40) {
+                    continue; // not red: the label's black, highlights, the clear margin
+                }
+                const int shade = std::clamp(28 + r * 70 / 255, 0, 255);
+                row[x] = qRgba(shade, shade, shade + 4, qAlpha(c));
+            }
+        }
     }
     cartridge = QPixmap::fromImage(image);
     QPixmapCache::insert(key, cartridge);
     return cartridge;
+}
+
+QPixmap GameCard::CasePixmap(int height_px, qreal dpr, bool is_switch2, bool band_on) {
+    const int bucket = std::max(32, (std::max(1, height_px) + 31) / 32 * 32);
+    const QString key = QStringLiteral("phoenix-case-%1-%2-%3-%4")
+                            .arg(bucket)
+                            .arg(dpr)
+                            .arg(is_switch2 ? 2 : 1)
+                            .arg(band_on ? 1 : 0);
+    QPixmap cached;
+    if (QPixmapCache::find(key, &cached)) {
+        return cached;
+    }
+    const QSize size{qRound(bucket * CaseAspect * dpr), qRound(bucket * dpr)};
+    QImage image(size, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter p(&image);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setRenderHint(QPainter::TextAntialiasing);
+    p.scale(size.width() / CaseBase.width(), size.height() / CaseBase.height());
+
+    // The plastic case, a little lighter towards the opening edge: Switch 2's red, Switch 1's
+    // clear (as in the player's case layout photo).
+    const QRectF body{1.5, 1.5, 253.0, 397.0};
+    QLinearGradient plastic{body.topLeft(), body.topRight()};
+    if (is_switch2) {
+        plastic.setColorAt(0.0, QColor(0xB8, 0x00, 0x0C));
+        plastic.setColorAt(0.12, QColor(0xD4, 0x05, 0x14));
+        plastic.setColorAt(1.0, QColor(0xE8, 0x1C, 0x26));
+    } else {
+        plastic.setColorAt(0.0, QColor(0xC9, 0xCD, 0xD3, 240));
+        plastic.setColorAt(0.12, QColor(0xE4, 0xE7, 0xEB, 240));
+        plastic.setColorAt(1.0, QColor(0xF4, 0xF6, 0xF8, 240));
+    }
+    p.setPen(QPen(QColor(255, 255, 255, 70), 1.2));
+    p.setBrush(plastic);
+    p.drawRoundedRect(body, 12, 12);
+
+    if (!band_on) {
+        // The player's case art: a thin rim round the whole cover, no spine strip on the front.
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(0xF4, 0xF1, 0xEC));
+        p.drawRoundedRect(CaseArtWindow, 6, 6);
+        p.end();
+        const QPixmap plain = QPixmap::fromImage(image);
+        QPixmapCache::insert(key, plain);
+        return plain;
+    }
+    // The spine: a darker strip with two moulded ridges.
+    QLinearGradient spine{QPointF(2, 0), QPointF(19, 0)};
+    if (is_switch2) {
+        spine.setColorAt(0.0, QColor(0x8E, 0x00, 0x09));
+        spine.setColorAt(0.6, QColor(0xB0, 0x02, 0x0E));
+        spine.setColorAt(1.0, QColor(0x9A, 0x00, 0x0A));
+    } else {
+        spine.setColorAt(0.0, QColor(0xA9, 0xAE, 0xB5));
+        spine.setColorAt(0.6, QColor(0xC8, 0xCC, 0xD2));
+        spine.setColorAt(1.0, QColor(0xB4, 0xB9, 0xC0));
+    }
+    p.setPen(Qt::NoPen);
+    p.setBrush(spine);
+    QPainterPath spine_path;
+    spine_path.addRoundedRect(QRectF(2, 2, 17, 396), 11, 11);
+    p.drawPath(spine_path.intersected([] {
+        QPainterPath clip;
+        clip.addRect(QRectF(0, 0, 19, 400));
+        return clip;
+    }()));
+    p.setPen(QPen(QColor(255, 255, 255, 40), 1.0));
+    p.drawLine(QPointF(8, 16), QPointF(8, 384));
+    p.drawLine(QPointF(13, 16), QPointF(13, 384));
+
+    // The cover sheet behind the clear sleeve, and its header band.
+    const QRectF window = CaseWindow;
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(0xF4, 0xF1, 0xEC));
+    p.drawRoundedRect(window, 4, 4);
+    const QRectF band{window.left(), window.top(), window.width(), CaseCover.top() - window.top()};
+    QPainterPath band_path;
+    band_path.addRoundedRect(band.adjusted(0, 0, 0, 4), 4, 4);
+    p.setClipRect(band);
+    if (is_switch2) {
+        // Switch 2: a dark band with a red line under it.
+        p.fillPath(band_path, QColor(0x1E, 0x1E, 0x22));
+        p.fillRect(QRectF(band.left(), band.bottom() - 3, band.width(), 3), QColor(0xE6, 0x00, 0x12));
+    } else {
+        p.fillPath(band_path, QColor(0xE6, 0x00, 0x12));
+    }
+    p.setClipping(false);
+    QFont font = QGuiApplication::font();
+    font.setPixelSize(13);
+    font.setBold(true);
+    font.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
+    p.setFont(font);
+    p.setPen(Qt::white);
+    p.drawText(band.adjusted(10, 0, -8, is_switch2 ? -3 : 0), Qt::AlignVCenter | Qt::AlignLeft,
+               is_switch2 ? QStringLiteral("NINTENDO SWITCH 2")
+                          : QStringLiteral("NINTENDO SWITCH"));
+
+    // The sleeve's sheen across the top of the cover.
+    QLinearGradient sheen{window.topLeft(), QPointF(window.left() + 90, window.top() + 140)};
+    sheen.setColorAt(0.0, QColor(255, 255, 255, 46));
+    sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+    p.fillRect(band, sheen);
+    p.end();
+
+    const QPixmap result = QPixmap::fromImage(image);
+    QPixmapCache::insert(key, result);
+    return result;
+}
+
+QRectF GameCard::CaseWindowRect(const QRectF& case_rect) {
+    const qreal sx = case_rect.width() / CaseBase.width();
+    const qreal sy = case_rect.height() / CaseBase.height();
+    return {case_rect.left() + CaseWindow.x() * sx, case_rect.top() + CaseWindow.y() * sy,
+            CaseWindow.width() * sx, CaseWindow.height() * sy};
+}
+
+QRectF GameCard::CaseArtWindowRect(const QRectF& case_rect) {
+    const qreal sx = case_rect.width() / CaseBase.width();
+    const qreal sy = case_rect.height() / CaseBase.height();
+    return {case_rect.left() + CaseArtWindow.x() * sx, case_rect.top() + CaseArtWindow.y() * sy,
+            CaseArtWindow.width() * sx, CaseArtWindow.height() * sy};
+}
+
+void GameCard::CaseParts(const QModelIndex& index, const QRectF& case_rect, int height_px,
+                         qreal dpr, QPixmap& frame, QRectF& art_rect, QPixmap& art) {
+    const bool is_switch2 = index.data(GameListItemPath::Switch2Role).toBool();
+    const QPixmap front = index.data(GameListItemPath::CaseFrontRole).value<QPixmap>();
+    if (!front.isNull()) {
+        frame = CasePixmap(height_px, dpr, is_switch2, false);
+        art_rect = CaseArtWindowRect(case_rect);
+        art = front;
+        return;
+    }
+    frame = CasePixmap(height_px, dpr, is_switch2, true);
+    art_rect = CaseCoverRect(case_rect);
+}
+
+QRectF GameCard::CaseCoverRect(const QRectF& case_rect) {
+    const qreal sx = case_rect.width() / CaseBase.width();
+    const qreal sy = case_rect.height() / CaseBase.height();
+    return {case_rect.left() + CaseCover.x() * sx, case_rect.top() + CaseCover.y() * sy,
+            CaseCover.width() * sx, CaseCover.height() * sy};
 }
 
 QRectF GameCard::CartridgeLabelRect(const QRectF& cartridge_rect) {
@@ -106,7 +272,7 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
     const QRect cardRect = getCardRect(option, index);
 
     // Cartridges sit in the grid's case (GameGrid paints its slots): no card panel behind them.
-    const bool in_case = CurrentStyle() == Style::Cartridge;
+    const bool in_case = IsFramed(CurrentStyle());
     QPalette palette = option.palette;
     QColor backgroundColor = palette.window().color();
     QColor borderColor = palette.dark().color();
@@ -149,19 +315,28 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
     QRect iconRect;
     const Style style = CurrentStyle();
     const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
-    if (!icon_pixmap.isNull() && style == Style::Cartridge) {
-        // The portrait cartridge replaces the square icon; the art sits in its label.
-        const int cart_w = qRound(icon_size * CartridgeAspect);
+    if (!icon_pixmap.isNull() && IsFramed(style)) {
+        // The portrait cartridge or case replaces the square icon; the art sits in its label.
+        const int cart_w = qRound(icon_size * FrameAspect(style));
         iconRect = {cardRect.left() + (cardRect.width() - cart_w) / 2,
                     cardRect.top() + cardMargin - 1, cart_w, static_cast<int>(icon_size)};
         painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-        painter->drawPixmap(iconRect, CartridgePixmap(static_cast<int>(icon_size), dpr));
-        const QRectF label = CartridgeLabelRect(QRectF(iconRect));
+        QPixmap frame;
+        QRectF label;
+        QPixmap art = icon_pixmap;
+        if (style == Style::Case) {
+            CaseParts(index, QRectF(iconRect), static_cast<int>(icon_size), dpr, frame, label, art);
+        } else {
+            frame = FramePixmap(style, static_cast<int>(icon_size), dpr,
+                                index.data(GameListItemPath::Switch2Role).toBool());
+            label = FrameArtRect(style, QRectF(iconRect));
+        }
+        painter->drawPixmap(iconRect, frame);
         painter->save();
         QPainterPath label_clip;
         label_clip.addRoundedRect(label, label.width() * 0.04, label.width() * 0.04);
         painter->setClipPath(label_clip);
-        DrawCoverCropped(*painter, icon_pixmap, label);
+        DrawCoverCropped(*painter, art, label);
         painter->restore();
         if (option.state & (QStyle::State_Selected | QStyle::State_MouseOver)) {
             // Picked out of its slot: an outline in the accent colour.
@@ -238,9 +413,9 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         tile_rect.translate(0, -3);
     }
     const Style style = CurrentStyle();
-    const bool cartridge = style == Style::Cartridge;
+    const bool cartridge = IsFramed(style);
     if (cartridge) {
-        const int width = qRound(tile_rect.height() * CartridgeAspect);
+        const int width = qRound(tile_rect.height() * FrameAspect(style));
         tile_rect = QRect(tile_rect.center().x() - width / 2, tile_rect.top(), width,
                           tile_rect.height());
     }
@@ -271,12 +446,24 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
     // A cartridge frame goes under the art; the art then fills its label.
     QRect art_rect = tile_rect;
     qreal art_radius = radius;
+    QPixmap picture = index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+    if (picture.isNull()) {
+        picture = index.data(Qt::DecorationRole).value<QPixmap>();
+    }
     if (cartridge) {
-        const QPixmap frame = CartridgePixmap(tile_rect.height(), dpr);
+        QPixmap frame;
+        QRectF art_area;
+        if (style == Style::Case) {
+            CaseParts(index, QRectF(tile_rect), tile_rect.height(), dpr, frame, art_area, picture);
+        } else {
+            frame = FramePixmap(style, tile_rect.height(), dpr,
+                                index.data(GameListItemPath::Switch2Role).toBool());
+            art_area = FrameArtRect(style, QRectF(tile_rect));
+        }
         if (!frame.isNull()) {
             painter->drawPixmap(tile_rect, frame);
         }
-        art_rect = CartridgeLabelRect(QRectF(tile_rect)).toRect();
+        art_rect = art_area.toRect();
         art_radius = art_rect.width() * 0.04;
     }
 
@@ -284,10 +471,6 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
     QPainterPath clip;
     clip.addRoundedRect(QRectF(art_rect), art_radius, art_radius);
     painter->setClipPath(clip);
-    QPixmap picture = index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
-    if (picture.isNull()) {
-        picture = index.data(Qt::DecorationRole).value<QPixmap>();
-    }
     const QString title =
         index.data(Qt::DisplayRole).toString().split(QLatin1Char('\n')).first();
     if (!picture.isNull()) {
@@ -420,7 +603,8 @@ QRect GameCard::getCardRect(const QStyleOptionViewItem& option, const QModelInde
     } else {
         // carousel mode: the tile (PaintHomeTile)
         const int tile = m_contentSize.width();
-        const int width = CurrentStyle() == Style::Cartridge ? qRound(tile * CartridgeAspect) : tile;
+        const int width =
+            IsFramed(CurrentStyle()) ? qRound(tile * FrameAspect(CurrentStyle())) : tile;
         return QRect(option.rect.center().x() - width / 2 + HomeInset,
                      option.rect.top() + (option.rect.height() - tile) / 2 - 16, width, tile);
         card_left = option.rect.left() + cardMargin + 4;

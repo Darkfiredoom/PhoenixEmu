@@ -24,6 +24,7 @@
 
 #include "common/fs/fs.h"
 #include "common/fs/path_util.h"
+#include "common/zstd_compression.h"
 #include "common/logging.h"
 #include "core/file_sys/romfs.h"
 #include "core/file_sys/vfs/vfs.h"
@@ -37,11 +38,11 @@ namespace {
 constexpr u32 RATE = 48000;
 constexpr u32 MAX_SECONDS = 180;
 constexpr u32 CACHE_MAGIC = 0x554D5A43; // "CZMU"
-constexpr u32 CACHE_VERSION = 2; // 2: the quiet opening trimmed
+constexpr u32 CACHE_VERSION = 3; // 2: the quiet opening trimmed; 3: .bfstm, .bars, .zs read
 constexpr u32 SONGS_KEPT = 16;   // .bwav copies kept per game (Random)
 constexpr u64 SONG_MIN_BYTES = 400'000;
 constexpr u32 SONG_MIN_SECONDS = 20;
-constexpr std::string_view SONG_LIST_HEADER = "PhoenixEmu songs 3"; // 2: sections left out
+constexpr std::string_view SONG_LIST_HEADER = "PhoenixEmu songs 4"; // 2: sections left out; 4: .bfstm, .bars, .zs
 
 std::string Lower(std::string text) {
     std::transform(text.begin(), text.end(), text.begin(),
@@ -235,6 +236,248 @@ void WriteCache(const Track& track) {
                static_cast<std::streamsize>(track.samples.size() * sizeof(s16)));
 }
 
+/// Channels at RATE down to stereo s16, normalised, with the quiet opening trimmed.
+std::vector<s16> MixToStereo(const std::vector<std::vector<float>>& decoded,
+                             const std::vector<u16>& pans) {
+    std::vector<s16> result;
+    size_t length = SIZE_MAX;
+    for (const auto& samples : decoded) {
+        length = std::min(length, samples.size());
+    }
+    if (length == 0 || length == SIZE_MAX) {
+        return result;
+    }
+    // Down to stereo: front left/right as they are, centre and the surrounds at -3 dB, LFE at
+    // a third (pans 0 FL, 1 FR, 2 C, 3 LFE, 4 SL, 5 SR; a pair is left and right).
+    std::vector<float> mix(length * 2, 0.0f);
+    for (size_t c = 0; c < decoded.size(); ++c) {
+        float left = 0.5f, right = 0.5f;
+        if (decoded.size() == 1) {
+            left = right = 1.0f;
+        } else if (decoded.size() == 2) {
+            left = c == 0 ? 1.0f : 0.0f;
+            right = 1.0f - left;
+        } else {
+            static constexpr std::array<std::array<float, 2>, 6> weights{{
+                {1.0f, 0.0f},     // front left
+                {0.0f, 1.0f},     // front right
+                {0.707f, 0.707f}, // centre
+                {0.33f, 0.33f},   // LFE
+                {0.707f, 0.0f},   // surround left
+                {0.0f, 0.707f},   // surround right
+            }};
+            if (pans[c] < weights.size()) {
+                left = weights[pans[c]][0];
+                right = weights[pans[c]][1];
+            }
+        }
+        for (size_t i = 0; i < length; ++i) {
+            mix[i * 2] += decoded[c][i] * left;
+            mix[i * 2 + 1] += decoded[c][i] * right;
+        }
+    }
+    float peak = 0.0f;
+    for (const float sample : mix) {
+        peak = std::max(peak, std::abs(sample));
+    }
+    const float gain = peak > 0.95f ? 0.95f / peak : 1.0f;
+    // Title tracks often open with a long quiet build-up: start (and loop back to) where the
+    // music is audible, a moment before the first tenth of a second above -40 dBFS.
+    size_t start = 0;
+    constexpr size_t WINDOW = RATE / 10;
+    for (size_t frame = 0; frame + WINDOW < length; frame += WINDOW) {
+        double energy = 0.0;
+        for (size_t i = frame; i < frame + WINDOW; ++i) {
+            energy += double(mix[i * 2]) * mix[i * 2] + double(mix[i * 2 + 1]) * mix[i * 2 + 1];
+        }
+        if (std::sqrt(energy / (WINDOW * 2)) * gain > 0.01) {
+            start = frame > RATE * 3 / 10 ? frame - RATE * 3 / 10 : 0;
+            break;
+        }
+    }
+    mix.erase(mix.begin(), mix.begin() + static_cast<std::ptrdiff_t>(start * 2));
+    result.resize(mix.size());
+    for (size_t i = 0; i < mix.size(); ++i) {
+        result[i] = static_cast<s16>(std::lround(std::clamp(mix[i] * gain, -1.0f, 1.0f) * 32767.0f));
+    }
+    return result;
+}
+
+/// A file name without a trailing ".zs" (Zstandard-compressed files in newer games' RomFS).
+std::string_view WithoutZs(std::string_view name) {
+    return name.ends_with(".zs") ? name.substr(0, name.size() - 3) : name;
+}
+
+/// The audio containers the menu music reads: .bwav / .bfwav (Switch BWAV), .bfstm (streamed
+/// music, DSP-ADPCM or PCM), .bars (sound archives holding BWAVs), each possibly ".zs".
+bool IsAudioName(const std::string& lower_name) {
+    const std::string_view name = WithoutZs(lower_name);
+    return name.ends_with(".bwav") || name.ends_with(".bfwav") || name.ends_with(".bfstm") ||
+           name.ends_with(".bars");
+}
+
+/// The length of the audio extension at the end of a lower-case name, ".zs" included.
+size_t AudioExtensionLength(const std::string& lower_name) {
+    const std::string_view name = WithoutZs(lower_name);
+    const size_t zs = lower_name.size() - name.size();
+    const size_t dot = name.rfind('.');
+    return dot == std::string_view::npos ? zs : name.size() - dot + zs;
+}
+
+/// A .bfstm stream (FSTM, little-endian): DSP-ADPCM or PCM16 channels interleaved block by block.
+std::vector<s16> DecodeBfstm(const std::vector<u8>& data, u32 max_seconds) {
+    u16 bom = 0, sections = 0;
+    if (data.size() < 0x40 || std::memcmp(data.data(), "FSTM", 4) != 0 || !Read(data, 4, bom) ||
+        bom != 0xFEFF || !Read(data, 0x10, sections)) {
+        return {};
+    }
+    u32 info = 0, data_block = 0;
+    for (u16 i = 0; i < sections && i < 8; ++i) {
+        u16 type = 0;
+        u32 offset = 0;
+        if (!Read(data, 0x14 + i * 12, type) || !Read(data, 0x14 + i * 12 + 4, offset)) {
+            return {};
+        }
+        if (type == 0x4000) {
+            info = offset;
+        } else if (type == 0x4002) {
+            data_block = offset;
+        }
+    }
+    if (info == 0 || data_block == 0 || std::memcmp(data.data() + info, "INFO", 4) != 0 ||
+        std::memcmp(data.data() + data_block, "DATA", 4) != 0) {
+        return {};
+    }
+    const size_t base = info + 8; // the INFO block's references are relative to here
+    s32 stream_ref = 0, channel_ref = 0;
+    if (!Read(data, base + 4, stream_ref) || !Read(data, base + 20, channel_ref)) {
+        return {};
+    }
+    const size_t stream = base + static_cast<size_t>(stream_ref);
+    u8 codec = 0, channel_count = 0;
+    u32 rate = 0, sample_count = 0, block_count = 0, block_size = 0, block_samples = 0,
+        last_block_size = 0, last_padded = 0;
+    s32 sample_data = 0;
+    if (!Read(data, stream, codec) || !Read(data, stream + 2, channel_count) ||
+        !Read(data, stream + 4, rate) || !Read(data, stream + 12, sample_count) ||
+        !Read(data, stream + 16, block_count) || !Read(data, stream + 20, block_size) ||
+        !Read(data, stream + 24, block_samples) || !Read(data, stream + 28, last_block_size) ||
+        !Read(data, stream + 36, last_padded) || !Read(data, stream + 0x30, sample_data)) {
+        return {};
+    }
+    if (channel_count == 0 || channel_count > 16 || rate == 0 || block_count == 0 ||
+        block_size == 0 || (codec != 1 && codec != 2)) {
+        return {}; // PCM8 and anything newer: not read
+    }
+    (void)last_block_size;
+    // Each channel's bytes, block by block, made contiguous.
+    const size_t first_sample = data_block + 8 + static_cast<size_t>(sample_data);
+    std::vector<std::vector<u8>> bytes(channel_count);
+    size_t position = first_sample;
+    for (u32 block = 0; block < block_count; ++block) {
+        const size_t size = block + 1 == block_count ? last_padded : block_size;
+        for (u8 c = 0; c < channel_count; ++c) {
+            if (position + size > data.size()) {
+                block = block_count;
+                break;
+            }
+            bytes[c].insert(bytes[c].end(), data.begin() + static_cast<std::ptrdiff_t>(position),
+                            data.begin() + static_cast<std::ptrdiff_t>(position + size));
+            position += size;
+        }
+    }
+    const size_t channel_table = base + static_cast<size_t>(channel_ref);
+    std::vector<std::vector<float>> decoded;
+    std::vector<u16> pans;
+    for (u8 c = 0; c < channel_count; ++c) {
+        Channel channel{};
+        channel.codec = codec == 2 ? 1 : 0;
+        channel.rate = rate;
+        channel.samples = sample_count;
+        channel.offset = 0;
+        if (codec == 2) {
+            s32 entry = 0, adpcm_ref = 0;
+            if (!Read(data, channel_table + 4 + c * 8 + 4, entry)) {
+                return {};
+            }
+            const size_t channel_info = channel_table + static_cast<size_t>(entry);
+            if (!Read(data, channel_info + 4, adpcm_ref)) {
+                return {};
+            }
+            const size_t adpcm = channel_info + static_cast<size_t>(adpcm_ref);
+            for (size_t k = 0; k < 16; ++k) {
+                if (!Read(data, adpcm + k * 2, channel.coefficients[k])) {
+                    return {};
+                }
+            }
+            Read(data, adpcm + 34, channel.history1);
+            Read(data, adpcm + 36, channel.history2);
+        }
+        const size_t ch_max = static_cast<size_t>(rate) * max_seconds;
+        std::vector<float> samples = codec == 2 ? DecodeAdpcm(bytes[c], channel, ch_max)
+                                                : DecodePcm16(bytes[c], channel, ch_max);
+        if (rate != RATE) {
+            samples = ResampleAudio(samples, rate, RATE);
+        }
+        decoded.push_back(std::move(samples));
+        // Pairs are left and right, as in BWAV's pans.
+        pans.push_back(static_cast<u16>(channel_count >= 2 ? c % 2 : 0));
+    }
+    (void)block_samples;
+    return channel_count > 2 ? MixToStereo({decoded[0], decoded[1]}, {0, 1})
+                             : MixToStereo(decoded, pans);
+}
+
+/// The longest BWAV inside a sound archive (.bars): each starts with "BWAV" and runs to the
+/// next one, or the end.
+std::vector<s16> DecodeEmbeddedBwav(const std::vector<u8>& data, u32 max_seconds) {
+    std::vector<size_t> starts;
+    for (size_t i = 0; i + 16 <= data.size(); i += 4) {
+        if (std::memcmp(data.data() + i, "BWAV", 4) == 0) {
+            starts.push_back(i);
+        }
+    }
+    // The four largest are tried: songs are the big ones.
+    std::vector<std::pair<size_t, size_t>> spans;
+    for (size_t k = 0; k < starts.size(); ++k) {
+        const size_t end = k + 1 < starts.size() ? starts[k + 1] : data.size();
+        spans.emplace_back(starts[k], end - starts[k]);
+    }
+    std::sort(spans.begin(), spans.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+    std::vector<s16> best;
+    for (size_t k = 0; k < spans.size() && k < 4; ++k) {
+        std::vector<u8> one(data.begin() + static_cast<std::ptrdiff_t>(spans[k].first),
+                            data.begin() + static_cast<std::ptrdiff_t>(spans[k].first +
+                                                                       spans[k].second));
+        std::vector<s16> samples = DecodeBwav(one, max_seconds);
+        if (samples.size() > best.size()) {
+            best = std::move(samples);
+        }
+    }
+    return best;
+}
+
+/// Any audio file the search accepts, by its contents (decompressed first when it is ".zs").
+std::vector<s16> DecodeAudio(const std::string& name, const std::vector<u8>& raw,
+                             u32 max_seconds) {
+    std::optional<std::vector<u8>> unpacked;
+    if (Lower(name).ends_with(".zs")) {
+        unpacked = Common::Compression::TryDecompressDataZSTD(raw, size_t{256} << 20);
+        if (!unpacked) {
+            return {};
+        }
+    }
+    const std::vector<u8>& data = unpacked ? *unpacked : raw;
+    if (data.size() >= 4 && std::memcmp(data.data(), "BWAV", 4) == 0) {
+        return DecodeBwav(data, max_seconds);
+    }
+    if (data.size() >= 4 && std::memcmp(data.data(), "FSTM", 4) == 0) {
+        return DecodeBfstm(data, max_seconds);
+    }
+    return DecodeEmbeddedBwav(data, max_seconds);
+}
+
 /// The title-screen track: best matched .bwav/.bfwav named title/menu/opening/theme/bgm, or largest audio.
 FileSys::VirtualFile FindTrack(const FileSys::VirtualDir& root) {
     static constexpr std::array<const char*, 5> words{"title", "menu", "opening", "theme", "bgm"};
@@ -244,7 +487,7 @@ FileSys::VirtualFile FindTrack(const FileSys::VirtualDir& root) {
     std::function<void(const FileSys::VirtualDir&)> walk = [&](const FileSys::VirtualDir& dir) {
         for (const auto& file : dir->GetFiles()) {
             const std::string name = Lower(file->GetName());
-            if (!name.ends_with(".bwav") && !name.ends_with(".bfwav")) {
+            if (!IsAudioName(name)) {
                 continue;
             }
             if (!fallback_largest || file->GetSize() > fallback_largest->GetSize()) {
@@ -474,7 +717,7 @@ OpenGame Open(const std::string& game_path) {
 /// mark an intro, outro, cutscene or one layer of a layered piece.
 bool IsSong(const std::string& file_name, u64 size) {
     const std::string name = Lower(file_name);
-    const bool is_audio = name.ends_with(".bwav") || name.ends_with(".bfwav");
+    const bool is_audio = IsAudioName(name);
     if (size < SONG_MIN_BYTES || !is_audio) {
         return false;
     }
@@ -493,7 +736,7 @@ bool IsSong(const std::string& file_name, u64 size) {
         "far",   "jingle", "oneshot", "transition", "gong", "roar", "voice", "stinger",
         "other", "fanfare", "se",     "sfx",   "ambient", "amb",   "env",   "nointro",
     };
-    const size_t ext_len = name.ends_with(".bfwav") ? 6 : 5;
+    const size_t ext_len = AudioExtensionLength(name);
     const std::string_view stem = std::string_view{name}.substr(0, name.size() - ext_len);
     size_t start = 0;
     while (start <= stem.size()) {
@@ -516,7 +759,7 @@ bool IsSong(const std::string& file_name, u64 size) {
 /// "bgm_market_daytime_02.bwav" -> "bgm_market_daytime": the name of a numbered section of a
 /// piece (empty when the name doesn't end in "_<number>").
 std::string SectionOf(const std::string& file_name) {
-    const std::string name = Lower(file_name);
+    const std::string name{WithoutZs(Lower(file_name))};
     const size_t dot = name.rfind('.');
     const size_t bar = name.rfind('_', dot);
     if (dot == std::string::npos || bar == std::string::npos || bar + 1 == dot ||
@@ -623,7 +866,7 @@ void KeepSong(u64 program_id, const Song& song, const std::vector<u8>& bytes) {
     std::error_code ec;
     std::vector<std::pair<std::filesystem::file_time_type, std::filesystem::path>> kept;
     for (const auto& entry : std::filesystem::directory_iterator(SongFolder(program_id), ec)) {
-        if (entry.path().extension() == ".bwav") {
+        if (IsAudioName(Lower(entry.path().filename().string()))) {
             kept.emplace_back(entry.last_write_time(ec), entry.path());
         }
     }
@@ -778,7 +1021,7 @@ std::shared_ptr<const Track> LoadTitle(const std::string& game_path, u64 program
         const OpenGame game = Open(game_path);
         if (const auto file = game.root ? FindTrack(game.root) : nullptr) {
             track->name = file->GetName();
-            track->samples = DecodeBwav(file->ReadAllBytes(), MAX_SECONDS);
+            track->samples = DecodeAudio(file->GetName(), file->ReadAllBytes(), MAX_SECONDS);
             LOG_INFO(Frontend, "Menu music for {:016X}: {} ({:.0f} s)", program_id,
                      file->GetName(), track->samples.size() / 2.0 / RATE);
         } else {
@@ -881,7 +1124,7 @@ std::shared_ptr<const Track> LoadRandom(const std::string& game_path, u64 progra
             auto track = std::make_shared<Track>();
             track->program_id = program_id;
             track->name = song.FileName();
-            track->samples = DecodeBwav(*bytes, MAX_SECONDS);
+            track->samples = DecodeAudio(song.FileName(), *bytes, MAX_SECONDS);
             const double seconds = track->samples.size() / 2.0 / RATE;
             if (seconds < SONG_MIN_SECONDS) {
                 // Too short to be a song (or it didn't decode): not picked again.
@@ -949,67 +1192,7 @@ std::vector<s16> DecodeBwav(const std::vector<u8>& bwav, u32 max_seconds) {
         decoded.push_back(std::move(ch_samples));
         pans.push_back(channel.pan);
     }
-    size_t length = SIZE_MAX;
-    for (const auto& samples : decoded) {
-        length = std::min(length, samples.size());
-    }
-    if (length == 0 || length == SIZE_MAX) {
-        return result;
-    }
-    // Down to stereo: front left/right as they are, centre and the surrounds at -3 dB, LFE at
-    // a third (pans 0 FL, 1 FR, 2 C, 3 LFE, 4 SL, 5 SR; a pair is left and right).
-    std::vector<float> mix(length * 2, 0.0f);
-    for (size_t c = 0; c < decoded.size(); ++c) {
-        float left = 0.5f, right = 0.5f;
-        if (decoded.size() == 1) {
-            left = right = 1.0f;
-        } else if (decoded.size() == 2) {
-            left = c == 0 ? 1.0f : 0.0f;
-            right = 1.0f - left;
-        } else {
-            static constexpr std::array<std::array<float, 2>, 6> weights{{
-                {1.0f, 0.0f},     // front left
-                {0.0f, 1.0f},     // front right
-                {0.707f, 0.707f}, // centre
-                {0.33f, 0.33f},   // LFE
-                {0.707f, 0.0f},   // surround left
-                {0.0f, 0.707f},   // surround right
-            }};
-            if (pans[c] < weights.size()) {
-                left = weights[pans[c]][0];
-                right = weights[pans[c]][1];
-            }
-        }
-        for (size_t i = 0; i < length; ++i) {
-            mix[i * 2] += decoded[c][i] * left;
-            mix[i * 2 + 1] += decoded[c][i] * right;
-        }
-    }
-    float peak = 0.0f;
-    for (const float sample : mix) {
-        peak = std::max(peak, std::abs(sample));
-    }
-    const float gain = peak > 0.95f ? 0.95f / peak : 1.0f;
-    // Title tracks often open with a long quiet build-up: start (and loop back to) where the
-    // music is audible, a moment before the first tenth of a second above -40 dBFS.
-    size_t start = 0;
-    constexpr size_t WINDOW = RATE / 10;
-    for (size_t frame = 0; frame + WINDOW < length; frame += WINDOW) {
-        double energy = 0.0;
-        for (size_t i = frame; i < frame + WINDOW; ++i) {
-            energy += double(mix[i * 2]) * mix[i * 2] + double(mix[i * 2 + 1]) * mix[i * 2 + 1];
-        }
-        if (std::sqrt(energy / (WINDOW * 2)) * gain > 0.01) {
-            start = frame > RATE * 3 / 10 ? frame - RATE * 3 / 10 : 0;
-            break;
-        }
-    }
-    mix.erase(mix.begin(), mix.begin() + static_cast<std::ptrdiff_t>(start * 2));
-    result.resize(mix.size());
-    for (size_t i = 0; i < mix.size(); ++i) {
-        result[i] = static_cast<s16>(std::lround(std::clamp(mix[i] * gain, -1.0f, 1.0f) * 32767.0f));
-    }
-    return result;
+    return MixToStereo(decoded, pans);
 }
 
 std::shared_ptr<const Track> Load(const std::string& game_path, u64 program_id, Choice choice) {

@@ -597,7 +597,7 @@ IconSearchResult RunPreferredSearch(const std::string& name, u64 tid, const std:
 
 } // namespace
 
-std::unordered_map<u64, std::string> LoadGamePictureList(const std::atomic_bool& cancel) {
+std::unordered_map<u64, GamePictureListEntry> LoadGamePictureList(const std::atomic_bool& cancel) {
     using namespace std::chrono;
     namespace fs = std::filesystem;
     const fs::path cached = QtCommon::GamePictures::Folder() / "list.json";
@@ -628,7 +628,7 @@ std::unordered_map<u64, std::string> LoadGamePictureList(const std::atomic_bool&
             body = read_cache(); // an old list beats none
         }
     }
-    std::unordered_map<u64, std::string> list;
+    std::unordered_map<u64, GamePictureListEntry> list;
     const auto json = nlohmann::json::parse(body, nullptr, false);
     if (json.is_discarded() || !json.is_object() || !json.contains("pictures") ||
         !json["pictures"].is_object()) {
@@ -640,7 +640,11 @@ std::unordered_map<u64, std::string> LoadGamePictureList(const std::atomic_bool&
         }
         const u64 title_id = std::strtoull(id.c_str(), nullptr, 16);
         if (title_id != 0) {
-            list.emplace(title_id, entry["url"].get<std::string>());
+            GamePictureListEntry pictures{entry["url"].get<std::string>(), {}};
+            if (entry.contains("hero") && entry["hero"].is_string()) {
+                pictures.hero = entry["hero"].get<std::string>();
+            }
+            list.emplace(title_id, std::move(pictures));
         }
     }
     return list;
@@ -657,6 +661,29 @@ std::vector<u8> DownloadGamePicture(const std::string& url, const std::atomic_bo
         return {};
     }
     return EncodeSquareIcon(image);
+}
+
+std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel) {
+    const auto res = HttpGet(url, std::chrono::steady_clock::now() + SearchDeadline, cancel);
+    if (res.status != HttpStatus::Ok) {
+        return {};
+    }
+    QImage image;
+    if (!image.loadFromData(reinterpret_cast<const uchar*>(res.body.data()),
+                            static_cast<int>(res.body.size())) ||
+        image.width() < 2 * image.height()) {
+        return {}; // not a banner's shape
+    }
+    if (image.width() > 1920) {
+        image = image.scaledToWidth(1920, Qt::SmoothTransformation);
+    }
+    QByteArray bytes;
+    QBuffer buffer{&bytes};
+    buffer.open(QIODevice::WriteOnly);
+    if (!image.convertToFormat(QImage::Format_RGB32).save(&buffer, "JPG", 88)) {
+        return {};
+    }
+    return std::vector<u8>(bytes.begin(), bytes.end());
 }
 
 GamePictureLookup FindGamePictureAutomatically(const std::string& name, u64 title_id,

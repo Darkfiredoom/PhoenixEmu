@@ -54,6 +54,8 @@ public:
 
 signals:
     void CloseRequested();
+    /// The case art folder changed: the game list reads it again.
+    void CaseArtFolderChanged();
 
 private:
     struct ColourRow {
@@ -126,6 +128,7 @@ private:
     QButtonGroup* side_count_group{};
     QCheckBox* banner_box{};
     QCheckBox* details_box{};
+    QLabel* case_art_label{};
     QWidget* icon_options{};
     QButtonGroup* icon_size_group{};
 

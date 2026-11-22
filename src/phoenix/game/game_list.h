@@ -185,6 +185,13 @@ private:
     void FindPictureOnline(u64 program_id);
     void ChoosePictureFile(u64 program_id);
     void ResetPicture(u64 program_id);
+    /// Shows a banner (empty bytes: none) on every entry of the game.
+    void ApplyBanner(u64 program_id, const std::vector<u8>& banner);
+    /// Opens the game's case over the list (the Case look).
+    void OpenCase(const QModelIndex& game);
+    void resizeEvent(QResizeEvent* event) override;
+    void ChooseBannerFile(u64 program_id);
+    void ResetBanner(u64 program_id);
     void AddGamePopup(QMenu& context_menu, u64 program_id, const std::string& path);
     void AddCustomDirPopup(QMenu& context_menu, QModelIndex selected);
     void AddPermDirPopup(QMenu& context_menu, QModelIndex selected);
@@ -226,6 +233,7 @@ private:
     std::shared_ptr<std::atomic_bool> picture_cancel{std::make_shared<std::atomic_bool>(false)};
     bool picture_search_running{};
     IconSearch* picture_search = nullptr;
+    class CaseViewer* case_viewer = nullptr;
     u64 picture_search_target{};
 };
 

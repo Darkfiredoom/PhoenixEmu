@@ -43,6 +43,7 @@
 #include "qt_common/game_list/model.h"
 #include "qt_common/game_list/discovery.h"
 #include "qt_common/game_list/worker.h"
+#include "qt_common/game_list/case_art.h"
 
 namespace {
 
@@ -305,10 +306,43 @@ QList<QStandardItem*> MakeGameListEntry(const std::string& path, const std::stri
     u64 play_time = play_time_manager.GetPlayTime(program_id);
     // A picture PhoenixEmu found or the player picked wins over the one inside the game.
     const std::vector<u8> saved_picture = QtCommon::GamePictures::Load(program_id);
-    return QList<QStandardItem*>{
+    auto* const path_item =
         new GameListItemPath(FormatGameName(path), saved_picture.empty() ? icon : saved_picture,
                              QString::fromStdString(name),
-                             file_type_string, program_id, play_time, patch_versions),
+                             file_type_string, program_id, play_time, patch_versions);
+    // The player's own banner (case art folder) wins over one found online.
+    const QString title = QString::fromStdString(name);
+    if (const QString shown = CaseArt::DisplayName(title, program_id); shown != title) {
+        path_item->setData(shown, GameListItemPath::TitleRole);
+    }
+    std::vector<u8> banner = CaseArt::BannerBytes(title, program_id);
+    if (banner.empty()) {
+        banner = QtCommon::GamePictures::LoadBanner(program_id);
+    }
+    path_item->SetBanner(banner);
+    if (const auto art = CaseArt::Load(title, program_id)) {
+        QImage front = art->front;
+        if (front.height() > 640) {
+            front = front.scaledToHeight(640, Qt::SmoothTransformation);
+        }
+        path_item->setData(QPixmap::fromImage(front), GameListItemPath::CaseFrontRole);
+        if (!art->spine.isNull()) {
+            QImage spine = art->spine;
+            if (spine.height() > 640) {
+                spine = spine.scaledToHeight(640, Qt::SmoothTransformation);
+            }
+            path_item->setData(QPixmap::fromImage(spine), GameListItemPath::CaseSpineRole);
+        }
+        if (!art->back.isNull()) {
+            QImage back = art->back;
+            if (back.height() > 640) {
+                back = back.scaledToHeight(640, Qt::SmoothTransformation);
+            }
+            path_item->setData(QPixmap::fromImage(back), GameListItemPath::CaseBackRole);
+        }
+    }
+    return QList<QStandardItem*>{
+        path_item,
         new GameListItem(file_type_string),
         new GameListItemSize(size),
         new GameListItemPlayTime(play_time),

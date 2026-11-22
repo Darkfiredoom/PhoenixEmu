@@ -2154,6 +2154,8 @@ void MainWindow::ToggleCustomizePanel() {
                 game_list->RefreshGameDirectory();
             },
             this);
+        connect(customize_panel, &CustomizePanel::CaseArtFolderChanged, this,
+                [this] { game_list->RefreshGameDirectory(); });
         connect(customize_panel, &CustomizePanel::CloseRequested, this, [this] {
             customize_panel->hide();
             UpdateGameDetailsPanel();

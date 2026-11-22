@@ -1,9 +1,13 @@
 // SPDX-FileCopyrightText: 2026 PhoenixEmu contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <filesystem>
+#include <QUrl>
+#include <QDesktopServices>
 #include <algorithm>
 #include <array>
 
+#include <QMouseEvent>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -22,11 +26,55 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "common/fs/path_util.h"
+#include "qt_common/game_list/case_art.h"
 #include "phoenix/customize_panel.h"
 #include "phoenix/util/phoenix_theme.h"
 #include "qt_common/config/uisettings.h"
 
 namespace {
+
+/// A checkbox's text that wraps, and toggles its box when clicked.
+class WrappingLabel : public QLabel {
+public:
+    WrappingLabel(const QString& text, std::function<void()> clicked_)
+        : QLabel(text), clicked{std::move(clicked_)} {
+        setWordWrap(true);
+        setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+        setCursor(Qt::PointingHandCursor);
+    }
+
+    bool hasHeightForWidth() const override {
+        return true;
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent* event) override {
+        QLabel::mouseReleaseEvent(event);
+        if (event->button() == Qt::LeftButton && rect().contains(event->position().toPoint())) {
+            clicked();
+        }
+    }
+
+private:
+    std::function<void()> clicked;
+};
+
+/// Keeps a widget enabled or disabled with another (a checkbox's separate text with its box).
+class EnabledFollower : public QObject {
+public:
+    EnabledFollower(QWidget* follower_, QObject* parent) : QObject(parent), follower{follower_} {}
+
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::EnabledChange) {
+            follower->setEnabled(static_cast<QWidget*>(watched)->isEnabled());
+        }
+        return false;
+    }
+
+private:
+    QWidget* follower;
+};
 
 constexpr int SwatchSize = 30;
 constexpr int SwatchesPerRow = 6;
@@ -153,7 +201,9 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
     : QFrame(parent), apply{std::move(apply_)}, set_mode{std::move(set_mode_)},
       set_icon_size{std::move(set_icon_size_)} {
     setObjectName(QStringLiteral("CustomizePanel"));
-    setFixedWidth(340);
+    // Wide enough for the four-segment rows (Animated / Picture / Solid / Gradient) and the
+    // swatch rows beside the scroll bar: at 340 their right edges went under it.
+    setFixedWidth(384);
     setFrameShape(QFrame::NoFrame);
 
     auto* const outer = new QVBoxLayout(this);
@@ -179,7 +229,12 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     auto* const body = new QWidget;
     body->setObjectName(QStringLiteral("CustomizePanelBody"));
+    // The body takes the panel's width, whatever its rows ask for: before, the widest row (the
+    // five card sizes, a long checkbox) made the body wider than the panel and its right side
+    // went off the screen. Rows share what there is; long labels wrap (Check).
+    body->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     auto* const layout = new QVBoxLayout(body);
+    layout->setSizeConstraint(QLayout::SetNoConstraint);
     layout->setContentsMargins(16, 4, 16, 16);
     layout->setSpacing(6);
     scroll->setWidget(body);
@@ -195,6 +250,8 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
     {
         QVBoxLayout* const s = add_section(tr("Theme"));
         theme_box = new QComboBox;
+        theme_box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        theme_box->setMinimumContentsLength(8);
         for (const ThemeChoice& choice : Themes) {
             theme_box->addItem(tr(choice.name), QString::fromLatin1(choice.key));
         }
@@ -348,9 +405,52 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
         details_box = Check(s, tr("Show the picked game's details beside the games"),
                             [](bool on) { UISettings::values.show_game_details = on; });
         s->addWidget(new QLabel(tr("Game cards")));
-        cards_group = Segments(s, {tr("Plain"), tr("Badge"), tr("Cartridge")}, [this](int id) {
+        cards_group = Segments(s, {tr("Plain"), tr("Badge"), tr("Cartridge"), tr("Case")},
+                               [this](int id) {
             UISettings::values.game_card_style = static_cast<u32>(id);
             Changed();
+        });
+        // Case scans the player gathered: Cases/<game>/... and Banner/<game>.jpg.
+        s->addWidget(new QLabel(tr("Case art folder")));
+        case_art_label = new QLabel;
+        case_art_label->setWordWrap(true);
+        case_art_label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+        case_art_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        s->addWidget(case_art_label);
+        auto* const case_buttons = new QHBoxLayout;
+        auto* const choose_case_art = new QPushButton(tr("Choose..."));
+        auto* const open_case_art = new QPushButton(tr("Open"));
+        auto* const default_case_art = new QPushButton(tr("Default"));
+        for (QPushButton* const button : {choose_case_art, open_case_art, default_case_art}) {
+            button->setObjectName(QStringLiteral("CustomizeSegment"));
+            case_buttons->addWidget(button);
+        }
+        s->addLayout(case_buttons);
+        connect(choose_case_art, &QPushButton::clicked, this, [this] {
+            const QString folder = QFileDialog::getExistingDirectory(
+                this, tr("Case art folder (with Cases and Banner folders)"),
+                QString::fromStdString(Common::FS::PathToUTF8String(CaseArt::Folder())));
+            if (folder.isEmpty()) {
+                return;
+            }
+            UISettings::values.case_art_folder = folder.toStdString();
+            CaseArt::Reset();
+            Refresh();
+            emit CaseArtFolderChanged();
+        });
+        connect(open_case_art, &QPushButton::clicked, this, [] {
+            const auto folder = CaseArt::Folder();
+            std::error_code ec;
+            std::filesystem::create_directories(folder / "Cases", ec);
+            std::filesystem::create_directories(folder / "Banner", ec);
+            QDesktopServices::openUrl(QUrl::fromLocalFile(
+                QString::fromStdString(Common::FS::PathToUTF8String(folder))));
+        });
+        connect(default_case_art, &QPushButton::clicked, this, [this] {
+            UISettings::values.case_art_folder = std::string{};
+            CaseArt::Reset();
+            Refresh();
+            emit CaseArtFolderChanged();
         });
 
         // The home view's carousel.
@@ -359,7 +459,7 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
         c->setContentsMargins(0, 4, 0, 0);
         c->setSpacing(6);
         c->addWidget(new QLabel(tr("Home layout")));
-        layout_group = Segments(c, {tr("Stack"), tr("Row")}, [this](int id) {
+        layout_group = Segments(c, {tr("Stack"), tr("Row"), tr("Shelf")}, [this](int id) {
             UISettings::values.carousel_layout = static_cast<u32>(id);
             Changed();
         });
@@ -526,14 +626,29 @@ QSlider* CustomizePanel::LabelledSlider(QVBoxLayout* layout, const QString& name
 
 QCheckBox* CustomizePanel::Check(QVBoxLayout* layout, const QString& name,
                                  const std::function<void(bool)>& changed) {
-    auto* const box = new QCheckBox(name);
+    // The box and its text apart, so a long text wraps inside the panel instead of widening it.
+    // Clicking the text toggles the box, as a checkbox's own text does.
+    auto* const row = new QWidget;
+    auto* const row_layout = new QHBoxLayout(row);
+    row_layout->setContentsMargins(0, 0, 0, 0);
+    row_layout->setSpacing(6);
+    auto* const box = new QCheckBox;
+    auto* const text = new WrappingLabel(name, [box] {
+        if (box->isEnabled()) {
+            box->toggle();
+        }
+    });
+    row_layout->addWidget(box, 0, Qt::AlignTop);
+    row_layout->addWidget(text, 1);
     connect(box, &QCheckBox::toggled, this, [this, changed](bool on) {
         if (!refreshing) {
             changed(on);
             Changed();
         }
     });
-    layout->addWidget(box);
+    // Greyed out with its box.
+    box->installEventFilter(new EnabledFollower(text, box));
+    layout->addWidget(row);
     return box;
 }
 
@@ -704,14 +819,14 @@ void CustomizePanel::Refresh() {
     }
 
     mode_group->button(static_cast<int>(v.game_list_mode.GetValue()))->setChecked(true);
-    cards_group->button(static_cast<int>(std::min(v.game_card_style.GetValue(), 2U)))
+    cards_group->button(static_cast<int>(std::min(v.game_card_style.GetValue(), 3U)))
         ->setChecked(true);
     const bool home = v.game_list_mode.GetValue() == Settings::GameListMode::CarouselView;
     carousel_options->setVisible(home);
     icon_options->setVisible(!home);
-    layout_group->button(static_cast<int>(std::min(v.carousel_layout.GetValue(), 1U)))
+    layout_group->button(static_cast<int>(std::min(v.carousel_layout.GetValue(), 2U)))
         ->setChecked(true);
-    stack_options->setVisible(v.carousel_layout.GetValue() == 0);
+    stack_options->setVisible(v.carousel_layout.GetValue() != 1); // the shelf uses them too
     card_size_group->button(static_cast<int>(std::min(v.carousel_card_size.GetValue(), 4U)))
         ->setChecked(true);
     side_count_group
@@ -719,6 +834,7 @@ void CustomizePanel::Refresh() {
         ->setChecked(true);
     banner_box->setChecked(v.carousel_banner_background.GetValue());
     details_box->setChecked(v.show_game_details.GetValue());
+    case_art_label->setText(QString::fromStdString(Common::FS::PathToUTF8String(CaseArt::Folder())));
     static constexpr std::array<u32, 5> icon_sizes{0, 32, 64, 128, 256};
     const auto icon_it = std::find(icon_sizes.begin(), icon_sizes.end(),
                                    v.game_icon_size.GetValue());

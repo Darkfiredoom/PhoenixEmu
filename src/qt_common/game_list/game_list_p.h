@@ -98,6 +98,15 @@ public:
     static constexpr int LargePictureRole = SortRole + 6;
     /// True when the game is a Switch 2 title (its cards carry the Switch 2 badge).
     static constexpr int Switch2Role = SortRole + 7;
+    /// The game's banner (a wide picture, up to 1280 px across), or a null pixmap.
+    static constexpr int BannerRole = SortRole + 8;
+    /// The front of the game's case from the player's case art (CaseArt), at most 640 px tall,
+    /// or a null pixmap.
+    static constexpr int CaseFrontRole = SortRole + 9;
+    /// The case's spine from the case art (upright, at most 640 px tall), or a null pixmap.
+    static constexpr int CaseSpineRole = SortRole + 10;
+    /// The case's back from the case art (at most 640 px tall), or a null pixmap.
+    static constexpr int CaseBackRole = SortRole + 11;
 
     GameListItemPath() = default;
     GameListItemPath(const QString& game_path, const std::vector<u8>& picture_data,
@@ -131,6 +140,18 @@ public:
         setData(tooltip, Qt::ToolTipRole);
 
         SetPicture(picture_data);
+    }
+
+    /// The game's banner (JPEG or PNG bytes); empty bytes clear it.
+    void SetBanner(const std::vector<u8>& banner_data) {
+        QPixmap banner;
+        if (!banner_data.empty() &&
+            banner.loadFromData(banner_data.data(), static_cast<u32>(banner_data.size()))) {
+            if (banner.width() > 1280) {
+                banner = banner.scaledToWidth(1280, Qt::SmoothTransformation);
+            }
+        }
+        setData(banner, BannerRole);
     }
 
     /// Shows a picture (PNG or JPEG bytes), or the placeholder when they don't decode.

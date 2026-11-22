@@ -91,4 +91,70 @@ inline bool RecentlyMissing(u64 program_id) {
     return std::filesystem::file_time_type::clock::now() - written < std::chrono::hours{24};
 }
 
+// Banners: a wide picture of the game (SteamGridDB's "hero", 1920x620) for the home screen's
+// background and the details panel, in place of the square picture blown up. JPEG or PNG bytes
+// in <id>.banner; <id>.banner.none when the list has none, kept for a day like pictures.
+
+inline std::filesystem::path BannerPath(u64 program_id) {
+    return Folder() / fmt::format("{:016X}.banner", program_id);
+}
+
+inline std::filesystem::path BannerMissPath(u64 program_id) {
+    return Folder() / fmt::format("{:016X}.banner.none", program_id);
+}
+
+/// The saved banner for a title, or nothing.
+inline std::vector<u8> LoadBanner(u64 program_id) {
+    if (program_id == 0) {
+        return {};
+    }
+    std::ifstream file(BannerPath(program_id), std::ios::binary);
+    if (!file) {
+        return {};
+    }
+    return std::vector<u8>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+
+inline bool SaveBanner(u64 program_id, std::span<const u8> bytes) {
+    std::error_code ec;
+    std::filesystem::create_directories(Folder(), ec);
+    const auto path = BannerPath(program_id);
+    const auto temp = std::filesystem::path(path).concat(".tmp");
+    {
+        std::ofstream file(temp, std::ios::binary | std::ios::trunc);
+        if (!file) {
+            return false;
+        }
+        file.write(reinterpret_cast<const char*>(bytes.data()),
+                   static_cast<std::streamsize>(bytes.size()));
+        if (!file) {
+            return false;
+        }
+    }
+    std::filesystem::rename(temp, path, ec);
+    std::filesystem::remove(BannerMissPath(program_id), ec);
+    return !ec;
+}
+
+inline void RemoveBanner(u64 program_id) {
+    std::error_code ec;
+    std::filesystem::remove(BannerPath(program_id), ec);
+    std::filesystem::remove(BannerMissPath(program_id), ec);
+}
+
+inline void MarkBannerMissing(u64 program_id) {
+    std::error_code ec;
+    std::filesystem::create_directories(Folder(), ec);
+    std::ofstream file(BannerMissPath(program_id), std::ios::trunc);
+}
+
+inline bool BannerRecentlyMissing(u64 program_id) {
+    std::error_code ec;
+    const auto written = std::filesystem::last_write_time(BannerMissPath(program_id), ec);
+    if (ec) {
+        return false;
+    }
+    return std::filesystem::file_time_type::clock::now() - written < std::chrono::hours{24};
+}
+
 } // namespace QtCommon::GamePictures

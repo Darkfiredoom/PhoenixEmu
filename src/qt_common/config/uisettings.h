@@ -201,6 +201,8 @@ struct Values {
 
     // Optional key that enables the SteamGridDB icon fallback
     Setting<std::string> steamgriddb_api_key{linkage, {}, "steamgriddb_api_key", Category::Ui};
+    /// The player's game case scans (Cases/<game>/..., Banner/<game>.jpg); empty: <user>/case_art.
+    Setting<std::string> case_art_folder{linkage, {}, "case_art_folder", Category::UiGameList};
     // Look up pictures online for listed games that have none (SteamGridDB with a key).
     Setting<bool> auto_game_pictures{linkage, true, "auto_game_pictures", Category::Ui};
     // Cloud & LAN Save Sync
@@ -257,10 +259,11 @@ struct Values {
     Setting<u32> theme_shape{linkage, 0, "theme_shape", Category::Ui};
     /// The home view's tile size, in percent of the size that suits the window (its slider).
     Setting<u32, true> home_tile_scale{linkage, 100, 60, 160, "home_tile_scale", Category::UiGameList};
-    /// How game cards look: 0 plain tiles, 1 a Switch or Switch 2 badge frame, 2 a cartridge.
-    Setting<u32, true> game_card_style{linkage, 1, 0, 2, "game_card_style", Category::UiGameList};
+    /// How game cards look: 0 plain tiles, 1 a Switch or Switch 2 badge frame, 2 a cartridge,
+    /// 3 a game case (PyroCade-like).
+    Setting<u32, true> game_card_style{linkage, 1, 0, 3, "game_card_style", Category::UiGameList};
     /// The home view's carousel: 0 a stack (one big card, the others tilted behind it), 1 a row.
-    Setting<u32, true> carousel_layout{linkage, 0, 0, 1, "carousel_layout", Category::UiGameList};
+    Setting<u32, true> carousel_layout{linkage, 0, 0, 2, "carousel_layout", Category::UiGameList};
     /// The centred card's share of the height: 0 full, 1 3/4, 2 2/3, 3 1/2, 4 1/3.
     Setting<u32, true> carousel_card_size{linkage, 2, 0, 4, "carousel_card_size", Category::UiGameList};
     Setting<u32, true> carousel_side_count{linkage, 5, 3, 8, "carousel_side_count", Category::UiGameList};

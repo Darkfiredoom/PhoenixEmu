@@ -28,7 +28,11 @@ namespace PhoenixBackdrop {
 /// A blurred copy of `picture` covering `size` (cropped to its shape, never stretched): made
 /// small, blurred there, then scaled up once. Rebuild it when the size changes. `soft` keeps
 /// more of the picture (a banner background) instead of a glow of its colours.
-inline QPixmap MakeAmbient(const QPixmap& picture, QSize size, bool soft = false) {
+/// soft: the "picked game's picture as the background" look, close to the picture. banner: the
+/// picture is the game's real banner, so it is shown nearly as it is (lightly softened), not
+/// turned into a glow of its colours as a square picture blown up is.
+inline QPixmap MakeAmbient(const QPixmap& picture, QSize size, bool soft = false,
+                           bool banner = false) {
     if (picture.isNull() || size.isEmpty()) {
         return {};
     }
@@ -42,7 +46,7 @@ inline QPixmap MakeAmbient(const QPixmap& picture, QSize size, bool soft = false
         const int h = int(crop.width() / target_aspect);
         crop = {0, (crop.height() - h) / 2, crop.width(), h};
     }
-    const int divisor = soft ? 6 : 10;
+    const int divisor = banner && soft ? 2 : banner ? 4 : soft ? 6 : 10;
     const QSize small{std::max(8, size.width() / divisor), std::max(8, size.height() / divisor)};
     QImage image = picture.copy(crop)
                        .scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
@@ -51,7 +55,7 @@ inline QPixmap MakeAmbient(const QPixmap& picture, QSize size, bool soft = false
     // Three box blur passes (close to a Gaussian), each across then down.
     const int w = image.width();
     const int h = image.height();
-    const int radius = soft ? 2 : 3;
+    const int radius = banner && soft ? 1 : soft ? 2 : 3;
     std::vector<QRgb> line(std::max(w, h));
     for (int pass = 0; pass < 3; ++pass) {
         for (int y = 0; y < h; ++y) {

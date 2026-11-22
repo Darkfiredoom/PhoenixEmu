@@ -46,12 +46,21 @@ struct GamePictureLookup {
     bool nothing_found = false; ///< The sources answered and had nothing (not a network error).
 };
 
+/// One game in PhoenixEmu's picture list: its picture, and its banner (a wide "hero") if any.
+struct GamePictureListEntry {
+    std::string url;
+    std::string hero;
+};
+
 /// PhoenixEmu's title ID -> picture link list (dist/game_pictures.json in the update repository),
 /// downloaded at most once a day. Empty when it can't be had. Blocks; run it off the UI thread.
-std::unordered_map<u64, std::string> LoadGamePictureList(const std::atomic_bool& cancel);
+std::unordered_map<u64, GamePictureListEntry> LoadGamePictureList(const std::atomic_bool& cancel);
 
 /// Downloads a picture from the list as a 256x256 PNG. Empty on failure. Blocks.
 std::vector<u8> DownloadGamePicture(const std::string& url, const std::atomic_bool& cancel);
+
+/// Downloads a banner from the list as a JPEG of at most 1920 px across. Empty on failure.
+std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel);
 
 /// Finds a game picture without asking anything: SteamGridDB's first icon when api_key is set,
 /// else switchiconshowdown.com. Blocks; run it off the UI thread.

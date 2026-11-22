@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 
 #include <QDateTime>
 #include <QElapsedTimer>
@@ -30,6 +31,7 @@
 #include "phoenix/util/phoenix_backdrop.h"
 #include "qt_common/game_list/model.h"
 #include "phoenix/game/common.h"
+#include "phoenix/game/case_box.h"
 #include "phoenix/game/game_card.h"
 #include "phoenix/game/carousel.h"
 
@@ -336,7 +338,15 @@ GameCarousel::~GameCarousel() {
 
 void GameCarousel::RebuildAmbient() {
     m_ambientSoft = UISettings::values.carousel_banner_background.GetValue();
-    m_ambient = PhoenixBackdrop::MakeAmbient(m_ambientSource, viewport()->size(), m_ambientSoft);
+    m_ambient = PhoenixBackdrop::MakeAmbient(m_ambientSource, viewport()->size(), m_ambientSoft,
+                                             m_ambientIsBanner);
+}
+
+void GameCarousel::SetAmbientSource(const QModelIndex& index) {
+    const QPixmap banner = index.data(GameListItemPath::BannerRole).value<QPixmap>();
+    m_ambientIsBanner = !banner.isNull();
+    m_ambientSource =
+        m_ambientIsBanner ? banner : index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
 }
 
 void GameCarousel::resizeEvent(QResizeEvent* event) {
@@ -640,10 +650,9 @@ void GameCarousel::SetModel(GameListModel* model) {
                     current.row() > bottom_right.row()) {
                     return;
                 }
-                const QPixmap picture =
-                    current.data(GameListItemPath::LargePictureRole).value<QPixmap>();
-                if (picture.cacheKey() != m_ambientSource.cacheKey()) {
-                    m_ambientSource = picture;
+                const QPixmap before = m_ambientSource;
+                SetAmbientSource(current);
+                if (before.cacheKey() != m_ambientSource.cacheKey()) {
                     RebuildAmbient();
                     viewport()->update();
                 }
@@ -669,7 +678,7 @@ void GameCarousel::SetModel(GameListModel* model) {
                 PlaceAddButton();
                 // The backdrop takes the picked game's colours, cross-fading from the last.
                 m_ambientPrevious = m_ambient;
-                m_ambientSource = current.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+                SetAmbientSource(current);
                 RebuildAmbient();
                 if (m_ambientAnimation == nullptr) {
                     m_ambientAnimation = new QVariantAnimation(this);
@@ -781,8 +790,8 @@ StackMetrics MetricsFor(const QRect& area) {
     const size_t size_index =
         std::min<size_t>(UISettings::values.carousel_card_size.GetValue(), CardSizeFractions.size() - 1);
     m.card_h = std::max<qreal>(120.0, area.height() * CardSizeFractions[size_index]);
-    m.card_w = GameCard::CurrentStyle() == GameCard::Style::Cartridge
-                   ? m.card_h * GameCard::CartridgeAspect
+    m.card_w = GameCard::IsFramed(GameCard::CurrentStyle())
+                   ? m.card_h * GameCard::FrameAspect(GameCard::CurrentStyle())
                    : m.card_h;
     m.center = QRectF(area).center();
     m.peek = std::clamp(m.card_w * PeekFraction, qreal(28), qreal(96));
@@ -856,19 +865,41 @@ QPixmap PictureOf(const QModelIndex& index) {
     return picture;
 }
 
-/// The solid part of the cartridge frame (its SVG has a clear margin around it).
-QRectF CartridgeBody(const QRectF& cart) {
-    const qreal sx = cart.width() / GameCard::CartridgeBase.width();
-    const qreal sy = cart.height() / GameCard::CartridgeBase.height();
-    return {cart.left() + 13.0 * sx, cart.top() + 8.0 * sy, 205.0 * sx, 297.0 * sy};
+
+/// The Shelf layout (the Case look): the cases standing side by side like a bookshelf, spines
+/// out, the picked one pulled out and turned to show its front (after PyroCade's bookshelf).
+bool ShelfLayout() {
+    return UISettings::values.carousel_layout.GetValue() == 2 &&
+           GameCard::CurrentStyle() == GameCard::Style::Case;
+}
+
+/// A spine's width on the shelf, and the gap between spines.
+qreal ShelfPitch(const StackMetrics& m) {
+    return m.card_w * 0.92 * 0.098 * 1.08 + 3.0;
+}
+
+/// The case rectangle (its full size, centred where it stands) `depth` places from the middle.
+QRectF ShelfRect(qreal depth, const StackMetrics& m) {
+    const qreal d = std::abs(depth);
+    const qreal pitch = ShelfPitch(m);
+    // The picked case turned to its rest angle spans about 0.4 of its width either side.
+    const qreal first = m.card_w * 0.42 + 6.0 + pitch / 2;
+    const qreal offset = d < 1.0 ? first * d : first + (d - 1.0) * pitch;
+    const qreal x = m.center.x() + (depth < 0 ? -offset : offset);
+    return {x - m.card_w / 2, m.center.y() - m.card_h / 2, m.card_w, m.card_h};
+}
+
+/// How a case on the shelf is turned: the picked one shows its front, the others their spines.
+qreal ShelfAngle(qreal depth) {
+    return CaseRestAngle + (90.0 - CaseRestAngle) * std::min(std::abs(depth), 1.0);
 }
 
 void DrawStackCard(QPainter& p, const QModelIndex& index, const QRectF& rect, qreal depth,
-                   qreal alpha, qreal dpr) {
+                   qreal alpha, qreal dpr, qreal case_angle) {
     const qreal d = std::abs(depth);
     const bool centered = d < 0.01;
     const GameCard::Style style = GameCard::CurrentStyle();
-    const bool cartridge = style == GameCard::Style::Cartridge;
+    const bool cartridge = GameCard::IsFramed(style);
     const QRectF local{0, 0, rect.width(), rect.height()};
 
     // The card maps onto a trapezoid: the edge facing the middle keeps its height, the far edge
@@ -895,10 +926,15 @@ void DrawStackCard(QPainter& p, const QModelIndex& index, const QRectF& rect, qr
     p.save();
     p.setOpacity(alpha);
     p.setTransform(tilt);
-    const QPixmap picture = PictureOf(index);
-    const QRectF body = cartridge ? CartridgeBody(local) : local;
-    const qreal radius = cartridge ? 18.0 * local.width() / GameCard::CartridgeBase.width()
-                                   : local.width() * 0.08;
+    QPixmap picture = PictureOf(index);
+    const QRectF body = cartridge ? GameCard::FrameBody(style, local) : local;
+    const qreal radius =
+        cartridge ? GameCard::FrameRadius(style, local.width()) : local.width() * 0.08;
+    if (centered && style == GameCard::Style::Case) {
+        DrawCaseBox(p, index, local, dpr, case_angle, picture);
+        p.restore();
+        return;
+    }
     if (centered) {
         // A soft shadow under the card in the middle.
         p.setPen(Qt::NoPen);
@@ -913,9 +949,16 @@ void DrawStackCard(QPainter& p, const QModelIndex& index, const QRectF& rect, qr
     p.setClipPath(body_clip);
     QRectF art_rect = local;
     if (cartridge) {
-        const QPixmap frame = GameCard::CartridgePixmap(qRound(local.height()), dpr);
+        QPixmap frame;
+        if (style == GameCard::Style::Case) {
+            GameCard::CaseParts(index, local, qRound(local.height()), dpr, frame, art_rect,
+                                picture);
+        } else {
+            frame = GameCard::FramePixmap(style, qRound(local.height()), dpr,
+                                          index.data(GameListItemPath::Switch2Role).toBool());
+            art_rect = GameCard::FrameArtRect(style, local);
+        }
         p.drawPixmap(local, frame, QRectF(frame.rect()));
-        art_rect = GameCard::CartridgeLabelRect(local);
         QPainterPath label_clip;
         label_clip.addRoundedRect(art_rect, art_rect.width() * 0.04, art_rect.width() * 0.04);
         p.setClipPath(label_clip, Qt::IntersectClip);
@@ -954,7 +997,9 @@ void DrawStackCard(QPainter& p, const QModelIndex& index, const QRectF& rect, qr
 } // Anonymous namespace
 
 bool GameCarousel::Stacked() {
-    return UISettings::values.carousel_layout.GetValue() == 0;
+    // The shelf (2) slides like the stack, with the cases standing side by side.
+    return UISettings::values.carousel_layout.GetValue() == 0 ||
+           UISettings::values.carousel_layout.GetValue() == 2;
 }
 
 std::vector<int> GameCarousel::VisibleRows() const {
@@ -1038,6 +1083,49 @@ void GameCarousel::PaintStack(QPainter& p) {
         }
         return a.depth > b.depth;
     });
+    if (ShelfLayout()) {
+        // The shelf under the cases.
+        const qreal floor_y = m.center.y() + m.card_h * 0.47;
+        const QRectF plank{0, floor_y, static_cast<qreal>(viewport()->width()), m.card_h * 0.045};
+        QLinearGradient wood{plank.topLeft(), plank.bottomLeft()};
+        wood.setColorAt(0.0, QColor(0x5A, 0x3E, 0x28));
+        wood.setColorAt(0.25, QColor(0x3E, 0x2A, 0x1A));
+        wood.setColorAt(1.0, QColor(0x22, 0x16, 0x0D));
+        p.fillRect(plank, wood);
+        p.fillRect(QRectF(plank.left(), plank.top(), plank.width(), 1.5), QColor(255, 230, 190, 70));
+        QLinearGradient under{plank.bottomLeft(), QPointF(plank.left(), plank.bottom() + 18)};
+        under.setColorAt(0.0, QColor(0, 0, 0, 90));
+        under.setColorAt(1.0, QColor(0, 0, 0, 0));
+        p.fillRect(QRectF(plank.left(), plank.bottom(), plank.width(), 18), under);
+        // Every case that fits, the far ones first so the middle one sits on top.
+        const qreal pitch = ShelfPitch(m);
+        const int reach = static_cast<int>(viewport()->width() / 2 / pitch) + 2;
+        std::vector<Card> shelf;
+        for (int position = std::max(0, base - reach);
+             position <= std::min<int>(static_cast<int>(rows.size()) - 1, base + reach);
+             ++position) {
+            shelf.push_back({position, position - m_position});
+        }
+        std::sort(shelf.begin(), shelf.end(), [](const Card& a, const Card& b) {
+            return std::abs(a.depth) > std::abs(b.depth);
+        });
+        for (const Card& card : shelf) {
+            const QRectF rect = ShelfRect(card.depth, m);
+            if (rect.center().x() + pitch < 0.0 || rect.center().x() - pitch > viewport()->width()) {
+                continue;
+            }
+            const QModelIndex index = model()->index(rows[static_cast<size_t>(card.position)], 0);
+            QPixmap picture = index.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+            if (picture.isNull()) {
+                picture = index.data(Qt::DecorationRole).value<QPixmap>();
+            }
+            DrawCaseBox(p, index, rect, dpr, ShelfAngle(card.depth), picture);
+        }
+        cards = shelf;
+        std::sort(cards.begin(), cards.end(), [](const Card& a, const Card& b) {
+            return std::abs(a.depth) > std::abs(b.depth);
+        });
+    } else
     for (const Card& card : cards) {
         const qreal alpha = StackAlpha(card.depth, count);
         const QRectF rect = CardRect(card.depth, m);
@@ -1045,7 +1133,7 @@ void GameCarousel::PaintStack(QPainter& p) {
             continue;
         }
         DrawStackCard(p, model()->index(rows[static_cast<size_t>(card.position)], 0), rect,
-                      card.depth, alpha, dpr);
+                      card.depth, alpha, dpr, CaseRestAngle);
     }
 
     // The middle card's name in a pill under it, fading in as it settles.
@@ -1087,17 +1175,28 @@ QModelIndex GameCarousel::StackIndexAt(const QPoint& point) const {
         return {};
     }
     const StackMetrics m = MetricsFor(StackArea());
-    const bool cartridge = GameCard::CurrentStyle() == GameCard::Style::Cartridge;
+    const GameCard::Style style = GameCard::CurrentStyle();
+    const bool cartridge = GameCard::IsFramed(style);
     const int count = static_cast<int>(UISettings::values.carousel_side_count.GetValue()) + 1;
     int best = -1;
     qreal best_depth = 0;
+    const bool shelf = ShelfLayout();
+    const qreal pitch = ShelfPitch(m);
     for (int position = 0; position < static_cast<int>(rows.size()); ++position) {
         const qreal depth = position - m_position;
-        if (std::abs(depth) > count) {
+        if (!shelf && std::abs(depth) > count) {
             continue;
         }
-        const QRectF rect = CardRect(depth, m);
-        const QRectF hit = cartridge ? CartridgeBody(rect) : rect;
+        QRectF hit;
+        if (shelf) {
+            // The picked case: its turned front; the others: their spines.
+            const QRectF rect = ShelfRect(depth, m);
+            const qreal half = std::abs(depth) < 0.5 ? m.card_w * 0.42 : pitch / 2;
+            hit = QRectF(rect.center().x() - half, rect.top(), half * 2, rect.height());
+        } else {
+            const QRectF rect = CardRect(depth, m);
+            hit = cartridge ? GameCard::FrameBody(style, rect) : rect;
+        }
         if (hit.contains(QPointF(point)) && (best < 0 || std::abs(depth) < std::abs(best_depth))) {
             best = position;
             best_depth = depth;
@@ -1185,6 +1284,22 @@ QRegion GameCarousel::visualRegionForSelection(const QItemSelection& selection) 
         }
     }
     return region;
+}
+
+void GameCarousel::mousePressEvent(QMouseEvent* event) {
+    // The Case look: a click on the picked game's case opens it (PyroCade's open case); the
+    // Play button, Enter and a double click on another game still start a game directly.
+    if (event->button() == Qt::LeftButton &&
+        GameCard::CurrentStyle() == GameCard::Style::Case) {
+        const QModelIndex hit = indexAt(event->position().toPoint());
+        if (hit.isValid() && currentIndex().isValid() && hit.row() == currentIndex().row()) {
+            // The case comes forward to be turned round and opened (CaseViewer).
+            emit CaseOpenRequested(currentIndex());
+            event->accept();
+            return;
+        }
+    }
+    QListView::mousePressEvent(event);
 }
 
 void GameCarousel::wheelEvent(QWheelEvent* event) {

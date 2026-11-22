@@ -188,6 +188,10 @@ add_executable(phoenix
     customize_panel.cpp
     game_details_panel.h
     game_details_panel.cpp
+    game/case_box.h
+    game/case_box.cpp
+    game/case_viewer.h
+    game/case_viewer.cpp
     steam_shortcuts.h
     steam_shortcuts.cpp
     controllers_dialog.h

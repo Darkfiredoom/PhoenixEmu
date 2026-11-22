@@ -40,6 +40,8 @@ signals:
     /// The home view's user button: the user menu opens at this global position.
     void UserMenuRequested(const QPoint& global_pos);
     void CustomizeRequested();
+    /// The picked game's case was clicked (the Case look): open it.
+    void CaseOpenRequested(const QModelIndex& game);
     void ControllersRequested();
 
 protected:
@@ -53,6 +55,7 @@ protected:
     void setSelection(const QRect& rect, QItemSelectionModel::SelectionFlags command) override;
     QRegion visualRegionForSelection(const QItemSelection& selection) const override;
     void wheelEvent(QWheelEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
 
 private:
     /// UISettings::carousel_layout: one big card with the others tilted behind it (after
@@ -79,6 +82,9 @@ private:
     // the moving scene.
     void RebuildAmbient();
     QPixmap m_ambientSource;
+    bool m_ambientIsBanner = false; ///< m_ambientSource is the game's banner
+    /// The picked game's background picture: its banner, else its picture.
+    void SetAmbientSource(const QModelIndex& index);
     QPixmap m_ambient;
     QPixmap m_ambientPrevious;
     qreal m_ambientFade = 1.0;

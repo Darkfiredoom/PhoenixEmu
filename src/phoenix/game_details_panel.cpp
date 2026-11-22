@@ -97,7 +97,10 @@ GameDetailsPanel::GameDetailsPanel(Core::System& system_, const PlayTime::PlayTi
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     auto* const body = new QWidget;
     body->setObjectName(QStringLiteral("CustomizePanelBody"));
+    // The panel's width, whatever a long add-on name or path asks for (see CustomizePanel).
+    body->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     auto* const layout = new QVBoxLayout(body);
+    layout->setSizeConstraint(QLayout::SetNoConstraint);
     layout->setContentsMargins(16, 0, 16, 12);
     layout->setSpacing(8);
     scroll->setWidget(body);
@@ -257,7 +260,11 @@ void GameDetailsPanel::SetGame(const QModelIndex& index) {
 
 void GameDetailsPanel::ShowPictures() {
     const bool valid = game.isValid();
-    banner_source = valid ? game.data(GameListItemPath::LargePictureRole).value<QPixmap>() : QPixmap{};
+    // The game's banner, else its picture.
+    banner_source = valid ? game.data(GameListItemPath::BannerRole).value<QPixmap>() : QPixmap{};
+    if (banner_source.isNull() && valid) {
+        banner_source = game.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+    }
     if (banner_source.isNull() && valid) {
         banner_source = game.data(Qt::DecorationRole).value<QPixmap>();
     }

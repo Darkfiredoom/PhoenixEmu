@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: Copyright 2026 PhoenixEmu contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Builds dist/game_pictures.json: a SteamGridDB picture link for every Switch 2 title ID.
+"""Builds dist/game_pictures.json: a SteamGridDB picture link (and a wide banner, "hero", where
+SteamGridDB has one) for every Switch 2 title ID.
 
 PhoenixEmu downloads that list and the pictures it names, so players need no SteamGridDB key.
 The title IDs and names come from switchbrew's Switch 2 title list. Only this script needs a key:
@@ -149,6 +150,17 @@ def first_icon(game_id, key):
     return None
 
 
+def first_hero(game_id, key):
+    """A wide banner ("hero", 1920x620 or larger) for the home screen's background."""
+    for query in ("/heroes/game/%d?dimensions=1920x620,3840x1240&mimes=image/png,image/jpeg&types=static" % game_id,
+                  "/heroes/game/%d?mimes=image/png,image/jpeg&types=static" % game_id):
+        body = get(SGDB + query, key)
+        for item in json.loads(body or b"{}").get("data") or []:
+            if item.get("url"):
+                return item["url"]
+    return None
+
+
 def main():
     # Names include Japanese and other scripts; a Windows console defaults to cp1252.
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -168,7 +180,7 @@ def main():
 
     pictures = {}
     by_name = {}
-    found = missing = kept = 0
+    found = missing = kept = heroes = 0
     for title_id, name in titles:
         if title_id in pictures:
             continue
@@ -196,6 +208,14 @@ def main():
             continue
         if url:
             pictures[title_id] = {"name": clean_name(name), "url": url, "sgdb_game": game["id"]}
+            try:
+                hero = first_hero(game["id"], key)
+            except Exception as e:  # keep the last list's banner
+                print("  %s %s (banner): %s" % (title_id, name, e), file=sys.stderr)
+                hero = (previous.get(title_id) or {}).get("hero")
+            if hero:
+                pictures[title_id]["hero"] = hero
+                heroes += 1
             found += 1
         else:
             missing += 1
@@ -212,8 +232,8 @@ def main():
     with open(OUTPUT, "w", encoding="utf-8", newline="\n") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)
         f.write("\n")
-    print("%d titles: %d pictures, %d without, %d kept from the last list" %
-          (len(titles), found, missing, kept))
+    print("%d titles: %d pictures (%d with a banner), %d without, %d kept from the last list" %
+          (len(titles), found, heroes, missing, kept))
 
 
 if __name__ == "__main__":

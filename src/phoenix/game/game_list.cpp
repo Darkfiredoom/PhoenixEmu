@@ -44,6 +44,7 @@
 #include "core/file_sys/nup_writer.h"
 #ifdef LICHII_NX_TOOLS
 #include "phoenix/steam_shortcuts.h"
+#include "phoenix/game/case_viewer.h"
 #include "phoenix/nx_tools.h"
 #endif
 #include "core/file_sys/patch_manager.h"
@@ -343,20 +344,27 @@ void GameList::StartPictureSearch() {
     struct Wanted {
         u64 program_id;
         std::string name;
-        bool online;
+        bool online;  ///< The picture is looked up online
+        bool picture; ///< It has no picture
+        bool banner;  ///< It has no banner, and the list may have one
     };
     std::vector<Wanted> wanted;
     ForEachGameItem([&](GameListItemPath& item) {
         const u64 program_id = item.data(GameListItemPath::ProgramIdRole).toULongLong();
         const QString name = item.data(GameListItemPath::TitleRole).toString().trimmed();
         if (program_id == 0 || name.isEmpty() ||
-            item.data(GameListItemPath::HasPictureRole).toBool() ||
             std::ranges::any_of(wanted, [&](const Wanted& w) { return w.program_id == program_id; })) {
             return;
         }
-        const bool search = online && !QtCommon::GamePictures::RecentlyMissing(program_id);
-        if (search || !pack.empty()) {
-            wanted.push_back({program_id, name.toStdString(), search});
+        const bool needs_picture = !item.data(GameListItemPath::HasPictureRole).toBool();
+        const bool search =
+            needs_picture && online && !QtCommon::GamePictures::RecentlyMissing(program_id);
+        const bool banner = online &&
+                            item.data(GameListItemPath::BannerRole).value<QPixmap>().isNull() &&
+                            !QtCommon::GamePictures::BannerRecentlyMissing(program_id);
+        const bool picture = needs_picture && (search || !pack.empty());
+        if (picture || banner) {
+            wanted.push_back({program_id, name.toStdString(), search, picture, banner});
         }
     });
     if (wanted.empty()) {
@@ -387,6 +395,9 @@ void GameList::StartPictureSearch() {
             if (cancel->load()) {
                 break;
             }
+            if (!game.picture) {
+                continue;
+            }
             const auto png = IconPackPicture(pack, game.name);
             if (!png.empty()) {
                 LOG_INFO(Frontend, "Game pictures: icon pack has one for {:016X} ({})",
@@ -398,10 +409,12 @@ void GameList::StartPictureSearch() {
         }
         // PhoenixEmu's list matches by title ID and needs no key; a player's own SteamGridDB key
         // also searches by name for games the list doesn't have.
-        const auto list = remaining.empty() || cancel->load()
+        const bool want_banners =
+            std::ranges::any_of(wanted, [](const Wanted& w) { return w.banner; });
+        const auto list = (remaining.empty() && !want_banners) || cancel->load()
                               ? decltype(LoadGamePictureList(*cancel)){}
                               : LoadGamePictureList(*cancel);
-        for (const auto& [program_id, name, search] : remaining) {
+        for (const auto& [program_id, name, search, picture, banner] : remaining) {
             if (cancel->load()) {
                 break;
             }
@@ -411,7 +424,7 @@ void GameList::StartPictureSearch() {
                 entry = list.find(program_id & ~u64{0xFFF}); // the base game of an update or DLC
             }
             if (entry != list.end()) {
-                found.png = DownloadGamePicture(entry->second, *cancel);
+                found.png = DownloadGamePicture(entry->second.url, *cancel);
             } else if (!api_key.empty()) {
                 found = FindGamePictureAutomatically(name, program_id, api_key, *cancel);
             } else {
@@ -426,6 +439,38 @@ void GameList::StartPictureSearch() {
                          name);
             }
         }
+        // Banners (wide pictures for the home background and the details panel), from the list.
+        for (const Wanted& game : wanted) {
+            if (cancel->load() || list.empty()) {
+                break;
+            }
+            if (!game.banner) {
+                continue;
+            }
+            auto entry = list.find(game.program_id);
+            if (entry == list.end() || entry->second.hero.empty()) {
+                entry = list.find(game.program_id & ~u64{0xFFF});
+            }
+            std::vector<u8> banner;
+            if (entry != list.end() && !entry->second.hero.empty()) {
+                banner = DownloadGameBanner(entry->second.hero, *cancel);
+            }
+            if (banner.empty()) {
+                QtCommon::GamePictures::MarkBannerMissing(game.program_id);
+                continue;
+            }
+            QtCommon::GamePictures::SaveBanner(game.program_id, banner);
+            LOG_INFO(Frontend, "Game pictures: banner for {:016X} ({})", game.program_id,
+                     game.name);
+            QMetaObject::invokeMethod(
+                qApp,
+                [self, program_id = game.program_id, banner] {
+                    if (self) {
+                        self->ApplyBanner(program_id, banner);
+                    }
+                },
+                Qt::QueuedConnection);
+        }
         QMetaObject::invokeMethod(
             qApp,
             [self] {
@@ -435,6 +480,58 @@ void GameList::StartPictureSearch() {
             },
             Qt::QueuedConnection);
     });
+}
+
+void GameList::OpenCase(const QModelIndex& game) {
+    if (case_viewer == nullptr) {
+        case_viewer = new CaseViewer(this);
+        connect(case_viewer, &CaseViewer::PlayRequested, this, &GameList::ValidateEntry);
+    }
+    case_viewer->Open(game);
+}
+
+void GameList::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+    if (case_viewer != nullptr && case_viewer->isVisible()) {
+        case_viewer->setGeometry(rect());
+    }
+}
+
+void GameList::ApplyBanner(u64 program_id, const std::vector<u8>& banner) {
+    ForEachGameItem([&](GameListItemPath& item) {
+        if (item.data(GameListItemPath::ProgramIdRole).toULongLong() == program_id) {
+            item.SetBanner(banner);
+        }
+    });
+}
+
+void GameList::ChooseBannerFile(u64 program_id) {
+    const QString file = QFileDialog::getOpenFileName(
+        this, tr("Choose a Banner"), {}, tr("Images (*.png *.jpg *.jpeg *.webp *.bmp)"));
+    if (file.isEmpty()) {
+        return;
+    }
+    QImage image(file);
+    if (image.isNull()) {
+        return;
+    }
+    if (image.width() > 1920) {
+        image = image.scaledToWidth(1920, Qt::SmoothTransformation);
+    }
+    QByteArray jpg;
+    QBuffer buffer(&jpg);
+    buffer.open(QIODevice::WriteOnly);
+    image.convertToFormat(QImage::Format_RGB32).save(&buffer, "JPG", 90);
+    const std::vector<u8> bytes(jpg.begin(), jpg.end());
+    if (QtCommon::GamePictures::SaveBanner(program_id, bytes)) {
+        ApplyBanner(program_id, bytes);
+    }
+}
+
+void GameList::ResetBanner(u64 program_id) {
+    QtCommon::GamePictures::RemoveBanner(program_id);
+    ApplyBanner(program_id, {});
+    StartPictureSearch(); // the list's banner, if it has one
 }
 
 void GameList::ApplyPicture(u64 program_id, const std::vector<u8>& png) {
@@ -513,6 +610,7 @@ void GameList::SetupViews() {
     connect(carousel_view, &GameCarousel::AddDirectoryRequested, this, &GameList::AddDirectory);
     connect(carousel_view, &GameCarousel::UserMenuRequested, this, &GameList::UserMenuRequested);
     connect(carousel_view, &GameCarousel::CustomizeRequested, this, &GameList::CustomizeRequested);
+    connect(carousel_view, &GameCarousel::CaseOpenRequested, this, &GameList::OpenCase);
     connect(carousel_view, &GameCarousel::ControllersRequested, this,
             &GameList::ControllersRequested);
 }
@@ -1055,6 +1153,14 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
             std::filesystem::exists(QtCommon::GamePictures::PicturePath(program_id)));
         connect(reset_picture, &QAction::triggered, this,
                 [this, program_id] { ResetPicture(program_id); });
+        picture_menu->addSeparator();
+        connect(picture_menu->addAction(tr("Choose Banner File...")), &QAction::triggered, this,
+                [this, program_id] { ChooseBannerFile(program_id); });
+        QAction* reset_banner = picture_menu->addAction(tr("Reset Banner"));
+        reset_banner->setEnabled(
+            std::filesystem::exists(QtCommon::GamePictures::BannerPath(program_id)));
+        connect(reset_banner, &QAction::triggered, this,
+                [this, program_id] { ResetBanner(program_id); });
     }
     // Compatibility reports go to the upstream project's website, which doesn't take PhoenixEmu
     // builds: the entry is hidden.

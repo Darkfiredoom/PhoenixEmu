@@ -1,0 +1,214 @@
+{
+ "version": 1,
+ "games": [
+  {
+   "folder": "Donkey Kong Bananza",
+   "ids": [
+    "040074A01BF12000"
+   ],
+   "names": [
+    "Donkey Kong Bananza"
+   ],
+   "files": [
+    "Cases/Donkey Kong Bananza/Donkey Kong Bananza-inside.jpg",
+    "Cases/Donkey Kong Bananza/Donkey Kong Bananza.jpg"
+   ],
+   "banner": "Banner/Donkey Kong Bananza.jpg"
+  },
+  {
+   "folder": "Fire Emblem Fortunes Weave",
+   "ids": [],
+   "names": [
+    "Fire Emblem: Fortune's Weave"
+   ],
+   "files": [
+    "Cases/Fire Emblem Fortunes Weave/Fire Emblem Fortunes Weave-Front.jpg"
+   ],
+   "banner": "Banner/Fire Emblem Fortunes Weave.jpg"
+  },
+  {
+   "folder": "Hyrule Warriors- Age of Inprisonment",
+   "ids": [
+    "04003F40232DE000"
+   ],
+   "names": [
+    "Hyrule Warriors: Age of Imprisonment"
+   ],
+   "files": [
+    "Cases/Hyrule Warriors- Age of Inprisonment/Hyrule Warriors- Age of Inprisonment-Back.jpg",
+    "Cases/Hyrule Warriors- Age of Inprisonment/Hyrule Warriors- Age of Inprisonment-Front.jpg",
+    "Cases/Hyrule Warriors- Age of Inprisonment/Hyrule Warriors- Age of Inprisonment-Side.jpg"
+   ]
+  },
+  {
+   "folder": "Kirby Air Riders",
+   "ids": [
+    "040077201BE50000"
+   ],
+   "names": [
+    "Kirby Air Riders"
+   ],
+   "files": [
+    "Cases/Kirby Air Riders/Kirby Air Riders-Back.jpg",
+    "Cases/Kirby Air Riders/Kirby Air Riders-Front.jpg",
+    "Cases/Kirby Air Riders/Kirby Air Riders-Side.jpg"
+   ]
+  },
+  {
+   "folder": "Kirby and the Forgotten Land Switch 2 edition",
+   "ids": [
+    "01004D300C5AE000"
+   ],
+   "names": [
+    "Kirby and the Forgotten Land"
+   ],
+   "files": [
+    "Cases/Kirby and the Forgotten Land Switch 2 edition/Kirby and the Forgotten Land Switch 2 edition-Inside.png",
+    "Cases/Kirby and the Forgotten Land Switch 2 edition/Kirby and the Forgotten Land Switch 2 edition.png"
+   ],
+   "banner": "Banner/Kirby and the Forgotten Land.jpg"
+  },
+  {
+   "folder": "Mario Kart World",
+   "ids": [
+    "0400C3F00006E000"
+   ],
+   "names": [
+    "Mario Kart World"
+   ],
+   "files": [
+    "Cases/Mario Kart World/Mario Kart World-Inside.jpg",
+    "Cases/Mario Kart World/Mario Kart World.jpg"
+   ],
+   "banner": "Banner/Mario Kart World.jpg"
+  },
+  {
+   "folder": "Mario Tennis Fever",
+   "ids": [
+    "0400D4201C6EA000"
+   ],
+   "names": [
+    "Mario Tennis Fever"
+   ],
+   "files": [
+    "Cases/Mario Tennis Fever/Mario Tennis Fever-Inside.jpg",
+    "Cases/Mario Tennis Fever/Mario Tennis Fever.jpg"
+   ],
+   "banner": "Banner/Mario Tennis Fever.jpg"
+  },
+  {
+   "folder": "Metroid Prime 4 Beyond - Nintendo Switch 2 Edition",
+   "ids": [
+    "010012101468C000"
+   ],
+   "names": [
+    "Metroid Prime 4: Beyond"
+   ],
+   "files": [
+    "Cases/Metroid Prime 4 Beyond - Nintendo Switch 2 Edition/Metroid Prime 4 Beyond - Nintendo Switch 2 Edition-Inside.jpg",
+    "Cases/Metroid Prime 4 Beyond - Nintendo Switch 2 Edition/Metroid Prime 4 Beyond - Nintendo Switch 2 Edition.jpg"
+   ],
+   "banner": "Banner/Metroid Prime 4 Beyond Nintendo Switch 2 Edition.jpg"
+  },
+  {
+   "folder": "OOT",
+   "ids": [
+    "0400486024DEC000"
+   ],
+   "names": [
+    "The Legend of Zelda: Ocarina of Time",
+    "Ocarina of Time"
+   ],
+   "files": [
+    "Cases/OOT/OOT-Inside.png",
+    "Cases/OOT/OOT.png"
+   ],
+   "banner": "Banner/OOT.jpg"
+  },
+  {
+   "folder": "Pokemon Legends ZA Switch 2 Edition",
+   "ids": [],
+   "names": [
+    "Pokémon Legends: Z-A",
+    "Pokemon Legends Z-A"
+   ],
+   "files": [
+    "Cases/Pokemon Legends ZA Switch 2 Edition/Pokemon Legends ZA-Back.jpg",
+    "Cases/Pokemon Legends ZA Switch 2 Edition/Pokemon Legends ZA-Front.jpg",
+    "Cases/Pokemon Legends ZA Switch 2 Edition/Pokemon Legends ZA-Side.jpg"
+   ]
+  },
+  {
+   "folder": "Pokopia",
+   "ids": [
+    "0400A3A01EE4C000"
+   ],
+   "names": [
+    "Pokémon Pokopia",
+    "Pokopia"
+   ],
+   "files": [
+    "Cases/Pokopia/Pokopia-Inside.jpg",
+    "Cases/Pokopia/Pokopia.jpg"
+   ],
+   "banner": "Banner/Pokopia.jpg"
+  },
+  {
+   "folder": "Splatoon Raiders",
+   "ids": [
+    "0400380020056000"
+   ],
+   "names": [
+    "Splatoon Raiders"
+   ],
+   "files": [
+    "Cases/Splatoon Raiders/SplatoonRaiders-Inside.jpg",
+    "Cases/Splatoon Raiders/SplatoonRaiders.jpg"
+   ],
+   "banner": "Banner/SplatoonRaiders.jpg"
+  },
+  {
+   "folder": "Star Fox",
+   "ids": [
+    "0400E88025B1A000"
+   ],
+   "names": [
+    "Star Fox"
+   ],
+   "files": [
+    "Cases/Star Fox/StarFox-Inside.jpg",
+    "Cases/Star Fox/StarFox.jpg"
+   ],
+   "banner": "Banner/StarFox.jpeg"
+  },
+  {
+   "folder": "Super Mario Bros Wonder",
+   "ids": [
+    "010015100B514000"
+   ],
+   "names": [
+    "Super Mario Bros. Wonder"
+   ],
+   "files": [
+    "Cases/Super Mario Bros Wonder/Super Mario Bros Wonder-Back.jpg",
+    "Cases/Super Mario Bros Wonder/Super Mario Bros Wonder-Front.jpg",
+    "Cases/Super Mario Bros Wonder/Super Mario Bros Wonder-Side.jpg"
+   ],
+   "banner": "Banner/Super Mario Bros Wonder.jpg"
+  },
+  {
+   "folder": "Yoshi and the Mysterious Book",
+   "ids": [
+    "0400245021D2C000"
+   ],
+   "names": [
+    "Yoshi and the Mysterious Book"
+   ],
+   "files": [
+    "Cases/Yoshi and the Mysterious Book/Yoshia and the Mysterious Book-Inside.jpg",
+    "Cases/Yoshi and the Mysterious Book/Yoshia and the Mysterious Book.jpg"
+   ],
+   "banner": "Banner/Yoshi and the Mysterious Book.jpg"
+  }
+ ]
+}

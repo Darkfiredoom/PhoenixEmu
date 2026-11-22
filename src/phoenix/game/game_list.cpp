@@ -45,6 +45,7 @@
 #ifdef LICHII_NX_TOOLS
 #include "phoenix/steam_shortcuts.h"
 #include "phoenix/game/case_viewer.h"
+#include "qt_common/game_list/case_art.h"
 #include "phoenix/nx_tools.h"
 #endif
 #include "core/file_sys/patch_manager.h"
@@ -347,6 +348,7 @@ void GameList::StartPictureSearch() {
         bool online;  ///< The picture is looked up online
         bool picture; ///< It has no picture
         bool banner;  ///< It has no banner, and the list may have one
+        bool case_art; ///< It has no case art, and PhoenixEmu's pack may have it
     };
     std::vector<Wanted> wanted;
     ForEachGameItem([&](GameListItemPath& item) {
@@ -363,8 +365,11 @@ void GameList::StartPictureSearch() {
                             item.data(GameListItemPath::BannerRole).value<QPixmap>().isNull() &&
                             !QtCommon::GamePictures::BannerRecentlyMissing(program_id);
         const bool picture = needs_picture && (search || !pack.empty());
-        if (picture || banner) {
-            wanted.push_back({program_id, name.toStdString(), search, picture, banner});
+        const bool case_art = online &&
+                              item.data(GameListItemPath::CaseFrontRole).value<QPixmap>().isNull() &&
+                              !CaseArt::PackRecentlyMissing(program_id);
+        if (picture || banner || case_art) {
+            wanted.push_back({program_id, name.toStdString(), search, picture, banner, case_art});
         }
     });
     if (wanted.empty()) {
@@ -414,7 +419,7 @@ void GameList::StartPictureSearch() {
         const auto list = (remaining.empty() && !want_banners) || cancel->load()
                               ? decltype(LoadGamePictureList(*cancel)){}
                               : LoadGamePictureList(*cancel);
-        for (const auto& [program_id, name, search, picture, banner] : remaining) {
+        for (const auto& [program_id, name, search, picture, banner, case_art] : remaining) {
             if (cancel->load()) {
                 break;
             }
@@ -471,11 +476,36 @@ void GameList::StartPictureSearch() {
                 },
                 Qt::QueuedConnection);
         }
+        // Case art (covers, insides, spines, backs, banners) from PhoenixEmu's pack, a game at a
+        // time; the list reads it once something new came.
+        bool new_case_art = false;
+        for (const Wanted& game : wanted) {
+            if (cancel->load()) {
+                break;
+            }
+            if (!game.case_art) {
+                continue;
+            }
+            switch (DownloadCaseArt(game.program_id, game.name, *cancel)) {
+            case CaseArtFetch::Downloaded:
+                new_case_art = true;
+                break;
+            case CaseArtFetch::NotInPack:
+                CaseArt::MarkPackMissing(game.program_id);
+                break;
+            default:
+                break;
+            }
+        }
         QMetaObject::invokeMethod(
             qApp,
-            [self] {
+            [self, new_case_art] {
                 if (self) {
                     self->picture_search_running = false;
+                    if (new_case_art) {
+                        CaseArt::Reset();
+                        self->RefreshGameDirectory();
+                    }
                 }
             },
             Qt::QueuedConnection);

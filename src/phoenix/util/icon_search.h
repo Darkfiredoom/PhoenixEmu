@@ -59,6 +59,15 @@ std::unordered_map<u64, GamePictureListEntry> LoadGamePictureList(const std::ato
 /// Downloads a picture from the list as a 256x256 PNG. Empty on failure. Blocks.
 std::vector<u8> DownloadGamePicture(const std::string& url, const std::atomic_bool& cancel);
 
+/// What fetching a game's case art from PhoenixEmu's pack did.
+enum class CaseArtFetch { Downloaded, AlreadyHere, NotInPack, Failed };
+
+/// Fetches a game's case art (cover, inside, spine, back, banner) from PhoenixEmu's case art
+/// pack (the case-art branch of the update repository: manifest.json, then the game's files)
+/// into CaseArt::PackFolder(). The game is found by title ID, else by name. Blocks; run it off
+/// the UI thread. The manifest is downloaded at most once a day.
+CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::atomic_bool& cancel);
+
 /// Downloads a banner from the list as a JPEG of at most 1920 px across. Empty on failure.
 std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel);
 

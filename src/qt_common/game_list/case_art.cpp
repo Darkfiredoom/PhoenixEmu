@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <iterator>
 #include <mutex>
@@ -9,6 +10,7 @@
 #include <system_error>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <QImageReader>
 #include <QRegularExpression>
@@ -152,27 +154,48 @@ fs::path BestMatch(const fs::path& folder, bool directories, const QString& titl
     return best;
 }
 
-/// Where the game folders and the banners are: <folder>/Cases and <folder>/Banner, or the
-/// folder itself when it holds the game folders directly.
-fs::path CasesFolder() {
-    const fs::path root = Folder();
+/// Where the game folders are: the player's folder (<folder>/Cases, or the folder itself when
+/// it holds the game folders directly), then the downloaded pack's Cases. The player's own art
+/// wins: it is looked through first and kept on a tie.
+std::vector<fs::path> CasesFolders() {
+    std::vector<fs::path> folders;
     std::error_code ec;
-    if (fs::is_directory(root / "Cases", ec)) {
-        return root / "Cases";
-    }
-    return root;
+    const fs::path root = Folder();
+    folders.push_back(fs::is_directory(root / "Cases", ec) ? root / "Cases" : root);
+    folders.push_back(PackFolder() / "Cases");
+    return folders;
 }
 
-fs::path BannerFolder() {
-    const fs::path root = Folder();
+std::vector<fs::path> BannerFolders() {
+    std::vector<fs::path> folders;
     std::error_code ec;
+    const fs::path root = Folder();
     if (fs::is_directory(root / "Banner", ec)) {
-        return root / "Banner";
+        folders.push_back(root / "Banner");
+    } else if (fs::is_directory(root / "Banners", ec)) {
+        folders.push_back(root / "Banners");
     }
-    if (fs::is_directory(root / "Banners", ec)) {
-        return root / "Banners";
+    folders.push_back(PackFolder() / "Banner");
+    return folders;
+}
+
+/// The best entry for the game across folders (the earlier folder on a tie).
+fs::path BestMatchIn(const std::vector<fs::path>& folders, bool directories, const QString& title,
+                     u64 program_id, int* score_out = nullptr) {
+    fs::path best;
+    int best_score = 0;
+    for (const fs::path& folder : folders) {
+        int score = 0;
+        const fs::path found = BestMatch(folder, directories, title, program_id, &score);
+        if (!found.empty() && score > best_score) {
+            best = found;
+            best_score = score;
+        }
     }
-    return {};
+    if (score_out != nullptr) {
+        *score_out = best_score;
+    }
+    return best;
 }
 
 bool IsImage(const fs::path& path) {
@@ -201,7 +224,7 @@ QImage Read(const fs::path& path, std::optional<int> max_height, std::optional<i
 }
 
 std::shared_ptr<const Art> ReadArt(const QString& title, u64 program_id) {
-    const fs::path game = BestMatch(CasesFolder(), true, title, program_id);
+    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id);
     if (game.empty()) {
         return nullptr;
     }
@@ -287,12 +310,10 @@ std::vector<u8> BannerBytes(const QString& title, u64 program_id) {
         }
     }
     std::vector<u8> bytes;
-    if (const fs::path folder = BannerFolder(); !folder.empty()) {
-        const fs::path file = BestMatch(folder, false, title, program_id);
-        if (!file.empty() && IsImage(file)) {
-            std::ifstream stream(file, std::ios::binary);
-            bytes.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-        }
+    const fs::path file = BestMatchIn(BannerFolders(), false, title, program_id);
+    if (!file.empty() && IsImage(file)) {
+        std::ifstream stream(file, std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
     }
     std::scoped_lock lock{cache_mutex};
     banner_cache[CacheKey(title, program_id)] = bytes;
@@ -310,7 +331,7 @@ QString DisplayName(const QString& title, u64 program_id) {
         return title;
     }
     int score = 0;
-    const fs::path game = BestMatch(CasesFolder(), true, title, program_id, &score);
+    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id, &score);
     // Only a name found inside the title (not initials like "OOT", not a title ID folder).
     if (game.empty() || score < 700 || score > 880) {
         return title;
@@ -318,6 +339,32 @@ QString DisplayName(const QString& title, u64 program_id) {
     QString name = Utf8(game.filename());
     name.replace(QChar(0xA789), QLatin1Char(':'));
     return name;
+}
+
+fs::path PackFolder() {
+    return Common::FS::GetEdenPath(Common::FS::EdenPath::CacheDir) / "case_art_pack";
+}
+
+int MatchScore(const QString& candidate, const QString& title, u64 program_id) {
+    return Score(candidate, title, program_id);
+}
+
+namespace {
+fs::path PackMissPath(u64 program_id) {
+    return PackFolder() / "missing" / fmt::format("{:016X}", program_id);
+}
+} // Anonymous namespace
+
+bool PackRecentlyMissing(u64 program_id) {
+    std::error_code ec;
+    const auto written = fs::last_write_time(PackMissPath(program_id), ec);
+    return !ec && fs::file_time_type::clock::now() - written < std::chrono::hours{24};
+}
+
+void MarkPackMissing(u64 program_id) {
+    std::error_code ec;
+    fs::create_directories(PackMissPath(program_id).parent_path(), ec);
+    std::ofstream file(PackMissPath(program_id), std::ios::trunc);
 }
 
 void Reset() {

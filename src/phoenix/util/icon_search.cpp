@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "phoenix/util/icon_search.h"
+#include "qt_common/game_list/case_art.h"
 
 #include <cstdlib>
 #include <iterator>
@@ -661,6 +662,141 @@ std::vector<u8> DownloadGamePicture(const std::string& url, const std::atomic_bo
         return {};
     }
     return EncodeSquareIcon(image);
+}
+
+CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::atomic_bool& cancel) {
+    using namespace std::chrono;
+    namespace fs = std::filesystem;
+    const std::string base = fmt::format("https://raw.githubusercontent.com/{}/case-art/",
+                                         Common::g_build_auto_update_repo);
+    const fs::path pack = CaseArt::PackFolder();
+    std::error_code ec;
+    fs::create_directories(pack, ec);
+    // The manifest, kept for a day.
+    const fs::path cached = pack / "manifest.json";
+    std::string body;
+    const auto written = fs::last_write_time(cached, ec);
+    const bool fresh = !ec && fs::file_time_type::clock::now() - written < hours{24};
+    const auto read_cache = [&] {
+        std::ifstream file(cached, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    };
+    if (fresh) {
+        body = read_cache();
+    }
+    if (body.empty()) {
+        const auto res = HttpGet(base + "manifest.json", steady_clock::now() + seconds{20}, cancel);
+        if (res.status == HttpStatus::Ok) {
+            body = res.body;
+            std::ofstream(cached, std::ios::binary | std::ios::trunc) << body;
+        } else {
+            body = read_cache(); // an old manifest beats none
+            if (body.empty()) {
+                LOG_INFO(Frontend, "Case art: the pack's manifest could not be downloaded ({})",
+                         res.detail);
+                return CaseArtFetch::Failed;
+            }
+        }
+    }
+    const auto json = nlohmann::json::parse(body, nullptr, false);
+    if (json.is_discarded() || !json.contains("games") || !json["games"].is_array()) {
+        return CaseArtFetch::Failed;
+    }
+    // The game: its title ID (or its base game's), else the best name.
+    const std::string id = fmt::format("{:016X}", title_id);
+    const std::string base_id = fmt::format("{:016X}", title_id & ~u64{0xFFF});
+    const QString title = QString::fromStdString(name);
+    const nlohmann::json* best = nullptr;
+    int best_score = 0;
+    for (const auto& game : json["games"]) {
+        if (!game.is_object() || !game.contains("files") || !game["files"].is_array()) {
+            continue;
+        }
+        int score = 0;
+        if (game.contains("ids") && game["ids"].is_array()) {
+            for (const auto& game_id : game["ids"]) {
+                if (game_id.is_string() &&
+                    (game_id.get<std::string>() == id || game_id.get<std::string>() == base_id)) {
+                    score = 1000;
+                }
+            }
+        }
+        if (score == 0) {
+            std::vector<std::string> names;
+            if (game.contains("names") && game["names"].is_array()) {
+                for (const auto& n : game["names"]) {
+                    if (n.is_string()) {
+                        names.push_back(n.get<std::string>());
+                    }
+                }
+            }
+            if (game.contains("folder") && game["folder"].is_string()) {
+                names.push_back(game["folder"].get<std::string>());
+            }
+            for (const std::string& candidate : names) {
+                score = std::max(score, CaseArt::MatchScore(QString::fromStdString(candidate),
+                                                            title, title_id));
+            }
+        }
+        if (score >= 600 && score > best_score) {
+            best = &game;
+            best_score = score;
+        }
+    }
+    if (best == nullptr) {
+        return CaseArtFetch::NotInPack;
+    }
+    // Its files, each saved where the pack has it (Cases/<game>/..., Banner/...).
+    std::vector<std::string> files;
+    for (const auto& file : (*best)["files"]) {
+        if (file.is_string()) {
+            files.push_back(file.get<std::string>());
+        }
+    }
+    if (best->contains("banner") && (*best)["banner"].is_string()) {
+        files.push_back((*best)["banner"].get<std::string>());
+    }
+    bool downloaded = false;
+    for (const std::string& file : files) {
+        if (file.find("..") != std::string::npos || file.empty() || file.front() == '/') {
+            continue; // only paths inside the pack
+        }
+        const fs::path target = pack / fs::path{std::u8string{file.begin(), file.end()}};
+        if (fs::exists(target, ec)) {
+            continue;
+        }
+        std::string url = base;
+        size_t start = 0;
+        while (start <= file.size()) {
+            const size_t slash = file.find('/', start);
+            const std::string part = file.substr(start, slash == std::string::npos ? std::string::npos
+                                                                                   : slash - start);
+            url += UrlEncodePathSegment(part);
+            if (slash == std::string::npos) {
+                break;
+            }
+            url += '/';
+            start = slash + 1;
+        }
+        const auto res = HttpGet(url, steady_clock::now() + seconds{60}, cancel);
+        if (res.status != HttpStatus::Ok || res.body.empty()) {
+            LOG_WARNING(Frontend, "Case art: {} could not be downloaded ({})", file, res.detail);
+            return downloaded ? CaseArtFetch::Downloaded : CaseArtFetch::Failed;
+        }
+        fs::create_directories(target.parent_path(), ec);
+        const fs::path temporary = fs::path{target}.concat(".part");
+        {
+            std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+            out.write(res.body.data(), static_cast<std::streamsize>(res.body.size()));
+        }
+        fs::rename(temporary, target, ec);
+        downloaded = !ec || downloaded;
+    }
+    if (downloaded) {
+        LOG_INFO(Frontend, "Case art for {:016X} ({}) downloaded: {}", title_id, name,
+                 (*best)["folder"].is_string() ? (*best)["folder"].get<std::string>() : "");
+    }
+    return downloaded ? CaseArtFetch::Downloaded : CaseArtFetch::AlreadyHere;
 }
 
 std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel) {

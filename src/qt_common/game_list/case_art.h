@@ -43,6 +43,14 @@ struct Art {
 /// and holds the name of a case art folder ("Pokopia"), that folder's name; else `title`.
 [[nodiscard]] QString DisplayName(const QString& title, u64 program_id);
 
+/// Where the downloaded case art pack is kept (PhoenixEmu's case-art branch, a game at a time).
+[[nodiscard]] std::filesystem::path PackFolder();
+/// How well a name fits the game (0 none; 600 initials; 800+ found in the title; 1000 the ID).
+[[nodiscard]] int MatchScore(const QString& candidate, const QString& title, u64 program_id);
+/// The pack had nothing for the game in the last day (so it isn't asked again yet).
+[[nodiscard]] bool PackRecentlyMissing(u64 program_id);
+void MarkPackMissing(u64 program_id);
+
 /// Forgets what was read (the folder or its files changed).
 void Reset();
 

@@ -132,6 +132,41 @@ VkResult MasterSemaphore::SubmitQueue(vk::CommandBuffer& cmdbuf, vk::CommandBuff
     }
 }
 
+static constexpr VkPipelineStageFlags wait_stage_mask_signal_only =
+    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+VkResult MasterSemaphore::SubmitSignalOnly(VkSemaphore signal_semaphore,
+                                           VkSemaphore wait_semaphore, u64 host_tick) {
+    if (!semaphore) {
+        return VK_ERROR_FEATURE_NOT_PRESENT;
+    }
+    const u32 num_signal_semaphores = signal_semaphore ? 2 : 1;
+    const std::array signal_values{host_tick, u64(0)};
+    const std::array signal_semaphores{*semaphore, signal_semaphore};
+    const u32 num_wait_semaphores = wait_semaphore ? 1 : 0;
+    const u64 wait_zero = 0;
+    const VkTimelineSemaphoreSubmitInfo timeline_si{
+        .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreValueCount = num_wait_semaphores,
+        .pWaitSemaphoreValues = num_wait_semaphores ? &wait_zero : nullptr,
+        .signalSemaphoreValueCount = num_signal_semaphores,
+        .pSignalSemaphoreValues = signal_values.data(),
+    };
+    const VkSubmitInfo submit_info{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = &timeline_si,
+        .waitSemaphoreCount = num_wait_semaphores,
+        .pWaitSemaphores = num_wait_semaphores ? &wait_semaphore : nullptr,
+        .pWaitDstStageMask = num_wait_semaphores ? &wait_stage_mask_signal_only : nullptr,
+        .commandBufferCount = 0,
+        .pCommandBuffers = nullptr,
+        .signalSemaphoreCount = num_signal_semaphores,
+        .pSignalSemaphores = signal_semaphores.data(),
+    };
+    return device.GetGraphicsQueue().Submit(submit_info);
+}
+
 static constexpr VkPipelineStageFlags wait_stage_mask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 

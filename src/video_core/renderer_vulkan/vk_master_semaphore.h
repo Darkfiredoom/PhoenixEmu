@@ -58,6 +58,13 @@ public:
     VkResult SubmitQueue(vk::CommandBuffer& cmdbuf, vk::CommandBuffer& upload_cmdbuf,
                          VkSemaphore signal_semaphore, VkSemaphore wait_semaphore, u64 host_tick);
 
+    /// Signals what a submission would (the timeline's host_tick and signal_semaphore, waiting on
+    /// wait_semaphore) with no command buffers: for work the driver refused for lack of memory,
+    /// so nothing waits for ever on a tick that never comes. Timeline semaphores only; otherwise
+    /// VK_ERROR_FEATURE_NOT_PRESENT.
+    VkResult SubmitSignalOnly(VkSemaphore signal_semaphore, VkSemaphore wait_semaphore,
+                              u64 host_tick);
+
 private:
     VkResult SubmitQueueTimeline(vk::CommandBuffer& cmdbuf, vk::CommandBuffer& upload_cmdbuf,
                                  VkSemaphore signal_semaphore, VkSemaphore wait_semaphore,

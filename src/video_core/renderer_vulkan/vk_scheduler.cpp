@@ -1266,8 +1266,48 @@ u64 Scheduler::SubmitExecution(VkSemaphore signal_semaphore, VkSemaphore wait_se
         }
 
         std::scoped_lock lock{submit_mutex};
-        switch (const VkResult result = master_semaphore->SubmitQueue(
-                    cmdbuf, upload_cmdbuf, signal_semaphore, wait_semaphore, signal_value)) {
+        VkResult submit_result = master_semaphore->SubmitQueue(cmdbuf, upload_cmdbuf,
+                                                               signal_semaphore, wait_semaphore,
+                                                               signal_value);
+        // Out of video memory at the submit itself: the error went up the worker thread
+        // uncaught and ended the emulator (RX 5600 XT 6 GB, Ocarina's Castle Town). A refused
+        // submit leaves its command buffers and semaphores as they were, so it may be made
+        // again: wait for the GPU's earlier work first, so the driver can evict and page, and
+        // try twice. If the memory still isn't there, only the signals are submitted: this one
+        // submission's work is lost (a frame drawn wrong) rather than the whole game.
+        const auto out_of_memory = [](VkResult r) {
+            return r == VK_ERROR_OUT_OF_DEVICE_MEMORY || r == VK_ERROR_OUT_OF_HOST_MEMORY;
+        };
+        for (int attempt = 0; attempt < 2 && out_of_memory(submit_result); ++attempt) {
+            static std::atomic<u32> retries_logged{};
+            if (retries_logged.fetch_add(1, std::memory_order_relaxed) < 16) {
+                LOG_WARNING(Render_Vulkan,
+                            "vkQueueSubmit: out of {} memory at tick {}: waiting for the GPU and "
+                            "trying again ({} of 2)",
+                            submit_result == VK_ERROR_OUT_OF_DEVICE_MEMORY ? "video" : "system",
+                            signal_value, attempt + 1);
+            }
+            if (signal_value > 1) {
+                master_semaphore->Wait(signal_value - 1);
+            }
+            submit_result = master_semaphore->SubmitQueue(cmdbuf, upload_cmdbuf, signal_semaphore,
+                                                          wait_semaphore, signal_value);
+        }
+        if (out_of_memory(submit_result)) {
+            const VkResult signal_only =
+                master_semaphore->SubmitSignalOnly(signal_semaphore, wait_semaphore, signal_value);
+            static std::atomic<u32> drops_logged{};
+            if (drops_logged.fetch_add(1, std::memory_order_relaxed) < 16) {
+                LOG_ERROR(Render_Vulkan,
+                          "vkQueueSubmit: still out of memory at tick {}: this submission's work "
+                          "is dropped to keep the game running ({})",
+                          signal_value, signal_only == VK_SUCCESS ? "signals sent" : "signals failed");
+            }
+            if (signal_only == VK_SUCCESS) {
+                submit_result = VK_SUCCESS;
+            }
+        }
+        switch (const VkResult result = submit_result) {
         case VK_SUCCESS:
             // Log successful queue submission
             if (GPU::Logging::IsActive() &&

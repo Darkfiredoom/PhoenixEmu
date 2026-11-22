@@ -283,6 +283,7 @@ add_library(video_core STATIC
     renderer_vulkan/vk_upload_reorder_check.cpp
     renderer_vulkan/vk_upload_reorder_check.h
     renderer_vulkan/descriptor_payload_growth.h
+    vulkan_common/device_buffer_pool.h
     vulkan_common/vulkan_debug_callback.cpp
     vulkan_common/vulkan_debug_callback.h
     vulkan_common/vulkan_device.cpp

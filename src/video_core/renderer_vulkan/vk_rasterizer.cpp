@@ -5705,15 +5705,17 @@ void RasterizerVulkan::HandleTransformFeedback() {
 }
 
 namespace {
-/// EDEN_NX2_OOT_JITTER: 1 turns FSR's camera jitter on for Ocarina of Time (off by default until
-/// testers confirm it), -1 also negates the offset given to FSR (a sign check).
+/// FSR's camera jitter for Ocarina of Time, on by default as in Lichii since #1061: without it FSR
+/// saw the same samples every frame and could not anti-alias (distant shadows and thin geometry
+/// shimmered, a v45 report next to CheezyEmu v12). EDEN_NX2_OOT_JITTER=0 turns it off, -1
+/// negates the offset given to FSR (a sign check).
 [[maybe_unused]] int OcarinaJitterMode() {
     static const int mode = [] {
         const char* const value = std::getenv("EDEN_NX2_OOT_JITTER");
-        if (!value) {
-            return 0;
+        if (!value || value[0] == '\0') {
+            return 1;
         }
-        return value[0] == '-' ? -1 : value[0] == '1' ? 1 : 0;
+        return value[0] == '-' ? -1 : value[0] == '0' ? 0 : 1;
     }();
     return mode;
 }
@@ -5748,13 +5750,14 @@ void RasterizerVulkan::UpdateOcarinaJitter() {
         if (targets.depth_buffer_id) {
             const auto& depth = texture_cache.GetImageView(targets.depth_buffer_id);
             if (depth.size.width == oot_motion.extent.width &&
-                depth.size.height == oot_motion.extent.height) {
+                depth.size.height == oot_motion.extent.height && !depth.IsRescaled()) {
                 // Halton (2, 3) with AMD's phase count for the last FSR frame's scale.
                 const u32 index = static_cast<u32>(render_trace_frame % oot_jitter_phases) + 1;
                 want = {Halton(index, 2) - 0.5f, Halton(index, 3) - 0.5f};
                 if (oot_jitter_frame == ~u64{0}) {
                     LOG_INFO(Render_Vulkan,
-                             "Ocarina FSR: camera jitter on (EDEN_NX2_OOT_JITTER), {} phases",
+                             "Ocarina FSR: camera jitter on ({} phases; EDEN_NX2_OOT_JITTER=0 "
+                             "turns it off)",
                              oot_jitter_phases);
                 }
                 oot_jitter_frame = render_trace_frame;

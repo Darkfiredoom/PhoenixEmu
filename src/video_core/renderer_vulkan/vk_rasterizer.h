@@ -296,7 +296,7 @@ private:
     std::atomic<u64> oot_upscaled_frames{};
     std::atomic<u64> oot_upscale_sizes{};
 
-    /// FSR camera jitter (EDEN_NX2_OOT_JITTER=1, from zortos293/Lichii#1061): decides the
+    /// FSR camera jitter (on by default, EDEN_NX2_OOT_JITTER=0 off; Lichii #1061): decides the
     /// sub-pixel viewport offset of the draw about to be recorded.
     void UpdateOcarinaJitter();
     std::array<f32, 2> oot_jitter_applied{}; ///< Added to the viewports of the current draw

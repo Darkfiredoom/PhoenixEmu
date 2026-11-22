@@ -106,10 +106,10 @@ EDEN_NX2_FENCE_BATCH=1
 # Costs some speed, so leave it off otherwise.
 #EDEN_NX2_FLASH_WATCH=C:\phoenixemu-flash
 
-# FSR camera jitter for Ocarina of Time (new, being tested): FSR rebuilds fine detail from a camera
-# nudged by less than a pixel every frame. Sharper, less blocky FSR, most at low presets. Remove
-# the # to try it; put it back if the picture shakes.
-#EDEN_NX2_OOT_JITTER=1
+# FSR camera jitter for Ocarina of Time (on by default): FSR anti-aliases and rebuilds fine detail
+# from a camera nudged by less than a pixel every frame. Remove the # to turn it off if the picture
+# shakes or the HUD jitters.
+#EDEN_NX2_OOT_JITTER=0
 
 # FSR 3.1 instead of FSR 4 for the upscaler: much lighter on RX 6000/7000 (FSR 4 is built for RX
 # 9000), a little softer and ghosts more. Remove the # to use it.

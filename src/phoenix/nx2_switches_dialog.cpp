@@ -77,13 +77,13 @@ constexpr std::array switches{
                              "with a magenta tint to verify HUD boundary detection."),
            false, "1", "0"},
     Switch{"EDEN_NX2_OOT_JITTER",
-           QT_TRANSLATE_NOOP("Nx2SwitchesDialog", "FSR camera jitter (sharper FSR, test)"),
+           QT_TRANSLATE_NOOP("Nx2SwitchesDialog", "FSR camera jitter (on by default)"),
            QT_TRANSLATE_NOOP("Nx2SwitchesDialog",
                              "Ocarina of Time: nudges the camera by less than a pixel every frame, "
-                             "which FSR needs to rebuild fine detail (less blocky and shimmery, "
-                             "most on Performance and below). New: turn it off again if the "
-                             "picture shakes or the HUD jitters, and tell us."),
-           false, "1", "0"},
+                             "which FSR needs to anti-alias and rebuild fine detail (less "
+                             "shimmer on edges and distant shadows). On unless set to 0: turn it "
+                             "off if the picture shakes or the HUD jitters, and tell us."),
+           true, "1", "0"},
     Switch{"EDEN_NX2_FSR_VERSION",
            QT_TRANSLATE_NOOP("Nx2SwitchesDialog", "Use FSR 3.1 instead of FSR 4 (faster)"),
            QT_TRANSLATE_NOOP("Nx2SwitchesDialog",

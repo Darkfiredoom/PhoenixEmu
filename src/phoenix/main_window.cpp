@@ -64,7 +64,9 @@
 #include "phoenix/customize_panel.h"
 #include "phoenix/game_details_panel.h"
 #include "phoenix/steam_shortcuts.h"
+#include "phoenix/mod_store/mod_store_dialog.h"
 #include "qt_common/game_list/game_list_p.h"
+#include "phoenix/music_extract_dialog.h"
 #include "phoenix/nup_dialogs.h"
 #include "phoenix/recommended_settings_dialog.h"
 #include "phoenix/shader_warm_dialog.h"
@@ -109,6 +111,8 @@
 #include <QTabWidget>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QMessageBox>
+#include <QHBoxLayout>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QClipboard>
@@ -270,8 +274,23 @@ static inline void ApplyWindowsTitleBarDarkMode(HWND hwnd, bool enabled) {
         return;
     BOOL val = enabled ? TRUE : FALSE;
     // 20 = Win11/21H2+
-    if (SUCCEEDED(DwmSetWindowAttribute(hwnd, 20, &val, sizeof(val))))
+    if (SUCCEEDED(DwmSetWindowAttribute(hwnd, 20, &val, sizeof(val)))) {
+        // Windows 11: the title strip in the Ember header's colours instead of Windows' grey,
+        // its text gold and the frame an ember line (35, 36, 34: caption, text, border colour).
+        const auto colorref = [](const QColor& color) {
+            return static_cast<COLORREF>(RGB(color.red(), color.green(), color.blue()));
+        };
+        const COLORREF caption = enabled ? colorref(PhoenixTheme::Recolor(QColor(0x17, 0x11, 0x0C)))
+                                         : 0xFFFFFFFF; // DWMWA_COLOR_DEFAULT
+        const COLORREF text = enabled ? colorref(PhoenixTheme::Recolor(QColor(0xFF, 0xC8, 0x3D)))
+                                      : 0xFFFFFFFF;
+        const COLORREF border = enabled ? colorref(PhoenixTheme::Recolor(QColor(0x8A, 0x4A, 0x22)))
+                                        : 0xFFFFFFFF;
+        DwmSetWindowAttribute(hwnd, 35, &caption, sizeof(caption));
+        DwmSetWindowAttribute(hwnd, 36, &text, sizeof(text));
+        DwmSetWindowAttribute(hwnd, 34, &border, sizeof(border));
         return;
+    }
     // 19 = pre-21H2
     DwmSetWindowAttribute(hwnd, 19, &val, sizeof(val));
 }
@@ -2006,6 +2025,7 @@ void MainWindow::ConnectWidgetEvents() {
     connect(game_list, &GameList::DeleteShaderWarmRequested, this,
             &MainWindow::OnGameListDeleteShaderWarm);
     connect(game_list, &GameList::ExtractNupRequested, this, &MainWindow::OnGameListExtractNup);
+    connect(game_list, &GameList::ExtractMusicRequested, this, &MainWindow::OnGameListExtractMusic);
     connect(game_list, &GameList::EditNupMetadataRequested, this,
             &MainWindow::OnGameListEditNupMetadata);
 #ifdef LICHII_NX_TOOLS
@@ -2043,6 +2063,12 @@ void MainWindow::ConnectWidgetEvents() {
 
     connect(game_list, &GameList::OpenPerGameGeneralRequested, this,
             &MainWindow::OnGameListOpenPerGameProperties);
+    connect(game_list, &GameList::ModStoreRequested, this,
+            [this](u64 program_id, const std::string& file) {
+                if (OpenModStore(this, program_id, file)) {
+                    game_list->RefreshGameDirectory();
+                }
+            });
 
     // The picked game's details beside the home view and the grid.
     {
@@ -2078,11 +2104,13 @@ void MainWindow::ConnectWidgetEvents() {
         game_details_panel->hide();
         ui->horizontalLayout->addWidget(game_details_panel);
         connect(game_details_panel, &GameDetailsPanel::CloseRequested, this, [this] {
-            game_details_closed = true;
+            // Closed stays closed: each pick reopened it, popping up at every click. The
+            // Customize panel's "Game details" switch brings it back.
+            UISettings::values.show_game_details = false;
+            config->SaveAllValues();
             UpdateGameDetailsPanel();
         });
         connect(game_list, &GameList::SelectedGameChanged, this, [this](const QModelIndex& game) {
-            game_details_closed = false;
             game_details_panel->SetGame(game);
             UpdateGameDetailsPanel();
         });
@@ -2178,7 +2206,7 @@ void MainWindow::UpdateGameDetailsPanel() {
         return;
     }
     // The list view has its own columns; the Customize panel takes the same place.
-    const bool show = UISettings::values.show_game_details.GetValue() && !game_details_closed &&
+    const bool show = UISettings::values.show_game_details.GetValue() &&
                       !emulation_running && game_list->isVisible() &&
                       UISettings::values.game_list_mode.GetValue() !=
                           Settings::GameListMode::TreeView &&
@@ -2248,6 +2276,34 @@ void MainWindow::FillUserMenu(QMenu* menu) {
                 [this, i] { SwitchUser(static_cast<int>(i)); });
     }
     menu->addSeparator();
+    // The name on the home screen, changed in one step (it is saved in the profile file).
+    auto* const rename = menu->addAction(tr("Rename..."));
+    rename->setEnabled(!emulation_running && manager.UserExistsIndex(current));
+    connect(rename, &QAction::triggered, this, [this, current] {
+        auto& profiles = QtCommon::system->GetProfileManager();
+        const auto uuid = profiles.GetUser(current);
+        Service::Account::ProfileBase profile{};
+        if (!uuid || !profiles.GetProfileBase(*uuid, profile)) {
+            return;
+        }
+        bool ok = false;
+        const QString name = QInputDialog::getText(
+            this, tr("Rename"), tr("Your name:"), QLineEdit::Normal,
+            ProfileName(profiles, current), &ok).trimmed();
+        if (!ok || name.isEmpty()) {
+            return;
+        }
+        QString fitted = name; // whole characters only, in the 32 bytes a Switch name has
+        while (fitted.toUtf8().size() > static_cast<qsizetype>(profile.username.size())) {
+            fitted.chop(1);
+        }
+        const QByteArray utf8 = fitted.toUtf8();
+        profile.username.fill(0);
+        std::copy(utf8.begin(), utf8.end(), profile.username.begin());
+        profiles.SetProfileBase(*uuid, profile);
+        profiles.WriteUserSaveFile();
+        UpdateHomeUserName();
+    });
     connect(menu->addAction(tr("Manage Users...")), &QAction::triggered, this, [this] {
         OnConfigure();
         UpdateHomeUserName();
@@ -2276,6 +2332,52 @@ void MainWindow::UpdateHomeUserName() {
 }
 
 void MainWindow::ConnectMenuEvents() {
+    // The flame and the PHOENIX wordmark at the left of the top bar (the Ember header, style.qss).
+    {
+        auto* const brand = new QWidget(menuBar());
+        brand->setObjectName(QStringLiteral("PhoenixMenuBrand"));
+        auto* const row = new QHBoxLayout(brand);
+        row->setContentsMargins(10, 0, 4, 0);
+        row->setSpacing(7);
+        auto* const flame = new QLabel(brand);
+        const qreal dpr = devicePixelRatioF();
+        QPixmap icon = windowIcon().pixmap(QSize(18, 18), dpr);
+        flame->setPixmap(icon);
+        flame->setFixedSize(18, 18);
+        auto* const word = new QLabel(QStringLiteral("PHOENIX"), brand);
+        word->setObjectName(QStringLiteral("PhoenixMenuBrandText"));
+        QFont word_font = word->font();
+        word_font.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
+        word->setFont(word_font);
+        row->addWidget(flame);
+        row->addWidget(word);
+        menuBar()->setCornerWidget(brand, Qt::TopLeftCorner);
+
+        // The seam under the bar, burning from ember red to gold and fading out: a strip of its
+        // own, since a style sheet border can't be a gradient.
+        auto* const seam = new QWidget(menuBar());
+        seam->setObjectName(QStringLiteral("PhoenixMenuSeam"));
+        seam->setAttribute(Qt::WA_TransparentForMouseEvents);
+        seam->setAttribute(Qt::WA_StyledBackground);
+        const auto place_seam = [seam, bar = menuBar()] {
+            seam->setGeometry(0, bar->height() - 2, bar->width(), 2);
+            seam->raise();
+        };
+        struct SeamFollower : QObject {
+            std::function<void()> place;
+            bool eventFilter(QObject* watched, QEvent* event) override {
+                if (event->type() == QEvent::Resize || event->type() == QEvent::Show) {
+                    place();
+                }
+                return QObject::eventFilter(watched, event);
+            }
+        };
+        auto* const follower = new SeamFollower;
+        follower->setParent(seam);
+        follower->place = place_seam;
+        menuBar()->installEventFilter(follower);
+        place_seam();
+    }
     SetupCustomizeMenu();
     SetupUserMenu();
     const auto connect_menu = [&]<typename Fn>(QAction* action, const Fn& event_fn) {
@@ -2449,23 +2551,48 @@ void MainWindow::ConnectMenuEvents() {
     connect_menu(ui->action_TAS_Reset, &MainWindow::OnTasReset);
     connect_menu(ui->action_Configure_Tas, &MainWindow::OnConfigureTas);
 
-    ui->menu_Tools->addSeparator();
-    if (action_capture_glitch != nullptr) {
-        ui->menu_Tools->addAction(action_capture_glitch);
+    // Tools, kept short: the everyday tools on top, the rest in three submenus (it had grown to
+    // nineteen entries, most of them used once).
+    {
+        QMenu* const tools = ui->menu_Tools;
+        for (QAction* action : tools->actions()) {
+            tools->removeAction(action);
+        }
+        tools->addAction(ui->action_Mod_Store);
+        tools->addAction(tr("Mods && 60 FPS..."), this, [this] { OnModManagerDialog(0); });
+        tools->addAction(tr("Screenshot Album..."), this, &MainWindow::OnAlbumDialog);
+        tools->addAction(tr("Save Sync..."), this, &MainWindow::OnSaveSyncDialog);
+        tools->addAction(ui->action_Capture_Screenshot);
+        tools->addSeparator();
+
+        QMenu* const setup = tools->addMenu(tr("&Setup"));
+        setup->addAction(ui->action_Install_Keys);
+        setup->addMenu(ui->menuInstall_Firmware);
+        setup->addAction(ui->action_Verify_installed_contents);
+        setup->addAction(ui->action_Data_Manager);
+
+        QMenu* const system_menu = tools->addMenu(tr("S&ystem"));
+        system_menu->addMenu(ui->menu_cabinet_applet);
+        system_menu->addMenu(ui->menu_Applets);
+        system_menu->addMenu(ui->menu_Create_Shortcuts);
+
+        QMenu* const advanced = tools->addMenu(tr("&Advanced"));
+        advanced->addAction(tr("Shader Recipes && Precache..."), this,
+                            &MainWindow::OnShaderRecipeDialog);
+        advanced->addAction(tr("Pipeline Visualizer..."), this, [this] {
+            PipelineVisualizerDialog dialog(this);
+            dialog.exec();
+        });
+        // The nx2_switches.txt switches players turn on and off, as checkboxes.
+        advanced->addAction(tr("Switch 2 Switches..."), this, [this] {
+            Nx2SwitchesDialog dialog(this);
+            dialog.exec();
+        });
+        if (action_capture_glitch != nullptr) {
+            advanced->addAction(action_capture_glitch);
+        }
+        advanced->addMenu(ui->menuTAS);
     }
-    // The nx2_switches.txt switches players turn on and off, as checkboxes.
-    ui->menu_Tools->addAction(tr("Switch 2 Switches..."), this, [this] {
-        Nx2SwitchesDialog dialog(this);
-        dialog.exec();
-    });
-    ui->menu_Tools->addAction(tr("Live Pipeline Visualizer..."), this, [this] {
-        PipelineVisualizerDialog dialog(this);
-        dialog.exec();
-    });
-    ui->menu_Tools->addAction(tr("Cloud && LAN Save Sync..."), this, &MainWindow::OnSaveSyncDialog);
-    ui->menu_Tools->addAction(tr("Shader Recipe && Precache Manager..."), this, &MainWindow::OnShaderRecipeDialog);
-    ui->menu_Tools->addAction(tr("Screenshot Album (Media Gallery)..."), this, &MainWindow::OnAlbumDialog);
-    ui->menu_Tools->addAction(tr("Graphics && 60 FPS Mod Assistant..."), this, [this] { OnModManagerDialog(0); });
 
     // Help
     connect_menu(ui->action_Root_Data_Folder, &MainWindow::OnOpenRootDataFolder);
@@ -2509,6 +2636,7 @@ void MainWindow::ConnectMenuEvents() {
             !Settings::values.recommended_settings_backup.GetValue().empty());
     });
     connect_menu(ui->action_Data_Manager, &MainWindow::OnDataDialog);
+    connect_menu(ui->action_Mod_Store, &MainWindow::OnOpenModStore);
 
 #if defined(ENABLE_UPDATE_CHECKER) && (defined(__linux__) || defined(_WIN32))
     auto* restore_action = ui->menu_Help->addAction(tr("Restore Previous Version..."));
@@ -2594,6 +2722,7 @@ void MainWindow::UpdateMenuState() {
     ui->action_Firmware_From_Folder->setEnabled(!emulation_running);
     ui->action_Firmware_From_ZIP->setEnabled(!emulation_running);
     ui->action_Install_Keys->setEnabled(!emulation_running);
+    ui->action_Mod_Store->setEnabled(!emulation_running);
 
     for (QAction* action : applet_actions) {
         action->setEnabled(is_firmware_available && !emulation_running);
@@ -2880,7 +3009,7 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
         shader_warm_dialog->activateWindow();
         return;
     }
-    if (boot_in_progress || close_pending) {
+    if (boot_in_progress || close_pending || mod_store_open) {
         return;
     }
     boot_in_progress = true;
@@ -3031,6 +3160,55 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
             return;
         }
     }
+
+#ifdef _WIN32
+    // Windows gives a game memory from RAM and the page file. With little RAM and the page file's
+    // drive nearly full it can't grow, and the game ended without a word a second into booting
+    // (Pokopia on 8 GB with 6 GB free on C:). Say so first, while it can still be fixed.
+    {
+        const bool switch2 =
+            v_file != nullptr &&
+            Loader::IsSwitch2Program(v_file, params.program_id, params.program_index);
+        constexpr u64 GiB = 1ULL << 30;
+        const u64 needed = switch2 ? 15 * GiB : 7 * GiB; // what games have taken here, rounded up
+        MEMORYSTATUSEX status{};
+        status.dwLength = sizeof(status);
+        wchar_t windows_dir[MAX_PATH]{};
+        ULARGE_INTEGER disk_free{};
+        if (GlobalMemoryStatusEx(&status) && GetSystemWindowsDirectoryW(windows_dir, MAX_PATH) >= 3) {
+            const std::wstring drive(windows_dir, 3); // "C:\", where the page file grows
+            GetDiskFreeSpaceExW(drive.c_str(), &disk_free, nullptr, nullptr);
+            // Windows keeps a little of the drive for itself.
+            const u64 growth = disk_free.QuadPart > 2 * GiB ? disk_free.QuadPart - 2 * GiB : 0;
+            const u64 room = status.ullAvailPageFile + growth;
+            if (room < needed) {
+                const auto gb = [](u64 bytes) {
+                    return QString::number(static_cast<double>(bytes) / (1ULL << 30), 'f', 1);
+                };
+                const QString letter = QString::fromWCharArray(windows_dir, 2);
+                LOG_WARNING(Frontend, "Low memory before boot: room {} MiB, game needs about {} MiB",
+                            room >> 20, needed >> 20);
+                QMessageBox box(QMessageBox::Warning, tr("Not Enough Memory"),
+                                tr("This game needs about %1 GB of memory, but Windows can only "
+                                   "give it about %2 GB right now (%3 GB of RAM and page file "
+                                   "free, and %4 GB free on %5 for the page file to grow).\n\n"
+                                   "The game will likely close by itself while it loads. To fix "
+                                   "it, free up at least %6 GB on %5, or close other programs "
+                                   "(browsers, Discord) first.")
+                                    .arg(gb(needed), gb(room), gb(status.ullAvailPageFile),
+                                         gb(disk_free.QuadPart), letter, gb(needed - room)),
+                                QMessageBox::NoButton, this);
+                auto* const start = box.addButton(tr("Start Anyway"), QMessageBox::AcceptRole);
+                box.addButton(QMessageBox::Cancel);
+                box.setDefaultButton(QMessageBox::Cancel);
+                box.exec();
+                if (box.clickedButton() != start) {
+                    return;
+                }
+            }
+        }
+    }
+#endif
 
     QElapsedTimer load_timer;
     load_timer.start();
@@ -5297,6 +5475,137 @@ void MainWindow::OnToggleGraphicsAPI() {
     UpdateAPIText();
 }
 
+namespace {
+u64 ParseModStoreTitleId(const QString& title_id) {
+    if (title_id.size() != 16) {
+        return 0;
+    }
+    const auto id = title_id.toULongLong(nullptr, 16);
+    return title_id.compare(QString::fromStdString(fmt::format("{:016X}", id)),
+                            Qt::CaseInsensitive) == 0
+               ? id
+               : 0;
+}
+} // Anonymous namespace
+
+void MainWindow::OnOpenModStore() {
+    if (OpenModStore(this, 0, {})) {
+        game_list->RefreshGameDirectory(); // the add-ons column shows what changed
+    }
+}
+
+bool MainWindow::OpenModStore(QWidget* parent, u64 initial_title_id, const std::string& file_name) {
+    // Lichii's Mod Store (#2405): browse the catalog, check a mod against the installed game,
+    // install it into the mods folder and switch it on or off.
+    auto& system = *QtCommon::system;
+    if (mod_store_open || close_pending || boot_in_progress || emulation_running ||
+        system.IsPoweredOn()) {
+        return false;
+    }
+    if (nx_metadata_write_in_progress) {
+        QMessageBox::information(parent, tr("Mod Store"),
+                                 tr("Wait for the NX metadata edit to finish before browsing mods."));
+        return false;
+    }
+    if (game_list->IsPopulating()) {
+        QMessageBox::information(parent, tr("Mod Store"),
+                                 tr("Wait for the game library to finish loading before browsing mods."));
+        return false;
+    }
+    mod_store_open = true;
+    game_list->SetScanEnabled(false, false);
+    SCOPE_EXIT {
+        game_list->SetScanEnabled(true);
+        mod_store_open = false;
+    };
+    // A game's identity (version, build ID) from its file in the library.
+    const auto lookup = [&](const QString& title_id) -> ModStore::GameIdentity {
+        const auto id = ParseModStoreTitleId(title_id);
+        if (id == 0) {
+            return {};
+        }
+        const auto open_game = [&](FileSys::VirtualFile file) -> std::unique_ptr<Loader::AppLoader> {
+            auto loader = Loader::GetLoader(system, std::move(file), id);
+            u64 actual_id{};
+            return loader && loader->ReadProgramId(actual_id) == Loader::ResultStatus::Success &&
+                           actual_id == id
+                       ? std::move(loader)
+                       : nullptr;
+        };
+        const auto open_path = [&](const std::string& path) {
+            return open_game(Core::GetGameFileFromPath(QtCommon::vfs, path));
+        };
+        std::unique_ptr<Loader::AppLoader> loader;
+        if (id == initial_title_id && !file_name.empty()) {
+            loader = open_path(file_name);
+        } else {
+            const auto* const model = game_list->GetModel();
+            const auto matches = model->match(model->index(0, 0), GameListItemPath::ProgramIdRole,
+                                              QVariant::fromValue(qulonglong{id}), -1,
+                                              Qt::MatchExactly | Qt::MatchRecursive);
+            for (const auto& match : matches) {
+                const auto candidate = match.data(GameListItemPath::FullPathRole).toString().toStdString();
+                if (!candidate.empty() && (loader = open_path(candidate))) {
+                    break;
+                }
+            }
+            if (!loader) {
+                loader = open_game(system.GetContentProvider().GetEntryUnparsed(
+                    id, FileSys::ContentRecordType::Program));
+            }
+        }
+        if (!loader) {
+            return {};
+        }
+        ModStore::GameIdentity result{.installed = true};
+        if (const auto build = loader->ReadMainBuildIdHex(system);
+            build && build->find_first_not_of('0') != std::string::npos) {
+            result.build_id = QString::fromStdString(*build);
+        }
+        const bool updatable = loader->IsRomFSUpdatable();
+        const bool native_nx = updatable && loader->GetFileType() == Loader::FileType::NX;
+        std::string version;
+        if (!native_nx && loader->ReadDisplayVersion(version) == Loader::ResultStatus::Success) {
+            result.display_version = QString::fromStdString(version).trimmed();
+        }
+        if (result.display_version.isEmpty() && updatable) {
+            const FileSys::PatchManager patch{id, system.GetFileSystemController(),
+                                             system.GetContentProvider()};
+            if (const auto control = patch.GetControlMetadata().first) {
+                result.display_version = QString::fromStdString(control->GetVersionString()).trimmed();
+            }
+        }
+        return result;
+    };
+    return ModStore::ShowDialog(
+        parent,
+        {.base_url = QString::fromStdString(UISettings::values.mod_store_api_url.GetValue()),
+         .initial_title_id = initial_title_id == 0
+                                 ? QString{}
+                                 : QString::fromStdString(fmt::format("{:016X}", initial_title_id)),
+         .mods_root = QDir(QString::fromStdString(
+                               Common::FS::GetEdenPathString(Common::FS::EdenPath::LoadDir)))
+                          .absolutePath(),
+         .game_identity = lookup,
+         .is_enabled =
+             [](const QString& title_id, const QString& addon) {
+                 const auto id = ParseModStoreTitleId(title_id);
+                 if (id == 0 || addon.isEmpty()) {
+                     return false;
+                 }
+                 const auto& disabled = Settings::values.disabled_addons;
+                 const auto it = disabled.find(id);
+                 return it == disabled.end() ||
+                        std::ranges::find(it->second, addon.toStdString()) == it->second.end();
+             },
+         .set_enabled =
+             [&](const QString& title_id, const QString& addon, bool enabled) {
+                 const auto id = ParseModStoreTitleId(title_id);
+                 return id != 0 && !addon.isEmpty() && !system.IsPoweredOn() &&
+                        config->SetAddonEnabled(id, addon.toStdString(), enabled);
+             }});
+}
+
 void MainWindow::OnConfigurePerGame() {
     const u64 title_id = QtCommon::system->GetApplicationProcessProgramID();
     OpenPerGameConfiguration(title_id, current_game_path.toStdString());
@@ -6189,6 +6498,123 @@ void MainWindow::OnGameListExtractNup(const std::string& game_path) {
                     break;
                 case FileSys::Nup::ExtractResult::InvalidSource:
                 case FileSys::Nup::ExtractResult::IoError:
+                    QMessageBox::critical(this, tr("Extraction Failed"),
+                                          QString::fromStdString(error));
+                    break;
+                }
+            },
+            Qt::QueuedConnection);
+        return FileSys::Nup::PackResult::Success;
+    }));
+}
+
+// Eglantine's audio extractor (music_extract, #911 and #918).
+void MainWindow::OnGameListExtractMusic(const std::string& game_path) {
+    if (nup_running) {
+        return;
+    }
+    FileSys::Music::SourceInfo info;
+    if (!FileSys::Music::ScanMusic(game_path, info)) {
+        QMessageBox::warning(this, tr("Audio Explorer"),
+                             tr("No music could be found in this game. Only NUP archives and "
+                                "loose folder dumps are supported."));
+        return;
+    }
+    if (info.stream_count == 0) {
+        QMessageBox::information(this, tr("Audio Explorer"),
+                                 tr("No music streams were found in this game."));
+        return;
+    }
+
+    MusicExtractDialog dialog(info, this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    FileSys::Music::Options options;
+    options.out_dir = dialog.OutDir();
+    options.layout = dialog.Layout();
+    options.encoding = dialog.Encoding();
+    options.kinds = dialog.Kinds();
+    options.cover_override = dialog.CoverOverride();
+    if (options.out_dir.empty()) {
+        return;
+    }
+
+    const QString progress_title = QString::fromStdString(info.game_title).trimmed().isEmpty()
+                                       ? tr("Extracting Music")
+                                       : QString::fromStdString(info.game_title);
+    nup_running = true;
+    nup_source_path = game_path;
+    game_list->SetNupConversionRunning(true);
+    nup_cancel = std::make_shared<std::atomic_bool>(false);
+    nup_progress = new NupProgressDialog(tr("Extracting Music"), progress_title, {}, this);
+    connect(nup_progress, &NupProgressDialog::CancelRequested, this, [this, cancel = nup_cancel] {
+        cancel->store(true);
+        if (nup_progress) {
+            nup_progress->SetCancelling();
+        }
+    });
+    nup_progress->show();
+
+    const auto cancel = nup_cancel;
+    auto last_update = std::make_shared<std::chrono::steady_clock::time_point>();
+    nup_watcher.setFuture(QtConcurrent::run([this, game_path, options, cancel, last_update] {
+        std::string error;
+        FileSys::Music::Summary summary;
+        const auto on_progress = [this, last_update](const FileSys::Music::Progress& progress) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now - *last_update < std::chrono::milliseconds(200)) {
+                return;
+            }
+            *last_update = now;
+            QMetaObject::invokeMethod(
+                this,
+                [this, progress] {
+                    if (!nup_progress) {
+                        return;
+                    }
+                    nup_progress->SetProgress(
+                        FileSys::Nup::PackProgress{progress.bytes_done, progress.bytes_total,
+                                                   progress.files_done, progress.files_total});
+                },
+                Qt::QueuedConnection);
+        };
+        const auto result = FileSys::Music::ExtractMusic(game_path, options, on_progress,
+                                                         cancel.get(), &summary, &error);
+        QMetaObject::invokeMethod(
+            this,
+            [this, result, summary, error, out_dir = options.out_dir] {
+                nup_running = false;
+                nup_source_path.clear();
+                game_list->SetNupConversionRunning(false);
+                if (nup_progress) {
+                    nup_progress->Finish();
+                    nup_progress->deleteLater();
+                    nup_progress = nullptr;
+                }
+                nup_cancel.reset();
+                switch (result) {
+                case FileSys::Music::Result::Success: {
+                    QString text =
+                        tr("%1 track(s) extracted to:\n%2")
+                            .arg(summary.files_ok)
+                            .arg(QString::fromStdString(Common::FS::PathToUTF8String(out_dir)));
+                    if (summary.duplicates > 0) {
+                        text += tr("\n%1 duplicate track(s) were flagged in manifest.csv.")
+                                    .arg(summary.duplicates);
+                    }
+                    if (summary.files_failed > 0) {
+                        text += tr("\n%1 stream(s) could not be decoded - see manifest.csv.")
+                                    .arg(summary.files_failed);
+                    }
+                    QMessageBox::information(this, tr("Extraction Complete"), text);
+                    break;
+                }
+                case FileSys::Music::Result::Cancelled:
+                    break;
+                case FileSys::Music::Result::InvalidSource:
+                case FileSys::Music::Result::NoMusic:
+                case FileSys::Music::Result::IoError:
                     QMessageBox::critical(this, tr("Extraction Failed"),
                                           QString::fromStdString(error));
                     break;

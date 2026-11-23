@@ -201,6 +201,9 @@ struct Values {
 
     // Optional key that enables the SteamGridDB icon fallback
     Setting<std::string> steamgriddb_api_key{linkage, {}, "steamgriddb_api_key", Category::Ui};
+    /// The Mod Store's catalog server (Lichii's, whose catalog lists GameBanana mods).
+    Setting<std::string> mod_store_api_url{linkage, "https://lichii-api.zortos.me",
+                                           "mod_store_api_url", Category::Ui};
     /// The player's game case scans (Cases/<game>/..., Banner/<game>.jpg); empty: <user>/case_art.
     Setting<std::string> case_art_folder{linkage, {}, "case_art_folder", Category::UiGameList};
     // Look up pictures online for listed games that have none (SteamGridDB with a key).
@@ -267,6 +270,12 @@ struct Values {
     /// The centred card's share of the height: 0 full, 1 3/4, 2 2/3, 3 1/2, 4 1/3.
     Setting<u32, true> carousel_card_size{linkage, 2, 0, 4, "carousel_card_size", Category::UiGameList};
     Setting<u32, true> carousel_side_count{linkage, 5, 3, 8, "carousel_side_count", Category::UiGameList};
+    /// The picked game's picture (or banner) behind the home screen at all; off leaves the
+    /// chosen background alone.
+    Setting<bool> home_game_background{linkage, true, "home_game_background", Category::UiGameList};
+    /// The greeting ("Good evening!" and the line under it) and the quote, top left.
+    Setting<bool> home_show_greeting{linkage, true, "home_show_greeting", Category::UiGameList};
+    Setting<bool> home_show_quote{linkage, true, "home_show_quote", Category::UiGameList};
     /// The picked game's picture as the home background, sharp rather than a soft glow.
     Setting<bool> carousel_banner_background{linkage, true, "carousel_banner_background",
                                              Category::UiGameList};

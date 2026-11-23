@@ -194,6 +194,12 @@ add_executable(phoenix
     game/case_viewer.cpp
     steam_shortcuts.h
     steam_shortcuts.cpp
+    mod_store/mod_store_client.cpp
+    mod_store/mod_store_client.h
+    mod_store/mod_store_dialog.cpp
+    mod_store/mod_store_dialog.h
+    mod_store/mod_store_install.cpp
+    mod_store/mod_store_install.h
     controllers_dialog.h
     controllers_dialog.cpp
     pipeline_visualizer_dialog.h
@@ -259,6 +265,7 @@ add_executable(phoenix
     phoenix.qrc
     phoenix.rc
     migration_dialog.h migration_dialog.cpp
+    music_extract_dialog.h music_extract_dialog.cpp
     nup_dialogs.h nup_dialogs.cpp
     shader_warm_dialog.h shader_warm_dialog.cpp
     recommended_settings_dialog.h recommended_settings_dialog.cpp

@@ -68,6 +68,12 @@ enum class CaseArtFetch { Downloaded, AlreadyHere, NotInPack, Failed };
 /// the UI thread. The manifest is downloaded at most once a day.
 CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::atomic_bool& cancel);
 
+/// Fetches a Switch 1 game's case scans (front, back, spine, inside) from Switch Cabinet
+/// (cdn.switch-images-julio.com) into CaseArt::PackFolder()/Cases/<title ID>. The game is found
+/// by title ID, else by name. Blocks; the case list is downloaded at most once a day.
+CaseArtFetch DownloadSwitchCabinetArt(u64 title_id, const std::string& name,
+                                      const std::atomic_bool& cancel);
+
 /// Downloads a banner from the list as a JPEG of at most 1920 px across. Empty on failure.
 std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel);
 

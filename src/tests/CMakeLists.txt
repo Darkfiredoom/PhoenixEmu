@@ -167,6 +167,7 @@ add_executable(tests
     common/zstd_compression.cpp
     core/core_timing.cpp
     core/thread_startup_policy.cpp
+    core/music_extract.cpp
     core/nup_writer.cpp
     core/nup_metadata.cpp
     core/nup_read_bench.cpp

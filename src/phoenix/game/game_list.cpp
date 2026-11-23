@@ -349,6 +349,7 @@ void GameList::StartPictureSearch() {
         bool picture; ///< It has no picture
         bool banner;  ///< It has no banner, and the list may have one
         bool case_art; ///< It has no case art, and PhoenixEmu's pack may have it
+        bool switch2;  ///< A Switch 2 game (Switch Cabinet has only Switch 1 cases)
     };
     std::vector<Wanted> wanted;
     ForEachGameItem([&](GameListItemPath& item) {
@@ -369,7 +370,8 @@ void GameList::StartPictureSearch() {
                               item.data(GameListItemPath::CaseFrontRole).value<QPixmap>().isNull() &&
                               !CaseArt::PackRecentlyMissing(program_id);
         if (picture || banner || case_art) {
-            wanted.push_back({program_id, name.toStdString(), search, picture, banner, case_art});
+            wanted.push_back({program_id, name.toStdString(), search, picture, banner, case_art,
+                              item.data(GameListItemPath::Switch2Role).toBool()});
         }
     });
     if (wanted.empty()) {
@@ -419,7 +421,7 @@ void GameList::StartPictureSearch() {
         const auto list = (remaining.empty() && !want_banners) || cancel->load()
                               ? decltype(LoadGamePictureList(*cancel)){}
                               : LoadGamePictureList(*cancel);
-        for (const auto& [program_id, name, search, picture, banner, case_art] : remaining) {
+        for (const auto& [program_id, name, search, picture, banner, case_art, switch2] : remaining) {
             if (cancel->load()) {
                 break;
             }
@@ -486,7 +488,12 @@ void GameList::StartPictureSearch() {
             if (!game.case_art) {
                 continue;
             }
-            switch (DownloadCaseArt(game.program_id, game.name, *cancel)) {
+            auto fetched = DownloadCaseArt(game.program_id, game.name, *cancel);
+            if (fetched == CaseArtFetch::NotInPack && !game.switch2) {
+                // Switch 1 cases PhoenixEmu's pack lacks: Switch Cabinet's scans.
+                fetched = DownloadSwitchCabinetArt(game.program_id, game.name, *cancel);
+            }
+            switch (fetched) {
             case CaseArtFetch::Downloaded:
                 new_case_art = true;
                 break;
@@ -700,8 +707,8 @@ void GameList::PopulateAsync(QVector<UISettings::GameDir>& game_dirs) {
     item_model->PopulateAsync(game_dirs);
 }
 
-void GameList::SetScanEnabled(bool enabled) {
-    item_model->SetScanEnabled(enabled);
+void GameList::SetScanEnabled(bool enabled, bool stop_worker) {
+    item_model->SetScanEnabled(enabled, stop_worker);
 }
 
 void GameList::SaveInterfaceLayout() {
@@ -1118,6 +1125,15 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
     const bool is_nup_archive =
         !FileSys::Nup::DumpRootFromMain(path) &&
         QString::fromStdString(path).endsWith(QStringLiteral(".nup"), Qt::CaseInsensitive);
+    // Music extraction reads the Alto-family Sound tree straight out of a NUP archive or a
+    // loose dump; other content types (installed NSPs, XCI) are not supported.
+    QAction* extract_music = nullptr;
+    if (is_nup_archive || FileSys::Nup::DumpRootFromMain(path)) {
+        extract_music = context_menu.addAction(tr("Dump Audio..."));
+        extract_music->setEnabled(!nup_conversion_running);
+        connect(extract_music, &QAction::triggered, this,
+                [this, path]() { emit ExtractMusicRequested(path); });
+    }
     QAction* extract_nup = nullptr;
     if (is_nup_archive) {
         extract_nup = context_menu.addAction(tr("Dump NUP..."));
@@ -1172,6 +1188,10 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
         edit_nup->setEnabled(!nup_conversion_running);
     }
     QAction* properties = context_menu.addAction(tr("Configure Game"));
+    if (program_id != 0) {
+        connect(context_menu.addAction(tr("Find Mods...")), &QAction::triggered, this,
+                [this, program_id, path] { emit ModStoreRequested(program_id, path); });
+    }
     if (program_id != 0) {
         QMenu* picture_menu = context_menu.addMenu(tr("Game Picture"));
         connect(picture_menu->addAction(tr("Find Picture Online...")), &QAction::triggered, this,
@@ -1478,7 +1498,12 @@ bool GameList::eventFilter(QObject* obj, QEvent* event) {
         QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
         QModelIndex index = m_currentView->indexAt(mouseEvent->pos());
-        if (!index.isValid()) {
+        // A click on empty space unpicks the game, except on the home screen while the details
+        // panel is up: unpicking it there hid the panel, the view grew, the first game was picked
+        // again, and the background flashed to the plain one and back.
+        const bool keep_pick =
+            m_currentView == carousel_view && UISettings::values.show_game_details.GetValue();
+        if (!index.isValid() && !keep_pick) {
             m_currentView->selectionModel()->clearSelection();
             m_currentView->setCurrentIndex(QModelIndex());
         }

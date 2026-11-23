@@ -483,8 +483,14 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
                                         Changed();
                                     });
         c->addWidget(stack_options);
-        banner_box = Check(c, tr("Show the picked game's picture as the background"),
+        game_bg_box = Check(c, tr("Show the picked game's picture behind the home screen"),
+                            [](bool on) { UISettings::values.home_game_background = on; });
+        banner_box = Check(c, tr("Show it sharp (a banner) rather than as a soft glow"),
                            [](bool on) { UISettings::values.carousel_banner_background = on; });
+        greeting_box = Check(c, tr("Show the greeting"),
+                             [](bool on) { UISettings::values.home_show_greeting = on; });
+        quote_box = Check(c, tr("Show the quote"),
+                          [](bool on) { UISettings::values.home_show_quote = on; });
         s->addWidget(carousel_options);
 
         // The list and the grid.
@@ -707,7 +713,9 @@ void CustomizePanel::ResetToDefaults() {
                           &v.carousel_card_size, &v.carousel_side_count}) {
         ResetSetting(*setting);
     }
-    for (auto* setting : {&v.carousel_banner_background, &v.home_anim_enabled, &v.home_anim_rays,
+    for (auto* setting : {&v.carousel_banner_background, &v.home_game_background,
+                          &v.home_show_greeting, &v.home_show_quote, &v.home_anim_enabled,
+                          &v.home_anim_rays,
                           &v.home_anim_game_glow,
                           &v.home_anim_pulse, &v.home_anim_vignette}) {
         ResetSetting(*setting);
@@ -833,6 +841,10 @@ void CustomizePanel::Refresh() {
         ->button(static_cast<int>(std::clamp(v.carousel_side_count.GetValue(), 3U, 8U) - 3))
         ->setChecked(true);
     banner_box->setChecked(v.carousel_banner_background.GetValue());
+    game_bg_box->setChecked(v.home_game_background.GetValue());
+    banner_box->setEnabled(v.home_game_background.GetValue());
+    greeting_box->setChecked(v.home_show_greeting.GetValue());
+    quote_box->setChecked(v.home_show_quote.GetValue());
     details_box->setChecked(v.show_game_details.GetValue());
     case_art_label->setText(QString::fromStdString(Common::FS::PathToUTF8String(CaseArt::Folder())));
     static constexpr std::array<u32, 5> icon_sizes{0, 32, 64, 128, 256};

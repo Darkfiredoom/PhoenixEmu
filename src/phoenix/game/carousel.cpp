@@ -474,7 +474,7 @@ void GameCarousel::UpdateButtonContrast() {
     QColor hardest;
     for (QPushButton* const button :
          {m_addButton, m_userButton, m_customizeButton, m_controllersButton}) {
-        if (!button->isVisible()) {
+        if (button == nullptr || !button->isVisible()) {
             continue;
         }
         const QColor behind = m_scene->AverageBehind(button->geometry());
@@ -514,6 +514,19 @@ void GameCarousel::UpdateMusicButton() {
 }
 
 void GameCarousel::paintEvent(QPaintEvent* event) {
+    // The background is one picture across the view: a partial repaint (the list's hover and
+    // click updates, which are all there is with the animation off) redrew only its patch, so
+    // patches of the old and new background and tiles showed side by side. Any update repaints
+    // the whole view. The patch itself is still painted now: left unpainted it showed the bare
+    // window colour for a frame, a grey box over the case each time the mouse came or went.
+    if (event->region() != QRegion(viewport()->rect())) {
+        if (!m_fullRepaintAsked) {
+            m_fullRepaintAsked = true; // once: a region that can never be whole is painted as is
+            viewport()->update();
+        }
+    } else {
+        m_fullRepaintAsked = false;
+    }
     PlaceAddButton();
     {
         QPainter painter{viewport()};
@@ -523,9 +536,12 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         if (m_ambient.size() != area.size() && !m_ambientSource.isNull()) {
             RebuildAmbient();
         }
-        // The picked game's picture: a soft glow of its colours, or (banner) nearly the picture.
-        const qreal strength = m_ambientSoft ? 0.72 : 0.5;
-        m_scene->Paint(painter, area, m_ambient, strength * m_ambientFade, m_ambientPrevious,
+        // The picked game's picture: a soft glow of its colours, or (banner) nearly the picture;
+        // none when it is turned off (the chosen background alone).
+        const qreal strength =
+            UISettings::values.home_game_background.GetValue() ? (m_ambientSoft ? 0.72 : 0.5) : 0.0;
+        m_scene->Paint(painter, area, strength > 0.0 ? m_ambient : QPixmap{},
+                       strength * m_ambientFade, strength > 0.0 ? m_ambientPrevious : QPixmap{},
                        strength * (1.0 - m_ambientFade));
 
         // A greeting on the left, the clock on the right.
@@ -558,15 +574,20 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         };
         painter.setFont(big);
         const QFontMetrics big_metrics{big};
+        const bool show_greeting = UISettings::values.home_show_greeting.GetValue();
+        if (show_greeting) {
         draw_readable(QPoint(left, top + big_metrics.ascent()), greeting,
                       PhoenixTheme::Recolor(QColor(0xFF, 0xF4, 0xDA)));
+        }
         painter.setFont(small);
         const QFontMetrics small_metrics{small};
+        if (show_greeting) {
         draw_readable(QPoint(left + 2, top + big_metrics.height() + small_metrics.ascent()),
                       model() != nullptr && model()->rowCount() > 0
                           ? tr("Pick a game and let's play.")
                           : tr("Add a game folder to get started."),
                       PhoenixTheme::Recolor(QColor(0xE8, 0xD9, 0xB5, 190)));
+        }
         // A quote under it, smaller, in italics and fainter, cut short with "..." if the window
         // is narrow (it stays clear of the clock).
         QFont tiny = font();
@@ -579,10 +600,15 @@ void GameCarousel::paintEvent(QPaintEvent* event) {
         const int room = area.width() - 2 * left -
                          big_metrics.horizontalAdvance(QStringLiteral("00:00")) - 24;
         const QString shown = tiny_metrics.elidedText(line, Qt::ElideRight, (std::max)(room, 80));
-        const QPoint at{left + 2, top + big_metrics.height() + small_metrics.height() + 4 +
-                                      tiny_metrics.ascent()};
+        // Without the greeting the quote moves up to its place.
+        const QPoint at{left + 2, show_greeting ? top + big_metrics.height() +
+                                                      small_metrics.height() + 4 +
+                                                      tiny_metrics.ascent()
+                                                : top + big_metrics.ascent()};
         painter.setFont(tiny);
-        draw_readable(at, shown, PhoenixTheme::Recolor(QColor(0xF0, 0xE2, 0xC0, 175)));
+        if (UISettings::values.home_show_quote.GetValue()) {
+            draw_readable(at, shown, PhoenixTheme::Recolor(QColor(0xF0, 0xE2, 0xC0, 175)));
+        }
         painter.setFont(big);
         const QString time = QTime::currentTime().toString(QStringLiteral("h:mm"));
         draw_readable(QPoint(area.width() - left - big_metrics.horizontalAdvance(time),
@@ -687,7 +713,12 @@ void GameCarousel::SetModel(GameListModel* model) {
                     m_ambientAnimation->setDuration(600);
                     m_ambientAnimation->setEasingCurve(QEasingCurve::InOutSine);
                     connect(m_ambientAnimation, &QVariantAnimation::valueChanged, this,
-                            [this](const QVariant& fade) { m_ambientFade = fade.toReal(); });
+                            [this](const QVariant& fade) {
+                                m_ambientFade = fade.toReal();
+                                // Without the animated scene no frame timer repaints the view:
+                                // the cross-fade would stall half way, both pictures showing.
+                                viewport()->update();
+                            });
                 }
                 m_ambientAnimation->stop();
                 m_ambientAnimation->start();
@@ -735,7 +766,8 @@ void GameCarousel::ApplyFilter(const QString& edit_filter_text, GameListModel* m
 void GameCarousel::UpdateIconSize() {
     // Big tiles that follow the window's height, whatever the game list's icon size.
     const int tile =
-        std::clamp(static_cast<int>(viewport()->height() * 9 / 20 *
+        // A third of the height: the row shows several games at once, unlike the stack's one.
+        std::clamp(static_cast<int>(viewport()->height() / 3 *
                                     UISettings::values.home_tile_scale.GetValue() / 100),
                    90, 460);
     const QSize grid_size(tile + tile / 3, std::max(tile + 120, viewport()->height()));
@@ -1287,6 +1319,14 @@ QRegion GameCarousel::visualRegionForSelection(const QItemSelection& selection) 
 }
 
 void GameCarousel::mousePressEvent(QMouseEvent* event) {
+    // While the details panel is up a click on empty space keeps the picked game (GameList's
+    // filter does the same): unpicking it flashed the plain background. Otherwise it unpicks.
+    if (UISettings::values.show_game_details.GetValue() &&
+        !indexAt(event->position().toPoint()).isValid()) {
+        setFocus(Qt::MouseFocusReason);
+        event->accept();
+        return;
+    }
     // The Case look: a click on the picked game's case opens it (PyroCade's open case); the
     // Play button, Enter and a double click on another game still start a game directly.
     if (event->button() == Qt::LeftButton &&

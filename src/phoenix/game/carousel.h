@@ -70,6 +70,7 @@ private:
     /// Where the stack's cards go: between the greeting and the play button.
     [[nodiscard]] QRect StackArea() const;
     qreal m_position = 0.0;
+    bool m_fullRepaintAsked = false; ///< A partial repaint was turned into a whole one
     class QVariantAnimation* m_positionAnimation = nullptr;
     bool m_ambientSoft = false;
 

@@ -415,6 +415,7 @@ private slots:
     void PrepareShaderPrecache(u64 title_id, const std::filesystem::path& game_path);
     void OnGameListExtractNup(const std::string& game_path);
     void OnGameListEditNupMetadata(const std::string& game_path);
+    void OnGameListExtractMusic(const std::string& game_path);
     void OnGameListCopyTID(u64 program_id);
     void OnGameListCreateShortcut(u64 program_id, const std::string& game_path,
                                   const QtCommon::Game::ShortcutTarget target);
@@ -462,6 +463,9 @@ private slots:
     void OnApplyRecommendedSettings();
     void OnRestorePreviousSettings();
     void OnDataDialog();
+    void OnOpenModStore();
+    /// Lichii's Mod Store, for a game (initial_title_id) or all; true when something changed.
+    bool OpenModStore(QWidget* parent, u64 initial_title_id, const std::string& file_name);
     void OnSaveSyncDialog();
     void OnShaderRecipeDialog();
     void OnAlbumDialog();
@@ -722,6 +726,7 @@ private:
     QPointer<ShaderWarmDialog> shader_warm_dialog;
     NxTools* nx_tools = nullptr;
     bool nx_metadata_write_in_progress = false;
+    bool mod_store_open = false; ///< The Mod Store is up: no game starts meanwhile
     std::string nup_source_path;
 
     // Last game booted, used for multi-process apps
@@ -739,7 +744,6 @@ private:
     CustomizePanel* customize_panel = nullptr;
     GameDetailsPanel* game_details_panel = nullptr;
     bool steam_launch = false; ///< Started from Steam: fullscreen, quit when the game stops
-    bool game_details_closed = false; ///< Hidden with its close button until the next pick
     /// The "Are you sure you want to close?" box while it is open (ConfirmClose).
     QPointer<QMessageBox> close_question;
     /// The Configure page OnConfigure opens on next (5 is Controls), then back to the first.

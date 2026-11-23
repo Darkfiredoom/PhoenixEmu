@@ -86,9 +86,12 @@ public:
     void SetFilterFocus();
     void SetFilterVisible(bool visibility);
     bool IsEmpty() const;
+    bool IsPopulating() const {
+        return m_populating;
+    }
 
     void PopulateAsync(QVector<UISettings::GameDir>& game_dirs);
-    void SetScanEnabled(bool enabled);
+    void SetScanEnabled(bool enabled, bool stop_worker = true);
     void SetReportableProgramId(u64 program_id);
 
     void SaveInterfaceLayout();
@@ -136,6 +139,7 @@ signals:
     void VerifyIntegrityRequested(const std::string& game_path);
     void ConvertToNupRequested(const std::string& game_path);
     void ExtractNupRequested(const std::string& game_path);
+    void ExtractMusicRequested(const std::string& game_path);
     void EditNupMetadataRequested(const std::string& game_path);
     void ConvertToNxRequested(const std::string& game_path);
     void AddToNxRequested(const std::string& game_path);
@@ -148,6 +152,7 @@ signals:
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);
     void OpenPerGameGeneralRequested(const std::string& file);
+    void ModStoreRequested(u64 program_id, const std::string& file);
     /// Add the game to Steam's library (add) or take it out.
     void SteamShortcutRequested(u64 program_id, const std::string& game_path, bool add);
     void LinkToRyujinxRequested(const u64& program_id);

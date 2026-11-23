@@ -799,6 +799,170 @@ CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::a
     return downloaded ? CaseArtFetch::Downloaded : CaseArtFetch::AlreadyHere;
 }
 
+CaseArtFetch DownloadSwitchCabinetArt(u64 title_id, const std::string& name,
+                                      const std::atomic_bool& cancel) {
+    using namespace std::chrono;
+    namespace fs = std::filesystem;
+    // Switch Cabinet (cdn.switch-images-julio.com): scans of Switch 1 cases. list.csv names each
+    // case's code; <code>/front.png, back.png, spine.png and inside.png are the scans, and
+    // _resized/<code>/... the same at about 1130 px tall (the full scans run to 75 MB).
+    static constexpr std::string_view Base = "https://cdn.switch-images-julio.com/file/switch-images-julio/";
+    const fs::path pack = CaseArt::PackFolder();
+    std::error_code ec;
+    fs::create_directories(pack, ec);
+    const fs::path cached = pack / "switch_cabinet_list.csv";
+    std::string body;
+    const auto written = fs::last_write_time(cached, ec);
+    const bool fresh = !ec && fs::file_time_type::clock::now() - written < hours{24};
+    const auto read_cache = [&] {
+        std::ifstream file(cached, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    };
+    if (fresh) {
+        body = read_cache();
+    }
+    if (body.empty()) {
+        const auto res =
+            HttpGet(std::string{Base} + "list.csv", steady_clock::now() + seconds{20}, cancel);
+        if (res.status == HttpStatus::Ok && !res.body.empty()) {
+            body = res.body;
+            std::ofstream(cached, std::ios::binary | std::ios::trunc) << body;
+        } else {
+            body = read_cache();
+            if (body.empty()) {
+                LOG_INFO(Frontend, "Case art: the Switch Cabinet list could not be downloaded ({})",
+                         res.detail);
+                return CaseArtFetch::Failed;
+            }
+        }
+    }
+    // Rows: title,code,titleids (| between),inside_exist,region,publisher,limprint_type,
+    // limprint_number. Titles are not quoted; anything before the last seven fields is the title.
+    const std::string id = fmt::format("{:016X}", title_id);
+    const std::string base_id = fmt::format("{:016X}", title_id & ~u64{0xFFF});
+    const QString title = QString::fromStdString(name);
+    const auto region_rank = [](const std::string& region) {
+        return region == "NA" ? 3 : region == "EU" ? 2 : 1;
+    };
+    std::string best_code;
+    bool best_inside = false;
+    int best_score = 0;
+    int best_region = 0;
+    size_t start = 0;
+    bool header = true;
+    while (start < body.size()) {
+        size_t end = body.find('\n', start);
+        if (end == std::string::npos) {
+            end = body.size();
+        }
+        std::string line = body.substr(start, end - start);
+        start = end + 1;
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (header) {
+            header = false;
+            continue;
+        }
+        std::vector<std::string> fields;
+        size_t field_start = 0;
+        while (true) {
+            const size_t comma = line.find(',', field_start);
+            fields.push_back(line.substr(field_start, comma == std::string::npos
+                                                          ? std::string::npos
+                                                          : comma - field_start));
+            if (comma == std::string::npos) {
+                break;
+            }
+            field_start = comma + 1;
+        }
+        if (fields.size() < 8) {
+            continue;
+        }
+        const size_t n = fields.size();
+        std::string row_title = fields[0];
+        for (size_t i = 1; i + 7 < n; ++i) {
+            row_title += ',' + fields[i];
+        }
+        const std::string& code = fields[n - 7];
+        const std::string& ids = fields[n - 6];
+        const bool inside = fields[n - 5] == "true";
+        const std::string& region = fields[n - 4];
+        if (code.empty() || code.find_first_not_of(
+                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") != std::string::npos) {
+            continue; // only plain codes go into a URL
+        }
+        int score = 0;
+        size_t id_start = 0;
+        while (id_start <= ids.size() && !ids.empty()) {
+            const size_t bar = ids.find('|', id_start);
+            std::string one = ids.substr(id_start, bar == std::string::npos ? std::string::npos
+                                                                           : bar - id_start);
+            std::transform(one.begin(), one.end(), one.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            if (one == id || one == base_id) {
+                score = 1000;
+            }
+            if (bar == std::string::npos) {
+                break;
+            }
+            id_start = bar + 1;
+        }
+        if (score == 0) {
+            score = CaseArt::MatchScore(QString::fromStdString(row_title), title, title_id);
+        }
+        // A scan with its inside, then the North American case, wins a tie.
+        const int rank = region_rank(region) + (inside ? 10 : 0);
+        if (score >= 800 && (score > best_score || (score == best_score && rank > best_region))) {
+            best_code = code;
+            best_inside = inside;
+            best_score = score;
+            best_region = rank;
+        }
+    }
+    if (best_code.empty()) {
+        return CaseArtFetch::NotInPack;
+    }
+    // Saved as the player's own folders are read: Cases/<title ID>/<title ID>-Front.png, ...
+    // (a folder named after the title ID always matches its game).
+    const fs::path folder = pack / "Cases" / id;
+    std::vector<std::pair<std::string, std::string>> files{
+        {"front.png", "Front"}, {"back.png", "Back"}, {"spine.png", "Spine"}};
+    if (best_inside) {
+        files.emplace_back("inside.png", "Inside");
+    }
+    bool downloaded = false;
+    for (const auto& [remote, part] : files) {
+        const fs::path target = folder / fmt::format("{}-{}.png", id, part);
+        if (fs::exists(target, ec)) {
+            continue;
+        }
+        const auto res = HttpGet(fmt::format("{}_resized/{}/{}", Base, best_code, remote),
+                                 steady_clock::now() + seconds{60}, cancel);
+        if (res.status != HttpStatus::Ok || res.body.empty()) {
+            LOG_WARNING(Frontend, "Case art: Switch Cabinet {} {} could not be downloaded ({})",
+                        best_code, remote, res.detail);
+            if (part == "Front") {
+                return CaseArtFetch::Failed; // no cover, no case
+            }
+            continue;
+        }
+        fs::create_directories(folder, ec);
+        const fs::path temporary = fs::path{target}.concat(".part");
+        {
+            std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+            out.write(res.body.data(), static_cast<std::streamsize>(res.body.size()));
+        }
+        fs::rename(temporary, target, ec);
+        downloaded = !ec || downloaded;
+    }
+    if (downloaded) {
+        LOG_INFO(Frontend, "Case art for {:016X} ({}) downloaded from Switch Cabinet: {}", title_id,
+                 name, best_code);
+    }
+    return downloaded ? CaseArtFetch::Downloaded : CaseArtFetch::AlreadyHere;
+}
+
 std::vector<u8> DownloadGameBanner(const std::string& url, const std::atomic_bool& cancel) {
     const auto res = HttpGet(url, std::chrono::steady_clock::now() + SearchDeadline, cancel);
     if (res.status != HttpStatus::Ok) {

@@ -53,7 +53,8 @@ protected:
     void Initialize(const std::string& config_name = "config");
     void Initialize(std::optional<std::string> config_path);
 
-    void WriteToIni() const;
+    /// Writes the settings out; false when the file could not be written.
+    bool WriteToIni() const;
 
     void SetUpIni();
     [[nodiscard]] bool IsCustomConfig() const;

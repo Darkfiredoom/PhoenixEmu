@@ -4,7 +4,11 @@
 #include "game/game_list.h"
 #include "game/search_field.h"
 
+#include <QIcon>
 #include <QKeyEvent>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPixmap>
 #include <QToolButton>
 
 // TODO: Remove GameList dependence?
@@ -90,19 +94,34 @@ GameListSearchField::GameListSearchField(GameList* parent) : QWidget{parent} {
     edit_filter->clear();
     edit_filter->installEventFilter(key_release_eater);
     edit_filter->setClearButtonEnabled(true);
+    edit_filter->setObjectName(QStringLiteral("GameSearchField"));
+    {
+        // A magnifier at the front of the field, drawn so it follows no icon theme.
+        QPixmap glass(32, 32);
+        glass.fill(Qt::transparent);
+        QPainter p(&glass);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(QColor(255, 214, 120, 210), 3.2, Qt::SolidLine, Qt::RoundCap));
+        p.drawEllipse(QRectF(5, 5, 16, 16));
+        p.drawLine(QPointF(19, 19), QPointF(27, 27));
+        p.end();
+        edit_filter->addAction(QIcon(glass), QLineEdit::LeadingPosition);
+    }
     connect(edit_filter, &QLineEdit::textChanged, parent, &GameList::OnTextChanged);
     label_filter_result = new QLabel;
     button_filter_close = new QToolButton(this);
-    button_filter_close->setText(QStringLiteral("X"));
+    button_filter_close->setText(QString(QChar(0x2715)));
+    button_filter_close->setObjectName(QStringLiteral("GameSearchClose"));
     button_filter_close->setCursor(Qt::ArrowCursor);
+    button_filter_close->setFixedSize(26, 26);
     button_filter_close->setStyleSheet(
-        QStringLiteral("QToolButton{ border: none; padding: 0px; color: "
-                       "#000000; font-weight: bold; background: #F0F0F0; }"
-                       "QToolButton:hover{ border: none; padding: 0px; color: "
-                       "#EEEEEE; font-weight: bold; background: #E81123}"));
+        QStringLiteral("QToolButton{ border: none; border-radius: 13px; padding: 0px; "
+                       "color: palette(text); background: rgba(128, 128, 128, 50); }"
+                       "QToolButton:hover{ color: #FFFFFF; background: #E0452B; }"));
     connect(button_filter_close, &QToolButton::clicked, parent, &GameList::OnFilterCloseClicked);
     layout_filter->setSpacing(10);
     layout_filter->addWidget(label_filter);
+    label_filter->hide(); // the magnifier says it
     layout_filter->addWidget(edit_filter);
     layout_filter->addWidget(label_filter_result);
     layout_filter->addWidget(button_filter_close);
@@ -120,5 +139,5 @@ void GameListSearchField::changeEvent(QEvent* event) {
 
 void GameListSearchField::RetranslateUI() {
     label_filter->setText(tr("Filter:"));
-    edit_filter->setPlaceholderText(tr("Enter pattern to filter"));
+    edit_filter->setPlaceholderText(tr("Search your games"));
 }

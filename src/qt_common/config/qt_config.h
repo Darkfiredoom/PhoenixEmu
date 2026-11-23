@@ -19,6 +19,10 @@ public:
     void ReloadAllValues() override;
     void SaveAllValues() override;
 
+    /// Turns an add-on on or off for a title and saves at once (the Mod Store); false when the
+    /// config file could not be written (the change is undone).
+    bool SetAddonEnabled(u64 title_id, const std::string& name, bool enabled);
+
     void ReadQtControlPlayerValues(std::size_t player_index);
     void SaveQtControlPlayerValues(std::size_t player_index);
 

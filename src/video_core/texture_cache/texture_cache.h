@@ -249,8 +249,15 @@ void TextureCache<P>::RunGarbageCollector(bool out_of_memory) {
         aggressive_mode =
             allow_aggressive && (out_of_memory || used_memory() >= critical_memory);
         ticks_to_destroy = aggressive_mode ? 10ULL : high_priority_mode ? 25ULL : 50ULL;
-        if (!out_of_memory && used_memory() < critical_memory + 512_MiB) {
+        // The full age only under the expected memory (Satsuma build 93): applied up to past the
+        // critical threshold it kept old textures all the time, and Ocarina's fountain held 9 to
+        // 10.6 GB with 36-111 ms frames where the rule under expected memory holds about 6.3 GB
+        // and 24-25 ms frames. Between expected and critical a second still stops the churn the
+        // note above describes.
+        if (!out_of_memory && used_memory() < expected_memory) {
             ticks_to_destroy = (std::max)(ticks_to_destroy, min_age);
+        } else if (!out_of_memory && used_memory() < critical_memory + 512_MiB) {
+            ticks_to_destroy = (std::max)(ticks_to_destroy, (std::min)(min_age, u64{60}));
         }
         num_iterations = aggressive_mode ? 40 : (high_priority_mode ? 20 : 10);
     };

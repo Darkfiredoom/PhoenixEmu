@@ -127,6 +127,9 @@ private:
     QButtonGroup* card_size_group{};
     QButtonGroup* side_count_group{};
     QCheckBox* banner_box{};
+    QCheckBox* game_bg_box{};
+    QCheckBox* greeting_box{};
+    QCheckBox* quote_box{};
     QCheckBox* details_box{};
     QLabel* case_art_label{};
     QWidget* icon_options{};

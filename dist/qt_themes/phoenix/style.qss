@@ -3408,3 +3408,92 @@ QLabel#CustomizePicturePreview {
     border-radius: 8px;
     color: #A8987A;
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * Ember bar (build 13): the search is a pill with a magnifier (search_field.cpp), the bars
+ * glow faintly with the ember instead of sitting flat.
+ * --------------------------------------------------------------------------------------------- */
+QLineEdit#GameSearchField {
+    background-color: rgba(255, 230, 180, 14);
+    border: 1px solid rgba(255, 230, 180, 34);
+    border-radius: 17px;
+    padding: 6px 12px 6px 4px;
+    min-height: 22px;
+    font-size: 10.5pt;
+}
+
+QLineEdit#GameSearchField:hover {
+    border: 1px solid rgba(255, 200, 61, 110);
+}
+
+QLineEdit#GameSearchField:focus {
+    background-color: rgba(255, 200, 61, 22);
+    border: 1px solid #FFC83D;
+}
+
+QMenuBar {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2A2015, stop:1 #1F1810);
+    border-bottom: 1px solid rgba(255, 200, 61, 40);
+}
+
+QStatusBar {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1F1810, stop:1 #2A2015);
+    border-top: 1px solid rgba(255, 200, 61, 40);
+}
+
+QPushButton#RendererStatusBarButton:checked, QPushButton#GPUStatusBarButton:checked,
+QPushButton#DockingStatusBarButton:checked, QPushButton#TogglableStatusBarButton:checked {
+    background-color: rgba(255, 200, 61, 34);
+    border: 2px solid rgba(255, 200, 61, 90);
+    color: #FFD966;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Ember header (build 13): the top bar is no longer a flat strip of the accent colour. It is
+ * near black with a seam along the bottom that burns from ember red to gold and fades out, the
+ * flame and the PHOENIX wordmark at its left (main_window.cpp), the menu titles as pills that
+ * catch fire under the mouse.
+ * --------------------------------------------------------------------------------------------- */
+QMenuBar {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #17110C, stop:1 #0F0B08);
+    border: none;
+    padding: 3px 6px 5px 2px;
+    spacing: 2px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    color: #E9DCC2;
+    padding: 5px 13px;
+    margin: 1px 0px;
+    border-radius: 13px;
+    border: 1px solid transparent;
+}
+
+QMenuBar::item:selected {
+    background-color: rgba(255, 138, 61, 30);
+    border: 1px solid rgba(255, 168, 80, 90);
+    color: #FFE6B0;
+}
+
+QMenuBar::item:pressed {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E0452B, stop:1 #FF9A3D);
+    border: 1px solid #FFC83D;
+    color: #FFF6E0;
+}
+
+QWidget#PhoenixMenuBrand {
+    background: transparent;
+}
+
+QLabel#PhoenixMenuBrandText {
+    color: #FFC83D;
+    font-weight: 800;
+    font-size: 9.5pt;
+    padding-right: 10px;
+}
+
+QWidget#PhoenixMenuSeam {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E0452B, stop:0.35 #FF8A3D,
+                                      stop:0.6 #FFC83D, stop:1 rgba(255, 200, 61, 0));
+}

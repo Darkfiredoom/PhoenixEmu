@@ -414,10 +414,13 @@ bool Fsr4Upscaler::CreateContext(VkExtent2D render_size, VkExtent2D upscale_size
     api_version.version = FFX_UPSCALER_VERSION;
     ffxCreateContextDescUpscale create{};
     create.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
-    create.flags = (depth_inverted ? FFX_UPSCALE_ENABLE_DEPTH_INVERTED : 0u) |
-                   (hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE | FFX_UPSCALE_ENABLE_AUTO_EXPOSURE
-                        : FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE) |
-                   (dynamic_resolution ? FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION : 0u);
+    // Each flag as an unsigned value: GCC rejects an enum and 0u in one conditional (-Wextra).
+    const auto flag = [](auto value) { return static_cast<uint32_t>(value); };
+    create.flags = (depth_inverted ? flag(FFX_UPSCALE_ENABLE_DEPTH_INVERTED) : 0u) |
+                   (hdr ? flag(FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE) |
+                              flag(FFX_UPSCALE_ENABLE_AUTO_EXPOSURE)
+                        : flag(FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE)) |
+                   (dynamic_resolution ? flag(FFX_UPSCALE_ENABLE_DYNAMIC_RESOLUTION) : 0u);
     create.maxRenderSize = {render_size.width, render_size.height};
     create.maxUpscaleSize = {upscale_size.width, upscale_size.height};
     create.fpMessage = &FfxRuntime::LogMessage; // AMD's warnings about its inputs, in the log

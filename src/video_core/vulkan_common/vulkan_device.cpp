@@ -429,7 +429,10 @@ std::filesystem::path StaticPipelineCacheFilename() {
 // (title 1).
 u64 AllocatedUsage(VkDeviceSize driver_usage, const VmaBudget& vma_budget) {
     const VmaStatistics& statistics = vma_budget.statistics;
-    const u64 unused = statistics.blockBytes - statistics.allocationBytes;
+    // Read while the image reaper thread frees memory, the two counts can be from different
+    // moments, with more allocated than in blocks: the subtraction wrapped and usage read as 0.
+    const u64 unused = statistics.blockBytes -
+                       (std::min)(statistics.blockBytes, statistics.allocationBytes);
     return driver_usage - (std::min)(driver_usage, unused);
 }
 

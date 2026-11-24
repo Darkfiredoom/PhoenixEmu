@@ -654,6 +654,18 @@ MainWindow::MainWindow(bool has_broken_vulkan)
 
     SetGamemodeEnabled(UISettings::values.enable_gamemode.GetValue());
 
+    // Once per profile: a config saved before the redesign kept its old home layout, list mode
+    // or theme, so the new screens never showed (a Steam Deck kept the old ones). They are
+    // switched on once; anything the player picks afterwards stays.
+    if (!UISettings::values.redesign_introduced.GetValue()) {
+        UISettings::values.carousel_layout = 3; // the Library
+        UISettings::values.game_list_mode = Settings::GameListMode::CarouselView;
+        UISettings::values.theme = std::string("phoenix");
+        UISettings::values.redesign_introduced = true;
+        LOG_INFO(Frontend, "Redesign switched on for this profile: the Library home and the "
+                           "PhoenixEmu theme");
+    }
+
     UISettings::RestoreWindowState(config);
 
     LoadTranslation();

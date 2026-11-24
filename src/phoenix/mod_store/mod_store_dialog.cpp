@@ -652,14 +652,17 @@ public:
         });
         connect(results, &QTreeWidget::currentItemChanged, this,
                 [this](QTreeWidgetItem* item) { SelectMod(item); });
+        // A card opens its mod's details. The hidden lists keep the mods' data only: selecting a
+        // row in them (hidden) crashed Qt's accessibility on SteamOS, so nothing selects there.
         connect(cards, &QListWidget::currentItemChanged, this, [this](QListWidgetItem* card) {
             if (card == nullptr) {
+                SelectMod(nullptr); // the cards were cleared: so are the details
                 return;
             }
             const QString id = card->data(ModCardDelegate::IdRole).toString();
             for (int i = 0; i < results->topLevelItemCount(); ++i) {
                 if (results->topLevelItem(i)->data(0, IdRole).toString() == id) {
-                    results->setCurrentItem(results->topLevelItem(i));
+                    SelectMod(results->topLevelItem(i));
                     break;
                 }
             }
@@ -771,7 +774,6 @@ private:
             node->setToolTip(0, game);
             node->setTextAlignment(1, Qt::AlignRight | Qt::AlignVCenter);
             if (id == title) {
-                game_tree->setCurrentItem(node);
                 game_picker->setCurrentIndex(game_picker->count() - 1);
             }
         };
@@ -827,11 +829,7 @@ private:
         }
         if (picker_row >= 0 && node != nullptr) {
             const QSignalBlocker block_picker(game_picker);
-            const QSignalBlocker block_tree(game_tree);
-            const int scroll = game_tree->verticalScrollBar()->value();
             game_picker->setCurrentIndex(picker_row);
-            game_tree->setCurrentItem(node);
-            game_tree->verticalScrollBar()->setValue(scroll);
         } else {
             PopulateGames();
         }

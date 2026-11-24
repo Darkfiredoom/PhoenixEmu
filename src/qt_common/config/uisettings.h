@@ -268,6 +268,10 @@ struct Values {
     /// The home view's carousel: 0 a stack (one big card, the others tilted behind it), 1 a row.
     /// The home view: 0 stack, 1 row, 2 shelf, 3 library (the Paper design, the default).
     Setting<u32, true> carousel_layout{linkage, 3, 0, 3, "carousel_layout", Category::UiGameList};
+    /// Set once the redesign (the Library home, PhoenixEmu's theme) was switched on for this
+    /// profile: a config saved before it kept the old home layout or theme (a Steam Deck showed
+    /// the old screens). Switched on once, so the player's later choices stay.
+    Setting<bool> redesign_introduced{linkage, false, "redesign_introduced", Category::UiGameList};
     /// The centred card's share of the height: 0 full, 1 3/4, 2 2/3, 3 1/2, 4 1/3.
     Setting<u32, true> carousel_card_size{linkage, 2, 0, 4, "carousel_card_size", Category::UiGameList};
     Setting<u32, true> carousel_side_count{linkage, 5, 3, 8, "carousel_side_count", Category::UiGameList};

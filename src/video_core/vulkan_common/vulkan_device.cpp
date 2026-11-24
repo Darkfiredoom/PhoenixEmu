@@ -429,7 +429,10 @@ std::filesystem::path StaticPipelineCacheFilename() {
 // (title 1).
 u64 AllocatedUsage(VkDeviceSize driver_usage, const VmaBudget& vma_budget) {
     const VmaStatistics& statistics = vma_budget.statistics;
-    const u64 unused = statistics.blockBytes - statistics.allocationBytes;
+    // Read while the image reaper thread frees memory, the two counts can be from different
+    // moments, with more allocated than in blocks: the subtraction wrapped and usage read as 0.
+    const u64 unused = statistics.blockBytes -
+                       (std::min)(statistics.blockBytes, statistics.allocationBytes);
     return driver_usage - (std::min)(driver_usage, unused);
 }
 
@@ -1514,6 +1517,11 @@ bool Device::GetSuitability(bool requires_swapchain) {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
         SetNext(next, properties.descriptor_buffer);
     }
+    if (extensions.graphics_pipeline_library) {
+        properties.graphics_pipeline_library.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT;
+        SetNext(next, properties.graphics_pipeline_library);
+    }
     if (extensions.subgroup_size_control || features.subgroup_size_control.subgroupSizeControl) {
         properties.subgroup_size_control.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES;
@@ -1814,6 +1822,21 @@ void Device::RemoveUnsuitableExtensions() {
         RemoveExtensionFeature(extensions.pipeline_executable_properties,
                                features.pipeline_executable_properties,
                                VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
+    }
+
+    // VK_EXT_graphics_pipeline_library: only for fast-linking a pipeline's vertex and fragment
+    // halves built at once, on NVIDIA's driver and when asked for.
+    const auto& library_properties = properties.graphics_pipeline_library;
+    if (!extensions.graphics_pipeline_library || !extensions.pipeline_library ||
+        !features.graphics_pipeline_library.graphicsPipelineLibrary ||
+        !library_properties.graphicsPipelineLibraryFastLinking ||
+        !library_properties.graphicsPipelineLibraryIndependentInterpolationDecoration ||
+        GetDriverID() != VK_DRIVER_ID_NVIDIA_PROPRIETARY ||
+        !Settings::values.use_graphics_pipeline_library.GetValue()) {
+        RemoveExtensionFeature(extensions.graphics_pipeline_library,
+                               features.graphics_pipeline_library,
+                               VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
+        RemoveExtension(extensions.pipeline_library, VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
     }
 
     // VK_EXT_mesh_shader: Switch 2 titles draw some geometry with task and mesh programs. Only

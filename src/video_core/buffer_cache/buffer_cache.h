@@ -79,13 +79,13 @@ BufferCache<P>::~BufferCache() {
 }
 
 template <class P>
-void BufferCache<P>::RunGarbageCollector(bool aggressive_gc) {
+void BufferCache<P>::RunGarbageCollector(bool aggressive_gc, u64 idle_frames) {
     const StutterTrace::SiteScope site{StutterTrace::Site::BufferCollect};
     in_garbage_collector = true;
     SCOPE_EXIT {
         in_garbage_collector = false;
     };
-    const u64 ticks_to_destroy = aggressive_gc ? 60 : 120;
+    const u64 ticks_to_destroy = idle_frames != 0 ? idle_frames : aggressive_gc ? 60 : 120;
     int num_iterations = aggressive_gc ? 64 : 32;
     // Their GPU-written data is downloaded first, all with one wait for the GPU: one wait per
     // buffer stalled the GPU thread every frame on title 1 (an 8 GB GPU near its budget, no
@@ -231,9 +231,11 @@ void BufferCache<P>::TickFrame() {
             const char* const value = std::getenv("EDEN_NX2_BUFFER_GC_TOTAL");
             return value != nullptr && value[0] == '1';
         }();
+        bool collected = false;
         if (total_rule) {
             if (buffer_bytes >= 512_MiB) {
                 RunGarbageCollector(buffer_bytes >= 1_GiB);
+                collected = true;
             }
         } else if (buffer_bytes >= native_collect_memory && frame_tick > 120) {
             u64 idle_bytes = 0;
@@ -242,7 +244,15 @@ void BufferCache<P>::TickFrame() {
             });
             if (idle_bytes >= 256_MiB) {
                 RunGarbageCollector(idle_bytes >= 768_MiB);
+                collected = true;
             }
+        }
+        // When neither rule collects, buffers unused for a minute or more (3600 frames) go
+        // anyway: Mario Kart World's race kept 21-80 MiB of menu, video and loading buffers
+        // nothing used again, as the cache stayed under the trigger. Their contents are in
+        // guest memory, as for any collected buffer; GPU-written ones stay, at most 32 a frame.
+        if (!collected && frame_tick > 3600) {
+            RunGarbageCollector(false, 3600);
         }
     } else if (total_used_memory >= minimum_memory) {
         RunGarbageCollector(total_used_memory >= critical_memory);

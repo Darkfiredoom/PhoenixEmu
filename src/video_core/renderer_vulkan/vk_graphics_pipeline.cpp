@@ -17,6 +17,7 @@
 #include <boost/container/static_vector.hpp>
 #include <fmt/format.h>
 
+#include "video_core/renderer_vulkan/fast_graphics_pipeline.h"
 #include "video_core/renderer_vulkan/pipeline_build_trace.h"
 #include "video_core/renderer_vulkan/pipeline_helper.h"
 
@@ -378,7 +379,7 @@ GraphicsPipeline::GraphicsPipeline(
     vk::PipelineCache& pipeline_cache_, VideoCore::ShaderNotify* shader_notify,
     const Device& device_, DescriptorPool& descriptor_pool,
     GuestDescriptorQueue& guest_descriptor_queue_, DescriptorBufferRing& descriptor_buffer_ring_,
-    Common::ThreadWorker* worker_thread,
+    Common::ThreadWorker* worker_thread, Common::ThreadWorker* fragment_workers,
     PipelineStatistics* pipeline_statistics, RenderPassCache& render_pass_cache,
     const GraphicsPipelineCacheKey& key_, std::array<vk::ShaderModule, NUM_STAGES> stages,
     const std::array<const Shader::Info*, NUM_STAGES>& infos,
@@ -604,7 +605,7 @@ GraphicsPipeline::GraphicsPipeline(
         }
     }
 
-    auto func{[this, shader_notify, &render_pass_cache, pipeline_statistics,
+    auto func{[this, shader_notify, &render_pass_cache, pipeline_statistics, fragment_workers,
                 emit_stages = std::move(emit_stages)] {
         const auto begin = std::chrono::steady_clock::now();
         SCOPE_EXIT {
@@ -618,7 +619,7 @@ GraphicsPipeline::GraphicsPipeline(
             }
             const VkRenderPass render_pass{render_pass_cache.Get(MakeRenderPassKey(key.state, device))};
             Validate();
-            MakePipeline(render_pass);
+            MakePipeline(render_pass, fragment_workers);
         } catch (const Shader::Exception& exception) {
             LOG_ERROR(Render_Vulkan, "Graphics pipeline {:016x}: {}", key.Hash(), exception.what());
             throw;
@@ -1644,7 +1645,8 @@ bool GraphicsPipeline::ConfigureDraw(const RescalingPushConstant& rescaling,
 
 /// Creates the Vulkan pipeline for `render_pass`. A mesh pipeline without VK_EXT_mesh_shader is
 /// built from the mesh emulation's vertex shader as a point, line or triangle list.
-void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
+void GraphicsPipeline::MakePipeline(VkRenderPass render_pass,
+                                    Common::ThreadWorker* fragment_workers) {
     if (IsMeshPipeline() && !device.IsExtMeshShaderSupported() && !mesh_emulation) {
         return;
     }
@@ -2146,7 +2148,7 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
     const bool unoptimized = (flags & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT) != 0;
     const auto trace_begin = std::chrono::steady_clock::now();
     TracePipelineBuild("BEGIN", "graphics", key.Hash(), key.unique_hashes, unoptimized);
-    pipeline = device.GetLogical().CreateGraphicsPipeline({
+    const VkGraphicsPipelineCreateInfo pipeline_ci{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext = nullptr,
         .flags = flags,
@@ -2170,7 +2172,32 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
         .subpass = 0,
         .basePipelineHandle = nullptr,
         .basePipelineIndex = 0,
-    }, *pipeline_cache);
+    };
+    // A plain vertex and fragment pipeline on NVIDIA (use_graphics_pipeline_library): its vertex
+    // and fragment halves build at once on two threads as libraries, then are fast-linked. With
+    // a static rasterizer discard the fragment half would see it turned off, so those build whole.
+    if (fragment_workers != nullptr && !is_mesh && !mesh_emulation &&
+        key.state.xfb_enabled == 0 &&
+        (!rasterization_ci.rasterizerDiscardEnable || key.state.extended_dynamic_state_2) &&
+        shader_stages.size() == 2 && shader_stages[0].stage == VK_SHADER_STAGE_VERTEX_BIT &&
+        shader_stages[1].stage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+        try {
+            auto linked = BuildFastLinkedGraphicsPipeline(device.GetLogical(), *pipeline_cache,
+                                                          pipeline_ci, *fragment_workers);
+            linked_libraries = std::move(linked.libraries);
+            pipeline = std::move(linked.pipeline);
+        } catch (const vk::Exception& exception) {
+            if (exception.GetResult() == VK_ERROR_DEVICE_LOST) {
+                throw;
+            }
+            LOG_WARNING(Render_Vulkan,
+                        "Fast-linking graphics pipeline {:016x} failed ({}); building it whole",
+                        key.Hash(), exception.what());
+        }
+    }
+    if (!pipeline) {
+        pipeline = device.GetLogical().CreateGraphicsPipeline(pipeline_ci, *pipeline_cache);
+    }
     TracePipelineBuild("END", "graphics", key.Hash(), key.unique_hashes, unoptimized,
                        std::chrono::duration<double, std::milli>(
                            std::chrono::steady_clock::now() - trace_begin)

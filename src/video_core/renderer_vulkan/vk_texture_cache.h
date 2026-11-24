@@ -370,11 +370,16 @@ public:
 
     std::optional<ASTCDecoderPass> astc_decoder_pass;
     std::optional<BcEncoderPass> bc_encoder_pass;
+    /// ASTC to BC1/BC3 in one pass, without the RGBA8 decode image (EDEN_NX2_ASTC_FUSED=1).
+    std::optional<AstcBcPass> astc_bc_pass;
 
     /// ASTC decoded on the GPU and re-compressed to BC1/BC3 there (accelerate_astc=Gpu with
     /// astc_recompression=Bc1/Bc3): decode into a temporary RGBA8 image, encode, copy.
     void TranscodeAstcToBcn(Image& image, const StagingBufferRef& map,
                             std::span<const VideoCommon::SwizzleParameters> swizzles);
+    /// The same with astc_bc_pass, in one dispatch; false when the image is past its limits.
+    bool TranscodeAstcToBcnFused(Image& image, const StagingBufferRef& map,
+                                 std::span<const VideoCommon::SwizzleParameters> swizzles);
 
     /// Temporary decode images, reusable once the GPU is past `tick`.
     struct PendingTranscode {

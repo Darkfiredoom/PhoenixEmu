@@ -8218,6 +8218,52 @@ void MainWindow::UpdateUITheme() {
 #ifdef _WIN32
     RemoveTitlebarFilter();
     ApplyGlobalDarkTitlebar(UISettings::IsDarkTheme());
+#else
+    // Linux and macOS draw with Qt's Fusion style, which shades bevels, frame edges, scroll bar
+    // grooves, check marks and focus rings from the palette wherever the style sheet leaves a
+    // part to it. Left at the desktop's light palette, dark buttons and fields got grey shading
+    // and white edges. A dark theme gets a palette in its own colours.
+    if (UISettings::IsDarkTheme()) {
+        const bool phoenix = current_theme == QStringLiteral("phoenix");
+        const auto tone = [phoenix](const QColor& color) {
+            return phoenix ? PhoenixTheme::Recolor(color) : color;
+        };
+        const QColor window = phoenix ? tone(QColor(0x1F, 0x1C, 0x17)) : QColor(0x23, 0x26, 0x29);
+        const QColor base = phoenix ? tone(QColor(0x16, 0x14, 0x0F)) : QColor(0x1B, 0x1E, 0x20);
+        const QColor button = phoenix ? tone(QColor(0x2A, 0x26, 0x1E)) : QColor(0x31, 0x36, 0x3B);
+        const QColor text = phoenix ? QColor(0xF3, 0xEE, 0xDF) : QColor(0xEF, 0xF0, 0xF1);
+        const QColor accent = phoenix ? PhoenixTheme::Recolor(PhoenixTheme::BaseAccent)
+                                      : QColor(0x3D, 0xAE, 0xE9);
+        QPalette dark;
+        dark.setColor(QPalette::Window, window);
+        dark.setColor(QPalette::WindowText, text);
+        dark.setColor(QPalette::Base, base);
+        dark.setColor(QPalette::AlternateBase, window.lighter(110));
+        dark.setColor(QPalette::ToolTipBase, button);
+        dark.setColor(QPalette::ToolTipText, text);
+        dark.setColor(QPalette::PlaceholderText, QColor(text.red(), text.green(), text.blue(), 120));
+        dark.setColor(QPalette::Text, text);
+        dark.setColor(QPalette::Button, button);
+        dark.setColor(QPalette::ButtonText, text);
+        dark.setColor(QPalette::BrightText, Qt::white);
+        // Fusion's bevels and frame edges come from these: kept close to the button colour so
+        // they read as soft edges, not white lines.
+        dark.setColor(QPalette::Light, button.lighter(125));
+        dark.setColor(QPalette::Midlight, button.lighter(112));
+        dark.setColor(QPalette::Mid, button.darker(130));
+        dark.setColor(QPalette::Dark, base.darker(130));
+        dark.setColor(QPalette::Shadow, QColor(0, 0, 0, 160));
+        dark.setColor(QPalette::Highlight, accent);
+        dark.setColor(QPalette::HighlightedText, phoenix ? QColor(0x1A, 0x15, 0x12) : Qt::white);
+        dark.setColor(QPalette::Link, accent);
+        dark.setColor(QPalette::LinkVisited, accent.darker(120));
+        const QColor disabled{text.red(), text.green(), text.blue(), 90};
+        for (const auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText}) {
+            dark.setColor(QPalette::Disabled, role, disabled);
+        }
+        dark.setColor(QPalette::Disabled, QPalette::Highlight, button.lighter(130));
+        qApp->setPalette(dark);
+    }
 #endif
 }
 

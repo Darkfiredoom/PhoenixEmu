@@ -286,7 +286,9 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
     // --- Home background ---
     {
         QVBoxLayout* const s = add_section(tr("Home background"));
-        kind_group = Segments(s, {tr("Animated"), tr("Picture"), tr("Solid"), tr("Gradient")},
+        // Theme: the theme's own warm gradient. Whether any background moves is the Animation
+        // section's (it was also called "Animated" here, which read as a second switch).
+        kind_group = Segments(s, {tr("Theme"), tr("Picture"), tr("Solid"), tr("Gradient")},
                               [this](int id) {
                                   UISettings::values.home_bg_kind = static_cast<u32>(id);
                                   if (id == 1 &&
@@ -810,6 +812,7 @@ void CustomizePanel::Refresh() {
     angle_label->setText(QStringLiteral("%1°").arg(angle_slider->value()));
 
     animate_box->setChecked(v.home_anim_enabled.GetValue());
+    animation_options->setVisible(v.home_anim_enabled.GetValue());
     rays_box->setChecked(v.home_anim_rays.GetValue());
     particles_group->button(static_cast<int>(std::min(v.home_anim_particles.GetValue(), 3U)))
         ->setChecked(true);

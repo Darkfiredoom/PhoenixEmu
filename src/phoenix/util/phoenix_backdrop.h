@@ -101,10 +101,12 @@ public:
     /// Customize's choices for the background and its animation (UISettings::home_bg_* and
     /// home_anim_*).
     struct Options {
-        enum class Kind { Animated = 0, Picture = 1, Solid = 2, Gradient = 3 };
+        /// Theme is the theme's warm gradient (Customize > Home background > Theme); whether a
+        /// background moves is `animate`, for every kind.
+        enum class Kind { Theme = 0, Picture = 1, Solid = 2, Gradient = 3 };
         enum class Particles { None = 0, Dust = 1, Embers = 2, Both = 3 };
         enum class Motion { Natural = 0, Rise = 1, Fall = 2, Swirl = 3 };
-        Kind kind = Kind::Animated;
+        Kind kind = Kind::Theme;
         QString picture;
         QColor color{0x2E, 0x0C, 0x08};
         QColor color2{0x0F, 0x08, 0x06};
@@ -389,7 +391,7 @@ private:
             s.fillRect(local, gradient);
             return;
         }
-        case Options::Kind::Animated:
+        case Options::Kind::Theme:
             break;
         }
         QLinearGradient base{local.topLeft(), local.bottomLeft()};

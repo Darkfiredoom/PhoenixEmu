@@ -32,6 +32,11 @@ public:
     void SetUserName(const QString& name);
     /// How many gamepads are connected (the chip by the user button).
     void SetControllerCount(int count);
+    /// The Library's controller chip and the line beside it (renderer, graphics card).
+    void SetControllerSummary(const QString& summary);
+    void SetSystemLine(const QString& line);
+    /// Focuses the Library's search pill; false when the Library is not showing.
+    bool FocusSearch();
 
     QModelIndex indexAt(const QPoint& point) const override;
     QRect visualRect(const QModelIndex& index) const override;
@@ -52,11 +57,18 @@ signals:
     void GameMenuRequested(const QModelIndex& game, const QPoint& global_pos);
     /// The Library layout's list button: the game list as a list.
     void ListViewRequested();
+    /// The Library's settings button > Settings.
+    void SettingsRequested();
+    /// The Library's search pill, as it is typed in.
+    void SearchTextChanged(const QString& text);
+    /// The Library started or stopped showing (the search bar under the games hides with it).
+    void LibraryShown(bool shown);
 
 protected:
     /// The warm background, a greeting and a clock, then the tiles.
     void paintEvent(QPaintEvent* event) override;
     void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     // The stack lays out, paints and navigates its cards itself; the row leaves it to QListView.
     void scrollTo(const QModelIndex& index, ScrollHint hint) override;
@@ -91,6 +103,13 @@ private:
     void ScrollLibraryTo(int position);
     qreal m_libraryScroll = 0.0;
     class QPushButton* m_settingsButton = nullptr;
+    class QLineEdit* m_searchEdit = nullptr;
+    class QLabel* m_searchKey = nullptr;
+    class QPushButton* m_gearButton = nullptr;
+    QString m_controllerSummary;
+    QString m_systemLine;
+    int m_libraryShown = -1; ///< Last told to LibraryShown (-1: not yet)
+    void UpdateLibraryShown();
     class QPushButton* m_moreButton = nullptr;
     /// Grid, list, cases, cartridges: the Library heading's view buttons.
     std::vector<class QPushButton*> m_viewButtons;

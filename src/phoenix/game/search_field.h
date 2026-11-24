@@ -23,6 +23,8 @@ public:
 
     void clear();
     void setFocus();
+    /// Sets the filter's text (the home Library's search pill), filtering as typing does.
+    void setFilterText(const QString& text);
 
 private:
     void changeEvent(QEvent*) override;

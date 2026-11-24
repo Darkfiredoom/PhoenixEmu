@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <vector>
 
+#include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QScroller>
 #include <QScrollerProperties>
 #include <QStyleOptionViewItem>
@@ -42,6 +44,9 @@ GameGrid::GameGrid(QWidget* parent) : QListView{parent} {
 void GameGrid::SetModel(GameListModel* model) {
     QListView::setModel(model);
     UpdateIconSize();
+    // The rack's lit slot and its Play button reach past the cell: repaint them all.
+    connect(selectionModel(), &QItemSelectionModel::currentChanged, viewport(),
+            qOverload<>(&QWidget::update));
 }
 
 void GameGrid::ApplyFilter(const QString& edit_filter_text, GameListModel* model) {
@@ -67,9 +72,9 @@ void GameGrid::UpdateIconSize() {
     int widthMargin = 80;
 
     if (GameCard::CurrentStyle() == GameCard::Style::Cartridge) {
-        // Room for the rack's holder around each cartridge, and the name under it.
+        // Room for the slot around each cartridge, the name plate and the picked one's Play.
         widthMargin = 70;
-        heightMargin = UISettings::values.show_game_name ? 78 : 40;
+        heightMargin = (UISettings::values.show_game_name ? 108 : 70) + GameCard::FramedGridInset;
     } else if (UISettings::values.show_game_name) {
         switch (icon_size) {
         case 128:
@@ -129,25 +134,6 @@ QRectF CartridgeIn(const QRect& card, int icon_size) {
                   icon_size);
 }
 
-/// A moulded plastic part: a fill a little lighter at the top, a highlight along its top edge
-/// and a shade along its bottom one.
-void Moulded(QPainter& p, const QRectF& rect, qreal radius, const QColor& colour) {
-    QLinearGradient fill{rect.topLeft(), rect.bottomLeft()};
-    fill.setColorAt(0, colour.lighter(118));
-    fill.setColorAt(0.5, colour);
-    fill.setColorAt(1, colour.darker(125));
-    p.setPen(Qt::NoPen);
-    p.setBrush(fill);
-    p.drawRoundedRect(rect, radius, radius);
-    p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 255, 255, 60), 1));
-    p.drawLine(QPointF(rect.left() + radius, rect.top() + 0.5),
-               QPointF(rect.right() - radius, rect.top() + 0.5));
-    p.setPen(QPen(QColor(0, 0, 0, 70), 1));
-    p.drawLine(QPointF(rect.left() + radius, rect.bottom() - 0.5),
-               QPointF(rect.right() - radius, rect.bottom() - 0.5));
-}
-
 } // Anonymous namespace
 
 void GameGrid::paintEvent(QPaintEvent* event) {
@@ -155,16 +141,19 @@ void GameGrid::paintEvent(QPaintEvent* event) {
         QListView::paintEvent(event);
         return;
     }
-    // The cartridges hang on a wall rack, as a game card display does: a moulded board in the
-    // theme's colour, and for each game a holder with side arms, a cradle under it and a clip
-    // over its top. The holder's back is painted behind the cartridges, its front over them.
+    // The cartridges stand in a rack, as on the home Library: a dark panel with two screws,
+    // a slot for each game with its name on a plate, the picked one lit with Play under it.
     const QRect area = viewport()->rect();
-    const QColor accent = PhoenixTheme::Recolor(PhoenixTheme::BaseAccent);
-    // Deep enough that a red Switch 2 cartridge still stands out against it.
-    const QColor board = accent.darker(230);
-    const QColor holder = accent.darker(165);
     const int icon_size = static_cast<int>(GameCard::GridIconSize());
-    std::vector<QRectF> carts;
+    const bool named = UISettings::values.show_game_name.GetValue();
+    const QModelIndex current = currentIndex();
+    struct Slot {
+        QRectF cart;
+        QRectF slot;
+        bool picked;
+    };
+    std::vector<Slot> cart_slots;
+    QRectF rack;
     if (icon_size > 0) {
         QStyleOptionViewItem option;
         option.initFrom(this);
@@ -174,103 +163,122 @@ void GameGrid::paintEvent(QPaintEvent* event) {
             }
             const QModelIndex index = model()->index(row, 0);
             option.rect = visualRect(index);
-            if (!option.rect.adjusted(-20, -20, 20, 20).intersects(area)) {
-                continue;
+            const QRectF cart = CartridgeIn(m_gameCard->getCardRect(option, index), icon_size);
+            const qreal side = std::max(5.0, cart.width() * 0.07) + 10;
+            const QRectF slot = cart.adjusted(-side, -14, side, named ? 76 : 44);
+            rack = rack.isNull() ? slot : rack.united(slot);
+            if (slot.adjusted(-20, -20, 20, 20).intersects(area)) {
+                cart_slots.push_back({cart, slot, current.isValid() && current.row() == row});
             }
-            carts.push_back(CartridgeIn(m_gameCard->getCardRect(option, index), icon_size));
         }
     }
     {
         QPainter painter{viewport()};
         painter.setRenderHint(QPainter::Antialiasing);
-
-        // The board: lit from above, with the faint grain of printed plastic.
-        QLinearGradient plastic{area.topLeft(), area.bottomLeft()};
-        plastic.setColorAt(0, board.lighter(112));
-        plastic.setColorAt(1, board.darker(135));
-        painter.fillRect(area, plastic);
-        painter.setPen(QPen(QColor(0, 0, 0, 14), 1));
-        for (int y = area.top() + 2; y < area.bottom(); y += 3) {
-            painter.drawLine(area.left(), y, area.right(), y);
+        // The ground, warmed by a faint ember glow at the top left.
+        painter.fillRect(area, PhoenixTheme::Recolor(QColor(0x0E, 0x0B, 0x09)));
+        QRadialGradient glow{QPointF(area.left() + area.width() * 0.1, area.top()), area.width() * 0.5};
+        glow.setColorAt(0, QColor(0xFF, 0x5A, 0x1F, 34));
+        glow.setColorAt(1, QColor(0xFF, 0x5A, 0x1F, 0));
+        painter.fillRect(area, glow);
+        if (!rack.isNull()) {
+            // The rack round every slot (it scrolls with them), screws at its top corners.
+            const QRectF panel = rack.adjusted(-22, -24, 22, 20);
+            QLinearGradient fill{panel.topLeft(), panel.bottomLeft()};
+            fill.setColorAt(0, QColor(0x2A, 0x20, 0x19));
+            fill.setColorAt(1, QColor(0x17, 0x11, 0x0D));
+            painter.setPen(QPen(QColor(0x3A, 0x2E, 0x25), 1.2));
+            painter.setBrush(fill);
+            painter.drawRoundedRect(panel, 22, 22);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor(0xFF, 0xC2, 0x3D, 220));
+            painter.drawEllipse(QPointF(panel.left() + 18, panel.top() + 16), 4, 4);
+            painter.drawEllipse(QPointF(panel.right() - 18, panel.top() + 16), 4, 4);
         }
-        // A shadow under the screen's top edge, as if the board were hung below a shelf.
-        QLinearGradient top_shade{QPointF(0, area.top()), QPointF(0, area.top() + 24)};
-        top_shade.setColorAt(0, QColor(0, 0, 0, 90));
-        top_shade.setColorAt(1, QColor(0, 0, 0, 0));
-        painter.fillRect(QRect(area.left(), area.top(), area.width(), 24), top_shade);
-
-        const bool named = UISettings::values.show_game_name.GetValue();
-        for (const QRectF& cart : carts) {
-            const qreal arm = std::max(5.0, cart.width() * 0.07);
-            // The holder's back plate, and the recess the cartridge sits in.
-            const QRectF plate = cart.adjusted(-arm - 6, -10, arm + 6, named ? 44 : 14);
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(QColor(0, 0, 0, 70));
-            painter.drawRoundedRect(plate.translated(0, 4), 12, 12); // its drop shadow
-            Moulded(painter, plate, 12, holder);
-            QLinearGradient recess{cart.topLeft(), cart.bottomLeft()};
-            recess.setColorAt(0, QColor(0x08, 0x05, 0x05));
-            recess.setColorAt(1, QColor(0x1A, 0x10, 0x0E));
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(recess);
-            painter.drawRoundedRect(cart.adjusted(-4, -4, 4, 4), 10, 10);
-            // The cartridge's shadow on the recess's back.
-            painter.setBrush(QColor(0, 0, 0, 150));
-            painter.drawRoundedRect(cart.adjusted(1, 4, 3, 6), 9, 9);
-            // The side arms that keep it from sliding sideways.
-            for (const qreal x : {cart.left() - arm - 1, cart.right() + 1}) {
-                Moulded(painter, QRectF(x, cart.top() + cart.height() * 0.18, arm,
-                                        cart.height() * 0.82),
-                        arm / 2, holder.lighter(108));
+        const QColor ember = PhoenixTheme::Recolor(QColor(0xFF, 0x5A, 0x1F));
+        for (const Slot& s : cart_slots) {
+            if (s.picked) {
+                for (int i = 1; i <= 4; ++i) {
+                    painter.setPen(QPen(QColor(0xFF, 0x6A, 0x2A, 60 - i * 12), 2));
+                    painter.setBrush(Qt::NoBrush);
+                    painter.drawRoundedRect(s.slot.adjusted(-i * 1.5, -i * 1.5, i * 1.5, i * 1.5),
+                                            16 + i, 16 + i);
+                }
             }
-            // A dark band behind the name, so it reads on any theme colour.
+            painter.setPen(s.picked ? QPen(ember, 2.5) : QPen(QColor(0x2A, 0x21, 0x1B), 1));
+            painter.setBrush(QColor(0x12, 0x0E, 0x0B));
+            painter.drawRoundedRect(s.slot, 16, 16);
+            // The cartridge's shadow in the slot.
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor(0, 0, 0, 120));
+            painter.drawRoundedRect(s.cart.adjusted(4, 8, 2, 6), 10, 10);
             if (named) {
-                const QRectF name_plate{plate.left() + 6, cart.bottom() + 12, plate.width() - 12,
-                                        26};
-                painter.setPen(Qt::NoPen);
-                painter.setBrush(QColor(0, 0, 0, 120));
-                painter.drawRoundedRect(name_plate, 7, 7);
+                const QRectF plate{s.slot.left() + 10, s.cart.bottom() + 10, s.slot.width() - 20, 26};
+                painter.setBrush(QColor(0x2A, 0x21, 0x1B));
+                painter.drawRoundedRect(plate, 8, 8);
             }
-        }
-        // Mounting screws at the board's corners.
-        for (const QPointF at : {QPointF(18, 18), QPointF(area.width() - 18.0, 18),
-                                 QPointF(18, area.height() - 18.0),
-                                 QPointF(area.width() - 18.0, area.height() - 18.0)}) {
-            QRadialGradient head{at, 6};
-            head.setColorAt(0, QColor(0xD8, 0xD8, 0xDC));
-            head.setColorAt(1, QColor(0x6A, 0x6A, 0x70));
-            painter.setPen(QPen(QColor(0, 0, 0, 90), 1));
-            painter.setBrush(head);
-            painter.drawEllipse(at, 5.5, 5.5);
-            painter.setPen(QPen(QColor(0x40, 0x40, 0x46), 1.4));
-            painter.drawLine(at + QPointF(-3, 0), at + QPointF(3, 0));
         }
     }
     QListView::paintEvent(event);
-    if (carts.empty()) {
-        return;
+    // Play under the picked cartridge.
+    const QRectF play = PlayRect();
+    if (!play.isNull() && play.intersects(QRectF(area))) {
+        QPainter painter{viewport()};
+        painter.setRenderHint(QPainter::Antialiasing);
+        QLinearGradient fill{play.topLeft(), play.topRight()};
+        fill.setColorAt(0, PhoenixTheme::Recolor(QColor(0xFF, 0x5A, 0x1F)));
+        fill.setColorAt(1, PhoenixTheme::Recolor(QColor(0xFF, 0x8A, 0x3D)));
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(fill);
+        painter.drawRoundedRect(play, play.height() / 2, play.height() / 2);
+        QPainterPath triangle;
+        const QPointF at{play.left() + 14, play.center().y()};
+        triangle.moveTo(at + QPointF(-3.5, -5));
+        triangle.lineTo(at + QPointF(5, 0));
+        triangle.lineTo(at + QPointF(-3.5, 5));
+        triangle.closeSubpath();
+        painter.setBrush(Qt::white);
+        painter.drawPath(triangle);
+        QFont font = painter.font();
+        font.setPixelSize(12);
+        font.setWeight(QFont::Black);
+        painter.setFont(font);
+        painter.setPen(Qt::white);
+        painter.drawText(play.adjusted(14, 0, 0, 0), Qt::AlignCenter, tr("Play"));
     }
-    // The holder's front: the cradle lip over the cartridge's foot and the clip over its top.
-    QPainter painter{viewport()};
-    painter.setRenderHint(QPainter::Antialiasing);
-    for (const QRectF& cart : carts) {
-        const qreal arm = std::max(5.0, cart.width() * 0.07);
-        const QRectF lip{cart.left() - arm - 2, cart.bottom() - cart.height() * 0.07,
-                         cart.width() + 2 * arm + 4, cart.height() * 0.07 + 8};
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(0, 0, 0, 60));
-        painter.drawRoundedRect(lip.translated(0, 3), 6, 6);
-        Moulded(painter, lip, 6, holder.lighter(112));
-        // The finger notch in the lip's middle, to lift the cartridge out.
-        const QRectF notch{lip.center().x() - cart.width() * 0.16, lip.top() + 2,
-                           cart.width() * 0.32, lip.height() * 0.42};
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(holder.darker(150));
-        painter.drawRoundedRect(notch, notch.height() / 2, notch.height() / 2);
-        // Two small tabs that hold the cartridge's top corners.
-        const qreal tab_w = cart.width() * 0.18;
-        for (const qreal x : {cart.left() - 2, cart.right() + 2 - tab_w}) {
-            Moulded(painter, QRectF(x, cart.top() - 6, tab_w, 11), 4, holder.lighter(112));
+}
+
+QRectF GameGrid::PlayRect() const {
+    const QModelIndex current = currentIndex();
+    const int icon_size = static_cast<int>(GameCard::GridIconSize());
+    if (GameCard::CurrentStyle() != GameCard::Style::Cartridge || !current.isValid() ||
+        icon_size <= 0 || isRowHidden(current.row())) {
+        return {};
+    }
+    QStyleOptionViewItem option;
+    option.initFrom(this);
+    option.rect = visualRect(current);
+    const QRectF cart = CartridgeIn(m_gameCard->getCardRect(option, current), icon_size);
+    const qreal top = cart.bottom() + (UISettings::values.show_game_name.GetValue() ? 42 : 10);
+    return {cart.center().x() - 38, top, 76, 26};
+}
+
+void GameGrid::mousePressEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton && GameCard::CurrentStyle() == GameCard::Style::Cartridge) {
+        const QModelIndex current = currentIndex();
+        // Play under the picked cartridge starts it; a click on the picked cartridge turns it
+        // over (the home Library does the same).
+        if (current.isValid() && PlayRect().contains(event->position())) {
+            emit activated(current);
+            event->accept();
+            return;
+        }
+        const QModelIndex hit = indexAt(event->position().toPoint());
+        if (hit.isValid() && current.isValid() && hit.row() == current.row()) {
+            emit CartridgeOpenRequested(current);
+            event->accept();
+            return;
         }
     }
+    QListView::mousePressEvent(event);
 }

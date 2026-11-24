@@ -10,6 +10,8 @@
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QLabel>
+#include <QLineEdit>
+#include <QMenu>
 #include <QSlider>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -177,6 +179,27 @@ QIcon ViewIcon(int kind) {
         p.drawRoundedRect(QRectF(6, 3, 8.5, 14), 1.5, 1.5);
         p.drawLine(QPointF(6, 6), QPointF(14.5, 6));
         break;
+    case 4: {
+        // A gear: a ring with eight teeth.
+        const QPointF c{10, 10};
+        for (int i = 0; i < 8; ++i) {
+            const qreal a = i * 3.14159265358979 / 4;
+            p.drawLine(c + QPointF(std::cos(a) * 5.6, std::sin(a) * 5.6),
+                       c + QPointF(std::cos(a) * 8.0, std::sin(a) * 8.0));
+        }
+        p.drawEllipse(c, 5.4, 5.4);
+        p.drawEllipse(c, 2.2, 2.2);
+        break;
+    }
+    case 6:
+        p.setPen(QPen(ink, 2.0, Qt::SolidLine, Qt::RoundCap));
+        p.drawLine(QPointF(10, 4), QPointF(10, 16));
+        p.drawLine(QPointF(4, 10), QPointF(16, 10));
+        break;
+    case 5:
+        p.drawEllipse(QPointF(8.5, 8.5), 5, 5);
+        p.drawLine(QPointF(12.2, 12.2), QPointF(16.5, 16.5));
+        break;
     default:
         p.drawRoundedRect(QRectF(5.5, 3.5, 9, 13), 1.6, 1.6);
         p.drawRoundedRect(QRectF(7.5, 6.5, 5, 6), 0.8, 0.8);
@@ -198,6 +221,47 @@ void GameCarousel::PickQuote() {
 void GameCarousel::showEvent(QShowEvent* event) {
     QListView::showEvent(event);
     PickQuote();
+    UpdateLibraryShown();
+}
+
+void GameCarousel::hideEvent(QHideEvent* event) {
+    QListView::hideEvent(event);
+    UpdateLibraryShown();
+}
+
+void GameCarousel::UpdateLibraryShown() {
+    const int shown = isVisible() && LibraryLayout() ? 1 : 0;
+    if (shown != m_libraryShown) {
+        m_libraryShown = shown;
+        emit LibraryShown(shown == 1);
+    }
+}
+
+void GameCarousel::SetControllerSummary(const QString& summary) {
+    if (summary == m_controllerSummary) {
+        return;
+    }
+    m_controllerSummary = summary;
+    if (LibraryLayout()) {
+        PlaceAddButton();
+    }
+}
+
+void GameCarousel::SetSystemLine(const QString& line) {
+    if (line == m_systemLine) {
+        return;
+    }
+    m_systemLine = line;
+    viewport()->update();
+}
+
+bool GameCarousel::FocusSearch() {
+    if (!isVisible() || !LibraryLayout() || m_searchEdit == nullptr) {
+        return false;
+    }
+    m_searchEdit->setFocus(Qt::ShortcutFocusReason);
+    m_searchEdit->selectAll();
+    return true;
 }
 
 GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
@@ -292,6 +356,45 @@ GameCarousel::GameCarousel(QWidget* parent) : QListView{parent} {
                                    m_moreButton->mapToGlobal(QPoint(0, m_moreButton->height())));
         }
     });
+    // The Library's top right: the search, then Add games, settings and the user.
+    m_searchEdit = new QLineEdit(viewport());
+    m_searchEdit->setObjectName(QStringLiteral("HomeSearchPill"));
+    m_searchEdit->setPlaceholderText(tr("Search your games"));
+    m_searchEdit->setClearButtonEnabled(true);
+    m_searchEdit->addAction(ViewIcon(5), QLineEdit::LeadingPosition);
+    m_searchEdit->setFixedSize(300, 38);
+    m_searchEdit->setVisible(false);
+    m_searchEdit->setStyleSheet(QStringLiteral(
+        "QLineEdit { background: rgba(14,11,9,215); border: 1px solid #3A2E25; border-radius: 19px;"
+        " padding: 0px 58px 0px 6px; color: #F6EBDD; font-size: 14px; }"
+        "QLineEdit:focus { border: 1px solid #FF5A1F; }"));
+    connect(m_searchEdit, &QLineEdit::textChanged, this, &GameCarousel::SearchTextChanged);
+    m_searchKey = new QLabel(tr("Ctrl F"), m_searchEdit);
+    m_searchKey->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_searchKey->setStyleSheet(QStringLiteral(
+        "QLabel { color: #A8998A; background: rgba(58,46,37,170); border-radius: 6px;"
+        " padding: 1px 6px; font-size: 11px; font-weight: 700; }"));
+    m_searchKey->adjustSize();
+    m_gearButton = new QPushButton(viewport());
+    m_gearButton->setObjectName(QStringLiteral("HomeRoundButton"));
+    m_gearButton->setIcon(ViewIcon(4));
+    m_gearButton->setIconSize(QSize(20, 20));
+    m_gearButton->setFixedSize(38, 38);
+    m_gearButton->setCursor(Qt::PointingHandCursor);
+    m_gearButton->setToolTip(tr("Settings and the home screen's look"));
+    m_gearButton->setVisible(false);
+    m_gearButton->setStyleSheet(QStringLiteral(
+        "QPushButton { background: rgba(14,11,9,215); border: 1px solid #3A2E25; border-radius: 19px;"
+        " padding: 0px; min-width: 0px; min-height: 0px; }"
+        "QPushButton:hover { border: 1px solid #FF5A1F; }"
+        "QPushButton::menu-indicator { image: none; width: 0px; }"));
+    {
+        auto* const gear_menu = new QMenu(m_gearButton);
+        gear_menu->addAction(tr("Settings..."), this, &GameCarousel::SettingsRequested);
+        gear_menu->addAction(tr("Customize the home screen..."), this,
+                             &GameCarousel::CustomizeRequested);
+        m_gearButton->setMenu(gear_menu);
+    }
     // The Library heading's view buttons: grid, list, cases, cartridges.
     {
         const QStringList tips{tr("Covers"), tr("List"), tr("Cases"), tr("Cartridges")};
@@ -481,9 +584,66 @@ void GameCarousel::SetControllerCount(int count) {
 }
 
 void GameCarousel::PlaceAddButton() {
-    if (m_addButton == nullptr) {
+    // Also called while the constructor is still making the buttons (SetControllerCount).
+    if (m_addButton == nullptr || m_playButton == nullptr || m_settingsButton == nullptr ||
+        m_moreButton == nullptr || m_searchEdit == nullptr || m_gearButton == nullptr ||
+        m_viewButtons.size() < 4) {
         return;
     }
+    UpdateLibraryShown();
+    if (LibraryLayout()) {
+        // Along the top, right to left: the user, settings, Add games, the search.
+        constexpr int top_y = 18;
+        const int right = viewport()->width() - std::clamp(viewport()->width() / 28, 28, 64);
+        int x = right;
+        if (m_userButton->isVisible()) {
+            m_userButton->adjustSize();
+            m_userButton->setMinimumHeight(38);
+            x -= m_userButton->width();
+            m_userButton->move(x, top_y);
+            x -= 10;
+        }
+        m_gearButton->setVisible(true);
+        x -= m_gearButton->width();
+        m_gearButton->move(x, top_y);
+        x -= 10;
+        if (!m_addButton->text().isEmpty()) {
+            m_addButton->setText(QString{});
+            m_addButton->setIcon(ViewIcon(6));
+            m_addButton->setIconSize(QSize(20, 20));
+            m_addButton->setStyleSheet(m_gearButton->styleSheet());
+        }
+        m_addButton->setFixedSize(38, 38);
+        x -= m_addButton->width();
+        m_addButton->move(x, top_y);
+        x -= 12;
+        m_searchEdit->setVisible(true);
+        m_searchEdit->setFixedWidth(std::clamp(viewport()->width() / 4, 200, 340));
+        x -= m_searchEdit->width();
+        m_searchEdit->move(x, top_y);
+        m_searchKey->move(m_searchEdit->width() - m_searchKey->width() - 30,
+                          (m_searchEdit->height() - m_searchKey->height()) / 2);
+        m_customizeButton->setVisible(false);
+        // The controller chip at the bottom left, the line beside it painted.
+        m_controllersButton->setText(m_controllerSummary.isEmpty() ? m_controllersButton->text()
+                                                                    : m_controllerSummary);
+        m_controllersButton->adjustSize();
+        m_controllersButton->move(std::clamp(viewport()->width() / 28, 28, 64),
+                                  viewport()->height() - 18 - m_controllersButton->height());
+    } else {
+        m_searchEdit->setVisible(false);
+        m_gearButton->setVisible(false);
+        m_customizeButton->setVisible(true);
+        if (m_addButton->text() != tr("+ Add games")) {
+            m_addButton->setText(tr("+ Add games"));
+            m_addButton->setIcon(QIcon{});
+            m_addButton->setStyleSheet(QString{});
+            m_buttonTextColor.clear(); // UpdateButtonContrast sets its text colour again
+            m_addButton->setMinimumSize(0, 0);
+            m_addButton->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
+    }
+    if (!LibraryLayout()) {
     // Under the clock, on the right (the viewport has its final size only once it is shown).
     m_addButton->adjustSize();
     const int clock_bottom = 18 + std::clamp(viewport()->height() / 18, 18, 30) + 16;
@@ -515,6 +675,7 @@ void GameCarousel::PlaceAddButton() {
             m_controllersButton->move(pads_place);
         }
     }
+    } // Not the Library
     const bool library = LibraryLayout();
     if (m_playButton != nullptr) {
         const bool has_game = currentIndex().isValid();
@@ -636,7 +797,9 @@ void GameCarousel::UpdateButtonContrast() {
     }
     m_buttonTextColor = name;
     const QString style = QStringLiteral("QPushButton:!hover { color: %1; }").arg(name);
-    m_addButton->setStyleSheet(style);
+    if (!LibraryLayout()) {
+        m_addButton->setStyleSheet(style); // in the Library it is a round icon button
+    }
     m_userButton->setStyleSheet(style);
     m_customizeButton->setStyleSheet(style);
     m_controllersButton->setStyleSheet(style);
@@ -1276,7 +1439,7 @@ GameCarousel::LibraryGeometry GameCarousel::Library() const {
     const int play_bottom = g.hero_title_y + 22 + 44;
     g.heading_y = std::max(play_bottom + 28, h * 46 / 100);
     const int tiles_top = g.heading_y + 50;
-    const int bottom = h - 56;
+    const int bottom = h - 72; // above the controller chip and the sliders
     g.tiles = QRect(g.left, tiles_top, std::max(100, w - 2 * g.left), std::max(80, bottom - tiles_top));
     const qreal scale = UISettings::values.home_tile_scale.GetValue() / 100.0;
     const GameCard::Style style = GameCard::CurrentStyle();
@@ -1299,7 +1462,7 @@ GameCarousel::LibraryGeometry GameCarousel::Library() const {
     g.columns = std::max(1, static_cast<int>((inner + gap) / g.cell.width()));
     // The picked case or cartridge, large, at the top right.
     // (Below the buttons along the top.)
-    constexpr qreal art_top = 128.0;
+    constexpr qreal art_top = 76.0;
     const qreal art_h = g.heading_y - 24 - art_top;
     if (art_h >= 110 && style == GameCard::Style::Case) {
         const qreal art_w = art_h * GameCard::CaseAspect;
@@ -1457,6 +1620,17 @@ void GameCarousel::PaintLibrary(QPainter& p) {
         p.drawText(QPointF(g.left + heading_metrics.horizontalAdvance(word) + 14,
                            g.heading_y + heading_metrics.ascent()),
                    tr("%n game(s)", nullptr, static_cast<int>(rows.size())));
+    }
+
+    // Beside the controller chip at the bottom left: the renderer and the graphics card.
+    if (!m_systemLine.isEmpty() && m_controllersButton != nullptr) {
+        QFont line_font = font();
+        line_font.setPixelSize(13);
+        p.setFont(line_font);
+        p.setPen(muted);
+        const QRect chip = m_controllersButton->geometry();
+        p.drawText(QRectF(chip.right() + 16, chip.top(), area.width() / 2.0, chip.height()),
+                   Qt::AlignLeft | Qt::AlignVCenter, m_systemLine);
     }
 
     if (rows.empty()) {

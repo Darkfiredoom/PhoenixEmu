@@ -85,6 +85,11 @@ public:
     void SetUserName(const QString& name);
     /// How many gamepads are connected, for the home view.
     void SetControllerCount(int count);
+    /// The home Library's controller chip ("Joy-Con 2 pair · 80%") and the line beside it.
+    void SetControllerSummary(const QString& summary);
+    void SetSystemLine(const QString& line);
+    /// The home Library's search pill: focused by the filter hotkey (Ctrl+F) when it shows.
+    [[nodiscard]] bool FocusLibrarySearch();
 
     QString GetLastFilterResultItem() const;
     void ClearFilter();
@@ -159,6 +164,8 @@ signals:
     void CustomizeRequested();
     /// The home Library's list button: show the games as a list.
     void ListViewRequested();
+    /// The home Library's settings button.
+    void SettingsRequested();
     void ControllersRequested();
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);

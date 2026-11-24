@@ -179,6 +179,7 @@ GameList::GameList(FileSys::VirtualFilesystem vfs_, FileSys::ManualContentProvid
 
     connect(grid_view, &QListView::activated, this, &GameList::ValidateEntry);
     connect(grid_view, &QListView::customContextMenuRequested, this, &GameList::PopupContextMenu);
+    connect(grid_view, &GameGrid::CartridgeOpenRequested, this, &GameList::OpenCartridge);
 
     connect(carousel_view, &QListView::activated, this, &GameList::ValidateEntry);
     connect(carousel_view, &QListView::customContextMenuRequested, this, &GameList::PopupContextMenu);
@@ -709,6 +710,13 @@ void GameList::SetupViews() {
                 menu.exec(global_pos);
             });
     connect(carousel_view, &GameCarousel::ListViewRequested, this, &GameList::ListViewRequested);
+    connect(carousel_view, &GameCarousel::SettingsRequested, this, &GameList::SettingsRequested);
+    // The Library has its search at the top: the bar under the games hides while it shows.
+    connect(carousel_view, &GameCarousel::SearchTextChanged, this,
+            [this](const QString& text) { search_field->setFilterText(text); });
+    connect(carousel_view, &GameCarousel::LibraryShown, this, [this](bool shown) {
+        search_field->setVisible(!shown && UISettings::values.show_filter_bar.GetValue());
+    });
     connect(carousel_view, &GameCarousel::ControllersRequested, this,
             &GameList::ControllersRequested);
 }
@@ -717,6 +725,22 @@ void GameList::SetControllerCount(int count) {
     if (carousel_view != nullptr) {
         carousel_view->SetControllerCount(count);
     }
+}
+
+void GameList::SetControllerSummary(const QString& summary) {
+    if (carousel_view != nullptr) {
+        carousel_view->SetControllerSummary(summary);
+    }
+}
+
+void GameList::SetSystemLine(const QString& line) {
+    if (carousel_view != nullptr) {
+        carousel_view->SetSystemLine(line);
+    }
+}
+
+bool GameList::FocusLibrarySearch() {
+    return carousel_view != nullptr && m_currentView == carousel_view && carousel_view->FocusSearch();
 }
 
 void GameList::SetUserName(const QString& name) {

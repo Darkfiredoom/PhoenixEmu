@@ -75,6 +75,12 @@ QString GameListSearchField::filterText() const {
     return edit_filter->text();
 }
 
+void GameListSearchField::setFilterText(const QString& text) {
+    if (edit_filter->text() != text) {
+        edit_filter->setText(text);
+    }
+}
+
 void GameListSearchField::clear() {
     edit_filter->clear();
 }

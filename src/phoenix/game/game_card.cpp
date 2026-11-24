@@ -602,9 +602,10 @@ QRect GameCard::getCardRect(const QStyleOptionViewItem& option, const QModelInde
         card_left =
             option.rect.left() - column * cell_width + cardMargin + column * (card_width + gap) + 4;
 
-        // fill cell vertically
-        card_top = option.rect.top() + cardMargin;
-        card_height = option.rect.height() - cardMargin - 1;
+        // fill cell vertically (cartridges and cases leave room above for the rack's slot)
+        const int framed_inset = IsFramed(CurrentStyle()) ? FramedGridInset : 0;
+        card_top = option.rect.top() + cardMargin + framed_inset;
+        card_height = option.rect.height() - cardMargin - 1 - framed_inset;
     } else {
         // carousel mode: the tile (PaintHomeTile)
         const int tile = m_contentSize.width();

@@ -36,6 +36,8 @@ public:
     /// The cartridge frame's proportions and where the game's art goes on it, in the SVG's units
     /// (from Eglantine's home screen redesign).
     static constexpr qreal CartridgeAspect = 232.0 / 324.0;
+    /// In the grid, the room above a cartridge or case for the slot round it.
+    static constexpr int FramedGridInset = 36;
     /// The grid's icon height: the chosen size, but at least 192 px for cartridges on their
     /// rack (the default 64 px left them too small to read).
     [[nodiscard]] static unsigned GridIconSize();

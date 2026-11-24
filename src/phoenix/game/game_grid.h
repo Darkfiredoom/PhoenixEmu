@@ -21,10 +21,18 @@ public:
 
     QModelIndex indexAt(const QPoint& point) const override;
 
+signals:
+    /// The Cartridge look: the picked cartridge was clicked (turned over, CartridgeViewer).
+    void CartridgeOpenRequested(const QModelIndex& game);
+
 protected:
-    /// With cartridge cards: a game card case behind them, a recessed slot for each.
+    /// With cartridge cards: a rack behind them (as the home Library's), a slot for each with
+    /// the name on a plate, and a Play button under the picked one.
     void paintEvent(QPaintEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
 
 private:
+    /// The Play button under the picked cartridge, in the viewport.
+    [[nodiscard]] QRectF PlayRect() const;
     GameCard* m_gameCard = nullptr;
 };

@@ -2155,6 +2155,8 @@ void MainWindow::SetupCustomizeMenu() {
     connect(game_list, &GameList::CustomizeRequested, this, &MainWindow::ToggleCustomizePanel);
     connect(game_list, &GameList::ListViewRequested, this,
             [this] { SetGameListMode(Settings::GameListMode::TreeView); });
+    connect(game_list, &GameList::SettingsRequested, this, &MainWindow::OnConfigure);
+
 
     // The home view's controller chip and window (after Jinra's Home).
     connect(game_list, &GameList::ControllersRequested, this, [this] {
@@ -2170,8 +2172,58 @@ void MainWindow::SetupCustomizeMenu() {
         if (emulation_running || !game_list->isVisible()) {
             return;
         }
-        game_list->SetControllerCount(
-            static_cast<int>(ControllersDialog::ConnectedPads(input_subsystem.get()).size()));
+        const int pads =
+            static_cast<int>(ControllersDialog::ConnectedPads(input_subsystem.get()).size());
+        game_list->SetControllerCount(pads);
+        // The Library's chip: Switch 2 controllers by name with their battery, else a count.
+        QString summary;
+        if (const auto* const switch2 = input_subsystem->GetSwitch2Controllers()) {
+            using Kind = InputCommon::Switch2Controllers::Kind;
+            const auto status = switch2->GetStatus();
+            bool left = false;
+            bool right = false;
+            int battery = -1;
+            for (const auto& controller : status) {
+                left = left || controller.kind == Kind::JoyconLeft;
+                right = right || controller.kind == Kind::JoyconRight;
+                if (controller.battery_percent >= 0) {
+                    battery = battery < 0 ? controller.battery_percent
+                                          : (std::min)(battery, controller.battery_percent);
+                }
+            }
+            if (!status.empty()) {
+                summary = left && right ? tr("Joy-Con 2 pair")
+                                        : QString::fromStdString(
+                                              InputCommon::Switch2Controllers::KindName(status.front().kind));
+                summary += tr("  ·  Player 1");
+                if (battery >= 0) {
+                    summary += QStringLiteral("  ·  %1%").arg(battery);
+                }
+            }
+        }
+        if (summary.isEmpty()) {
+            summary = pads == 0   ? tr("No controllers")
+                      : pads == 1 ? tr("1 controller  ·  Player 1")
+                                  : tr("%1 controllers").arg(pads);
+        }
+        game_list->SetControllerSummary(summary);
+        {
+            // The line beside the Library's controller chip: the renderer and the graphics card.
+            QString line = QStringLiteral("PhoenixEmu");
+            line += Settings::values.renderer_backend.GetValue() == Settings::RendererBackend::Vulkan
+                        ? QStringLiteral("  ·  Vulkan")
+                        : QStringLiteral("  ·  OpenGL");
+            if (!vk_device_records.empty()) {
+                const size_t index = (std::min)(
+                    static_cast<size_t>(Settings::values.vulkan_device.GetValue(true)),
+                    vk_device_records.size() - 1);
+                QString gpu = QString::fromStdString(vk_device_records[index].name);
+                gpu.remove(QStringLiteral("NVIDIA GeForce ")).remove(QStringLiteral("NVIDIA "));
+                gpu.remove(QStringLiteral("AMD Radeon ")).remove(QStringLiteral("(TM)"));
+                line += QStringLiteral("  ·  ") + gpu.trimmed();
+            }
+            game_list->SetSystemLine(line);
+        }
         AutoAssignSwitch2Controller();
     });
     controller_count_timer.start();
@@ -6212,6 +6264,12 @@ void MainWindow::OnManualCheckForUpdates() {
 }
 
 void MainWindow::OnToggleFilterBar() {
+    // The home Library has its search at the top: the hotkey goes there.
+    if (game_list->FocusLibrarySearch()) {
+        const QSignalBlocker blocker{ui->action_Show_Filter_Bar};
+        ui->action_Show_Filter_Bar->setChecked(UISettings::values.show_filter_bar.GetValue());
+        return;
+    }
     game_list->SetFilterVisible(ui->action_Show_Filter_Bar->isChecked());
     if (ui->action_Show_Filter_Bar->isChecked())
         game_list->SetFilterFocus();

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <array>
 #include <functional>
 #include <optional>
 #include <span>
@@ -41,10 +42,16 @@ public:
                          vk::Span<VkDescriptorUpdateTemplateEntry> templates,
                          const DescriptorBankInfo& bank_info,
                          vk::Span<VkPushConstantRange> push_constants, std::span<const u32> code,
-                         std::optional<u32> optional_subgroup_size = std::nullopt);
+                         std::optional<u32> optional_subgroup_size = std::nullopt,
+                         bool defer_pipeline = false);
     ~ComputePass();
 
 protected:
+    /// A pipeline of the pass's shader; the constructor makes `pipeline` with this unless
+    /// defer_pipeline (for passes whose pipelines take specialization constants).
+    vk::Pipeline CreatePipeline(const VkSpecializationInfo* specialization,
+                                std::optional<u32> subgroup_size = std::nullopt);
+
     const Device& device;
     vk::DescriptorUpdateTemplate descriptor_template;
     vk::PipelineLayout layout;
@@ -213,6 +220,27 @@ public:
 private:
     Scheduler& scheduler;
     ComputePassDescriptorQueue& compute_pass_descriptor_queue;
+};
+
+/// Decodes ASTC blocks and compresses them to BC1 or BC3 in one dispatch (astc_bc.comp), with no
+/// RGBA8 image in between.
+class AstcBcPass final : public ComputePass {
+public:
+    explicit AstcBcPass(const Device& device_, Scheduler& scheduler_,
+                        DescriptorPool& descriptor_pool_,
+                        ComputePassDescriptorQueue& descriptor_queue_);
+
+    /// Every level and layer of the ASTC image `info` in `input` into `output`, laid out as
+    /// `copies` (one per level, every layer).
+    void Transcode(const VideoCommon::ImageInfo& info, size_t input_size,
+                   const StagingBufferRef& input, const StagingBufferRef& output,
+                   size_t output_size, std::span<const VideoCommon::SwizzleParameters> swizzles,
+                   std::span<const VideoCommon::BufferImageCopy> copies, bool bc3);
+
+private:
+    Scheduler& scheduler;
+    ComputePassDescriptorQueue& descriptor_queue;
+    std::array<vk::Pipeline, 2> pipelines; ///< BC1, BC3: made when first used
 };
 
 class BlockLinearUnswizzle3DPass final : public ComputePass {

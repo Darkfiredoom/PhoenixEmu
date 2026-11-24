@@ -1405,6 +1405,13 @@ TextureCacheRuntime::TextureCacheRuntime(const Device& device_, Scheduler& sched
         if (Settings::GetAstcRecompression() != Settings::AstcRecompression::Uncompressed) {
             bc_encoder_pass.emplace(device, scheduler, descriptor_pool,
                                     compute_pass_descriptor_queue);
+            // Decoding and encoding in one dispatch needs no RGBA8 image in between (4 bytes a
+            // texel, for every level and layer of a batch). Opt in while it is new.
+            const char* const fused = std::getenv("EDEN_NX2_ASTC_FUSED");
+            if (fused != nullptr && std::string_view{fused} == "1") {
+                astc_bc_pass.emplace(device, scheduler, descriptor_pool,
+                                     compute_pass_descriptor_queue);
+            }
         }
     }
     if (!device.IsKhrImageFormatListSupported()) {
@@ -5383,6 +5390,9 @@ void TextureCacheRuntime::TranscodeAstcToBcn(
     const u32 height = info.size.height;
     const u32 levels = static_cast<u32>(HostMipCount(info));
     const u32 layers = static_cast<u32>(info.resources.layers);
+    if (astc_bc_pass && TranscodeAstcToBcnFused(image, map, swizzles)) {
+        return;
+    }
     // The BC encoder declares layout(rgba8). Identical byte layout is not enough:
     // its storage image view must have the matching R8G8B8A8_UNORM format.
     constexpr VkFormat DecodeFormat = VK_FORMAT_R8G8B8A8_UNORM;
@@ -5566,6 +5576,67 @@ void TextureCacheRuntime::TranscodeAstcToBcn(
     }
     pending.tick = scheduler.CurrentTick();
     pending_transcodes.push_back(std::move(pending));
+}
+
+bool TextureCacheRuntime::TranscodeAstcToBcnFused(
+    Image& image, const StagingBufferRef& map,
+    std::span<const VideoCommon::SwizzleParameters> swizzles) {
+    const ImageInfo& info = image.info;
+    const u32 width = info.size.width;
+    const u32 height = info.size.height;
+    const u32 levels = static_cast<u32>(HostMipCount(info));
+    const u32 layers = static_cast<u32>(info.resources.layers);
+    const bool bc3 = !IsOpaqueBc1Astc(device, info) &&
+                     Settings::GetAstcRecompression() != Settings::AstcRecompression::Bc1;
+    const u64 block_bytes = bc3 ? 16 : 8;
+    boost::container::small_vector<VideoCommon::BufferImageCopy, 16> copies;
+    u64 total = 0;
+    for (u32 level = 0; level < levels; ++level) {
+        const u32 level_width = (std::max)(width >> level, 1U);
+        const u32 level_height = (std::max)(height >> level, 1U);
+        const u32 blocks_x = Common::DivCeil(level_width, 4U);
+        const u32 blocks_y = Common::DivCeil(level_height, 4U);
+        const u64 size = u64{blocks_x} * blocks_y * block_bytes * layers;
+        copies.push_back({
+            .buffer_offset = total,
+            .buffer_size = size,
+            .buffer_row_length = blocks_x * 4,
+            .buffer_image_height = blocks_y * 4,
+            .image_subresource{
+                .base_level = static_cast<s32>(level),
+                .base_layer = 0,
+                .num_layers = static_cast<s32>(layers),
+            },
+            .image_offset{0, 0, 0},
+            .image_extent{level_width, level_height, 1},
+        });
+        total += size;
+    }
+    // The shader binds the whole input and output as storage buffers, finds the ASTC block of a
+    // texel with an 18-bit reciprocal and dispatches every layer at once: anything past those
+    // limits takes the two-pass path.
+    constexpr u32 max_reciprocal_extent = 32768;
+    const u64 max_storage = device.GetMaxStorageBufferRange();
+    if (image.guest_size_bytes > max_storage || total > max_storage ||
+        width > max_reciprocal_extent || height > max_reciprocal_extent ||
+        layers > device.GetMaxComputeWorkGroupCount()[2]) {
+        return false;
+    }
+    const auto output = staging_buffer_pool.Request(total, MemoryUsage::DeviceLocal);
+    astc_bc_pass->Transcode(info, image.guest_size_bytes, map, output, total, swizzles, copies,
+                            bc3);
+    scheduler.Record([](vk::CommandBuffer cmdbuf) {
+        const VkMemoryBarrier barrier{
+            .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+        };
+        cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_TRANSFER_BIT, 0, barrier);
+    });
+    image.UploadMemory(output.buffer, output.offset, copies);
+    return true;
 }
 
 bool TextureCacheRuntime::ClearImage(Image& image) {

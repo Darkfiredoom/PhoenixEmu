@@ -633,7 +633,7 @@ void ConfigurePerGame::LoadConfiguration() {
     ui->display_size->setText(valueText);
     QPixmap own_picture;
     for (QGraphicsItem* const item : scene->items()) {
-        if (auto* const pixmap = dynamic_cast<QGraphicsPixmapItem*>(item)) {
+        if (auto* const pixmap = qgraphicsitem_cast<QGraphicsPixmapItem*>(item)) { // no RTTI on Linux (-fno-rtti)
             own_picture = pixmap->pixmap();
         }
     }

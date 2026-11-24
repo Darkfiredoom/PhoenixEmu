@@ -363,6 +363,9 @@ private:
     /// Requested first when the cache is destroyed, to stop a rewrite of the disk cache: Android
     /// and phoenix_cmd load with a stop token that never stops
     std::stop_source serialization_stop;
+    /// Fragment libraries of fast-linked pipelines (Device::IsExtGraphicsPipelineLibraryEnabled).
+    /// Declared before the workers whose builds queue work on it, so it outlives them.
+    std::unique_ptr<Common::ThreadWorker> fragment_library_workers;
     Common::ThreadWorker workers;
     /// Software HMMA compute pipelines on drivers that take minutes on them
     /// (Device::DefersSoftwareMatrixPipelines); nothing waits for this worker.

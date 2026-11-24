@@ -871,6 +871,9 @@ struct Values {
     Setting<bool> renderer_debug{linkage, false, "debug", Category::RendererDebug};
     Setting<bool> renderer_shader_feedback{linkage, false, "shader_feedback",
                                            Category::RendererDebug};
+    /// NVIDIA: build a pipeline's vertex and fragment halves at once, as fast-linked libraries.
+    Setting<bool> use_graphics_pipeline_library{linkage, false, "use_graphics_pipeline_library",
+                                                Category::RendererDebug};
     Setting<bool> enable_nsight_aftermath{linkage, false, "nsight_aftermath",
                                           Category::RendererDebug};
     Setting<bool> disable_shader_loop_safety_checks{

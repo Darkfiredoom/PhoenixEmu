@@ -110,7 +110,7 @@ public:
         const Device& device, DescriptorPool& descriptor_pool,
         GuestDescriptorQueue& guest_descriptor_queue,
         DescriptorBufferRing& descriptor_buffer_ring, Common::ThreadWorker* worker_thread,
-        PipelineStatistics* pipeline_statistics, RenderPassCache& render_pass_cache,
+        Common::ThreadWorker* fragment_workers, PipelineStatistics* pipeline_statistics, RenderPassCache& render_pass_cache,
         const GraphicsPipelineCacheKey& key, std::array<vk::ShaderModule, NUM_STAGES> stages,
         const std::array<const Shader::Info*, NUM_STAGES>& infos,
         std::function<std::array<vk::ShaderModule, NUM_STAGES>()> emit_stages = {},
@@ -379,7 +379,9 @@ private:
     bool ConfigureDraw(const RescalingPushConstant& rescaling,
                        const RenderAreaPushConstant& render_are);
 
-    void MakePipeline(VkRenderPass render_pass);
+    /// `fragment_workers`: builds the fragment library of a fast-linked pipeline while the
+    /// calling thread builds the vertex one (null: the pipeline is built whole).
+    void MakePipeline(VkRenderPass render_pass, Common::ThreadWorker* fragment_workers);
 
     void Validate();
 
@@ -462,6 +464,8 @@ private:
     DescriptorAllocator descriptor_allocator;
     VkPipelineLayout pipeline_layout{}; ///< Owned by the PipelineLayoutCache
     vk::DescriptorUpdateTemplate descriptor_update_template;
+    /// The libraries a fast-linked pipeline was linked from (empty when built whole).
+    std::array<vk::Pipeline, 4> linked_libraries;
     vk::Pipeline pipeline;
 
     DescriptorBufferLayout descriptor_buffer_layout;

@@ -528,6 +528,13 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
       deferred_workers(1, "VkDeferredPipelines", {}, Common::ThreadPlacement::Background),
       serialization_thread(1, "VkPipelineSerialization", {}, Common::ThreadPlacement::Background),
       background_pipelines{64, 16 * 1024 * 1024, device.HasBrokenParallelShaderCompiling()} {
+    if (device.IsExtGraphicsPipelineLibraryEnabled() &&
+        !device.HasBrokenParallelShaderCompiling() &&
+        !device.IsKhrPipelineExecutablePropertiesEnabled()) {
+        fragment_library_workers.reset(new Common::ThreadWorker{
+            num_pipeline_workers, "VkFragmentBuilder", {}, Common::ThreadPlacement::Background});
+        LOG_INFO(Render_Vulkan, "Fast-linked graphics pipeline libraries enabled");
+    }
     const auto& float_control{device.FloatControlProperties()};
     const VkDriverId driver_id{device.GetDriverID()};
 #if defined(__unix__) && !defined(__APPLE__) && !defined(__ANDROID__)
@@ -3506,8 +3513,9 @@ std::unique_ptr<GraphicsPipeline> PipelineCache::CreateGraphicsPipeline(
     }
     auto pipeline = std::make_unique<GraphicsPipeline>(
         scheduler, buffer_cache, texture_cache, vulkan_pipeline_cache, &shader_notify, device,
-        descriptor_pool, guest_descriptor_queue, descriptor_buffer_ring, thread_worker, statistics,
-        render_pass_cache, key, std::move(modules), infos, std::move(emit_stages),
+        descriptor_pool, guest_descriptor_queue, descriptor_buffer_ring, thread_worker,
+        fragment_library_workers.get(), statistics, render_pass_cache, key, std::move(modules),
+        infos, std::move(emit_stages),
         std::move(mesh_emulation));
     pipeline->SetMappedPointers(std::move(mapped_pointers));
     return pipeline;

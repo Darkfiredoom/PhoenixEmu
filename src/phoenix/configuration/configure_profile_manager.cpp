@@ -15,6 +15,11 @@
 #include <QHeaderView>
 #include <QListWidget>
 #include <QMenu>
+#include <QIcon>
+#include <QStyledItemDelegate>
+#include <QPainterPath>
+#include <QPainter>
+#include <QListView>
 #include <QMessageBox>
 #include <QStandardItemModel>
 #include <QTreeView>
@@ -77,25 +82,100 @@ QPixmap GetIcon(const Common::UUID& uuid) {
 
 } // Anonymous namespace
 
+namespace {
+
+/// A profile as a card: its picture in a circle, its name, and "Playing as" or "Switch to".
+class ProfileCardDelegate final : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const override {
+        return {150, 168};
+    }
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override {
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        const bool current = index.row() == Settings::values.current_user.GetValue();
+        const bool hover = (option.state & QStyle::State_MouseOver) != 0;
+        const QRectF card = QRectF(option.rect).adjusted(4, 4, -4, -4);
+        painter->setPen(current ? QPen(QColor(0xFF, 0x8A, 0x3D), 2.0)
+                                : QPen(QColor(255, 230, 180, hover ? 60 : 32), 1.0));
+        painter->setBrush(QColor(255, 230, 180, current ? 22 : hover ? 16 : 10));
+        painter->drawRoundedRect(card, 14, 14);
+        // The picture, in a ring.
+        const QRectF circle{card.center().x() - 32, card.top() + 16, 64, 64};
+        painter->setPen(QPen(current ? QColor(0xFF, 0x8A, 0x3D) : QColor(255, 230, 180, 50), 3));
+        painter->setBrush(QColor(0x2A, 0x20, 0x16));
+        painter->drawEllipse(circle.adjusted(-3, -3, 3, 3));
+        const QPixmap picture = index.data(Qt::DecorationRole).value<QIcon>().pixmap(128, 128);
+        if (!picture.isNull()) {
+            QPainterPath clip;
+            clip.addEllipse(circle);
+            painter->setClipPath(clip);
+            painter->drawPixmap(circle.toRect(), picture);
+            painter->setClipping(false);
+        }
+        // The name, then a pill.
+        QFont name_font = option.font;
+        name_font.setBold(true);
+        name_font.setPointSizeF(name_font.pointSizeF() + 1);
+        painter->setFont(name_font);
+        painter->setPen(QColor(0xFF, 0xF4, 0xDA));
+        const QRectF name_rect{card.left() + 8, circle.bottom() + 10, card.width() - 16, 22};
+        painter->drawText(name_rect, Qt::AlignCenter,
+                          QFontMetrics(name_font).elidedText(
+                              index.data(Qt::UserRole + 1).toString(), Qt::ElideRight,
+                              static_cast<int>(name_rect.width())));
+        QFont pill_font = option.font;
+        pill_font.setBold(true);
+        pill_font.setPointSizeF(std::max(7.0, pill_font.pointSizeF() - 1));
+        painter->setFont(pill_font);
+        const QString pill_text = current ? QObject::tr("Playing as") : QObject::tr("Switch to");
+        const qreal pill_w = QFontMetrics(pill_font).horizontalAdvance(pill_text) + 20;
+        const QRectF pill{card.center().x() - pill_w / 2, name_rect.bottom() + 6, pill_w, 20};
+        if (current) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(0xFF, 0x52, 0x30));
+            painter->drawRoundedRect(pill, 10, 10);
+            painter->setPen(QColor(0xFF, 0xF6, 0xE8));
+        } else {
+            painter->setPen(QColor(233, 220, 194, 150));
+        }
+        painter->drawText(pill, Qt::AlignCenter, pill_text);
+        painter->restore();
+    }
+};
+
+} // Anonymous namespace
+
 ConfigureProfileManager::ConfigureProfileManager(Core::System& system_, QWidget* parent)
     : QWidget(parent), ui{std::make_unique<Ui::ConfigureProfileManager>()},
       profile_manager{system_.GetProfileManager()}, system{system_} {
     ui->setupUi(this);
 
-    tree_view = new QTreeView;
+    // The profiles as cards: picture, name, and "Playing as" on the one in use.
+    tree_view = new QListView;
     item_model = new QStandardItemModel(tree_view);
     item_model->insertColumns(0, 1);
     tree_view->setModel(item_model);
-    tree_view->setAlternatingRowColors(true);
-    tree_view->setSelectionMode(QHeaderView::SingleSelection);
-    tree_view->setSelectionBehavior(QHeaderView::SelectRows);
-    tree_view->setVerticalScrollMode(QHeaderView::ScrollPerPixel);
-    tree_view->setHorizontalScrollMode(QHeaderView::ScrollPerPixel);
-    tree_view->setSortingEnabled(true);
-    tree_view->setEditTriggers(QHeaderView::NoEditTriggers);
-    tree_view->setUniformRowHeights(true);
+    tree_view->setViewMode(QListView::IconMode);
+    tree_view->setFlow(QListView::LeftToRight);
+    tree_view->setWrapping(true);
+    tree_view->setResizeMode(QListView::Adjust);
+    tree_view->setMovement(QListView::Static);
+    tree_view->setSpacing(8);
+    tree_view->setUniformItemSizes(true);
+    tree_view->setSelectionMode(QAbstractItemView::SingleSelection);
+    tree_view->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    tree_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tree_view->setIconSize({64, 64});
     tree_view->setContextMenuPolicy(Qt::CustomContextMenu);
+    tree_view->setItemDelegate(new ProfileCardDelegate(tree_view));
+    tree_view->setObjectName(QStringLiteral("ProfileCards"));
+    tree_view->setToolTip(tr("Click a profile to play as it; right-click to rename it, change "
+                             "its picture or delete it"));
 
     // We must register all custom types with the Qt Automoc system so that we are able to use it
     // with signals/slots. In this case, QList falls under the umbrells of custom types.
@@ -108,10 +188,10 @@ ConfigureProfileManager::ConfigureProfileManager(Core::System& system_, QWidget*
 
     ui->scrollArea->setLayout(layout);
 
-    connect(tree_view, &QTreeView::customContextMenuRequested, this,
+    connect(tree_view, &QListView::customContextMenuRequested, this,
             &ConfigureProfileManager::showContextMenu);
 
-    connect(tree_view, &QTreeView::clicked, this, &ConfigureProfileManager::SelectUser);
+    connect(tree_view, &QListView::clicked, this, &ConfigureProfileManager::SelectUser);
 
     connect(ui->pm_add, &QPushButton::clicked, this, &ConfigureProfileManager::AddUser);
 
@@ -162,8 +242,10 @@ void ConfigureProfileManager::PopulateUserList() {
         const auto username = Common::StringFromFixedZeroTerminatedBuffer(
             reinterpret_cast<const char*>(profile.username.data()), profile.username.size());
 
-        list_items.push_back(QList<QStandardItem*>{new QStandardItem{
-            GetIcon(user), FormatUserEntryText(QString::fromStdString(username), user)}});
+        auto* const item = new QStandardItem{
+            GetIcon(user), FormatUserEntryText(QString::fromStdString(username), user)};
+        item->setData(QString::fromStdString(username), Qt::UserRole + 1);
+        list_items.push_back(QList<QStandardItem*>{item});
     }
 
     for (const auto& item : list_items)
@@ -181,6 +263,7 @@ void ConfigureProfileManager::UpdateCurrentUser() {
     scene->addPixmap(
         GetIcon(*current_user).scaled(64, 64, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
     ui->current_user_username->setText(username);
+    tree_view->viewport()->update(); // "Playing as" moves to the profile in use
 }
 
 void ConfigureProfileManager::ApplyConfiguration() {

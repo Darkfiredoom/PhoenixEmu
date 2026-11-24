@@ -28,6 +28,8 @@
 #include "core/file_sys/fs_filesystem.h"
 #include "core/file_sys/nca_metadata.h"
 #include "core/file_sys/patch_manager.h"
+#include "core/file_sys/program_metadata.h"
+#include "core/file_sys/common_funcs.h"
 #include "core/file_sys/registered_cache.h"
 #include "core/file_sys/submission_package.h"
 #include "core/loader/loader.h"
@@ -44,6 +46,7 @@
 #include "qt_common/game_list/discovery.h"
 #include "qt_common/game_list/worker.h"
 #include "qt_common/game_list/case_art.h"
+#include "qt_common/game_list/platform_override.h"
 
 namespace {
 
@@ -263,7 +266,8 @@ QString FormatPatchNameVersions(const FileSys::PatchManager& patch_manager,
     return out;
 }
 
-bool GetPlatformIsSwitch2(const FileSys::VirtualFile& file, u64 program_id) {
+/// Whether the game's own program (without updates, add-ons or mods) is a Switch 2 one.
+bool BaseIsSwitch2(const FileSys::VirtualFile& file, u64 program_id) {
     const QString cached = GetGameListCachedObject(
         fmt::format("{:016X}", program_id), "switch2.txt", [&file, program_id] {
             return Loader::IsSwitch2Program(file, program_id) ? QStringLiteral("1")
@@ -272,11 +276,95 @@ bool GetPlatformIsSwitch2(const FileSys::VirtualFile& file, u64 program_id) {
     return cached == QStringLiteral("1");
 }
 
+bool NpdmIsSwitch2(const FileSys::VirtualFile& npdm) {
+    FileSys::ProgramMetadata metadata;
+    return npdm != nullptr && metadata.Load(npdm) == Loader::ResultStatus::Success &&
+           metadata.IsSwitch2();
+}
+
+/// Why a Switch 1 game runs as its Nintendo Switch 2 Edition here, or empty when it doesn't:
+/// - an enabled update whose program is a Switch 2 one;
+/// - an enabled add-on the game's control data names as its Switch 2 upgrade pack (Switch 2
+///   Editions of Switch 1 games ship the upgrade as add-on content, and the control data lists
+///   which add-on switches it to Switch 2), or control data saying the game is a Switch 2 one;
+/// - an enabled mod with a Switch 2 program, or "Switch 2" in its name.
+/// Without one of these a game like Pokémon Legends: Z-A stays a Switch 1 game: Switch 1 badge,
+/// case and pictures.
+std::string Switch2EditionSource(const FileSys::VirtualFilesystem& vfs,
+                                 const FileSys::ContentProvider& provider,
+                                 const FileSys::PatchManager& patch, u64 program_id) {
+    using namespace FileSys;
+    const auto patches = patch.GetPatches();
+    // Mods first: they cost no reading of game files.
+    for (const Patch& p : patches) {
+        if (p.type != PatchType::Mod || !p.enabled) {
+            continue;
+        }
+        const QString name = QString::fromStdString(p.name).toLower();
+        if (name.contains(QStringLiteral("switch 2")) || name.contains(QStringLiteral("switch2")) ||
+            name.contains(QStringLiteral("ns2"))) {
+            return fmt::format("mod \"{}\"", p.name);
+        }
+        if (!p.location.empty() && vfs != nullptr) {
+            const auto npdm = vfs->OpenFile(p.location + "/exefs/main.npdm", OpenMode::Read);
+            if (NpdmIsSwitch2(npdm)) {
+                return fmt::format("mod \"{}\"", p.name);
+            }
+        }
+    }
+    const auto enabled = [&patches](PatchType type) {
+        return std::ranges::find_if(patches, [type](const Patch& p) {
+            return p.type == type && p.enabled;
+        });
+    };
+    if (const auto update = enabled(PatchType::Update); update != patches.end()) {
+        const auto nca = provider.GetEntry(GetUpdateTitleID(GetBaseTitleID(program_id)),
+                                           ContentRecordType::Program);
+        const auto exefs = nca != nullptr ? nca->GetExeFS() : nullptr;
+        if (exefs != nullptr && NpdmIsSwitch2(exefs->GetFile("main.npdm"))) {
+            return fmt::format("update {}", update->version);
+        }
+    }
+    // The control data as the game runs it (its update's, when it has one).
+    const auto control = patch.GetControlMetadata();
+    if (control.first == nullptr) {
+        return {};
+    }
+    const RawNACP& nacp = control.first->raw;
+    if (nacp.apparent_platform == ApparentPlatform::Ounce) {
+        return "control data";
+    }
+    const auto dlc = enabled(PatchType::DLC);
+    const auto& condition = nacp.application_control_data_condition;
+    if (dlc == patches.end() || condition.count == 0) {
+        return {};
+    }
+    // The installed add-ons, as "1, 3, 4" (each one's index).
+    std::vector<u32> installed;
+    for (const QString& part : QString::fromStdString(dlc->version).split(QLatin1Char(','))) {
+        bool ok = false;
+        const u32 index = part.trimmed().toUInt(&ok);
+        if (ok) {
+            installed.push_back(index);
+        }
+    }
+    const std::size_t count = (std::min)(static_cast<std::size_t>(condition.count),
+                                         condition.data.size());
+    for (std::size_t i = 0; i < count; ++i) {
+        const u32 index = condition.data[i].aoc_index;
+        if (index != 0 && std::ranges::find(installed, index) != installed.end()) {
+            return fmt::format("upgrade pack (add-on {})", index);
+        }
+    }
+    return {};
+}
+
 QList<QStandardItem*> MakeGameListEntry(const std::string& path, const std::string& name,
                                         const std::size_t size, const std::vector<u8>& icon,
                                         Loader::AppLoader& loader, u64 program_id,
                                         const PlayTime::PlayTimeManager& play_time_manager,
-                                        const FileSys::PatchManager& patch) {
+                                        const FileSys::PatchManager& patch, bool switch2,
+                                        const std::string& edition_source) {
     auto const file_type = loader.GetFileType();
     auto const file_type_string = QString::fromStdString(Loader::GetFileTypeString(file_type));
 
@@ -305,22 +393,33 @@ QList<QStandardItem*> MakeGameListEntry(const std::string& path, const std::stri
 
     u64 play_time = play_time_manager.GetPlayTime(program_id);
     // A picture PhoenixEmu found or the player picked wins over the one inside the game.
-    const std::vector<u8> saved_picture = QtCommon::GamePictures::Load(program_id);
+    // One the icon pack gave the game's other edition is picked again (the game list's picture
+    // search runs for it, as it has no picture).
+    const std::vector<u8> saved_picture =
+        QtCommon::GamePictures::PictureIsOtherEdition(program_id, switch2)
+            ? std::vector<u8>{}
+            : QtCommon::GamePictures::Load(program_id);
     auto* const path_item =
         new GameListItemPath(FormatGameName(path), saved_picture.empty() ? icon : saved_picture,
                              QString::fromStdString(name),
                              file_type_string, program_id, play_time, patch_versions);
     // The player's own banner (case art folder) wins over one found online.
     const QString title = QString::fromStdString(name);
+    path_item->setData(switch2, GameListItemPath::Switch2Role);
+    if (!edition_source.empty()) {
+        path_item->setData(QString::fromStdString(edition_source),
+                           GameListItemPath::Switch2EditionRole);
+    }
     if (const QString shown = CaseArt::DisplayName(title, program_id); shown != title) {
         path_item->setData(shown, GameListItemPath::TitleRole);
     }
-    std::vector<u8> banner = CaseArt::BannerBytes(title, program_id);
+    // Switch 2 Editions get their Switch 2 case and banner, Switch 1 games the Switch 1 ones.
+    std::vector<u8> banner = CaseArt::BannerBytes(title, program_id, switch2);
     if (banner.empty()) {
         banner = QtCommon::GamePictures::LoadBanner(program_id);
     }
     path_item->SetBanner(banner);
-    if (const auto art = CaseArt::Load(title, program_id)) {
+    if (const auto art = CaseArt::Load(title, program_id, switch2)) {
         QImage front = art->front;
         if (front.height() > 640) {
             front = front.scaledToHeight(640, Qt::SmoothTransformation);
@@ -366,6 +465,29 @@ GameListWorker::GameListWorker(FileSys::VirtualFilesystem vfs_,
 GameListWorker::~GameListWorker() {
     this->disconnect();
     Stop();
+}
+
+std::pair<bool, std::string> GameListWorker::Platform(const FileSys::VirtualFile& file,
+                                                     u64 program_id,
+                                                     const FileSys::PatchManager& patch) const {
+    switch (PlatformOverride::Get(program_id)) {
+    case PlatformOverride::Choice::Switch1:
+        return {false, {}};
+    case PlatformOverride::Choice::Switch2:
+        return {true, {}};
+    case PlatformOverride::Choice::Automatic:
+        break;
+    }
+    if (BaseIsSwitch2(file, program_id)) {
+        return {true, {}};
+    }
+    std::string source =
+        Switch2EditionSource(vfs, system.GetContentProvider(), patch, program_id);
+    if (!source.empty()) {
+        LOG_INFO(Frontend, "{:016X} shows as its Switch 2 Edition: {}", program_id, source);
+    }
+    const bool switch2 = !source.empty();
+    return {switch2, std::move(source)};
 }
 
 void GameListWorker::Stop() {
@@ -458,9 +580,9 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir, GameListItemTy
             GetMetadataFromControlNCA(patch, *control, icon, name);
         }
 
+        const auto [switch2, edition] = Platform(file, program_id, patch);
         auto entry = MakeGameListEntry(file->GetFullPath(), name, file->GetSize(), icon, *loader,
-                                       program_id, play_time_manager, patch);
-        entry[0]->setData(GetPlatformIsSwitch2(file, program_id), GameListItemPath::Switch2Role);
+                                       program_id, play_time_manager, patch, switch2, edition);
         auto pending = std::make_shared<PendingRow>(std::move(entry));
         RecordEvent([=](GameListModel* model) { model->AddEntry(pending->Release(), parent_dir); });
     }
@@ -545,9 +667,9 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::vector<std::fi
                 const bool loose_dump = IsExtractedNCAMain(physical_name);
                 const u64 size = loose_dump ? 0 : Common::FS::GetSize(physical_name);
 
+                const auto [switch2, edition] = Platform(file, id, patch);
                 auto entry = MakeGameListEntry(physical_name, name, size, icon, *app_loader, id,
-                                               play_time_manager, patch);
-                entry[0]->setData(GetPlatformIsSwitch2(file, id), GameListItemPath::Switch2Role);
+                                               play_time_manager, patch, switch2, edition);
 
                 if (loose_dump) {
                     entry[GameListModel::COLUMN_SIZE]->setText(tr("Not scanned"));

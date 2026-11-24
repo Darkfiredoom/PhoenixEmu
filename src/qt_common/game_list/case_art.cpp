@@ -44,8 +44,8 @@ std::mutex cache_mutex;
 std::unordered_map<std::string, std::shared_ptr<const Art>> art_cache; // null: none
 std::unordered_map<std::string, std::vector<u8>> banner_cache;         // empty: none
 
-std::string CacheKey(const QString& title, u64 program_id) {
-    return fmt::format("{:016X}|{}", program_id, title.toStdString());
+std::string CacheKey(const QString& title, u64 program_id, bool switch2) {
+    return fmt::format("{:016X}|{}|{}", program_id, switch2 ? 2 : 1, title.toStdString());
 }
 
 QString Utf8(const fs::path& path) {
@@ -130,9 +130,25 @@ int Score(const QString& candidate_raw, const QString& title_raw, u64 program_id
     return 0;
 }
 
-/// The best entry of a folder for the game, or empty; `score_out` gets its score.
+/// The score once the edition is counted: a "Switch 2 Edition" entry (its name says Switch 2)
+/// is never a Switch 1 game's, so a Switch 1 Pokémon Legends: Z-A gets its Switch 1 case; a
+/// Switch 2 game ranks one above an entry without the words, and still takes that one when it is
+/// all there is (Switch 2-only games have no edition in their names).
+int EditionScore(int score, const QString& candidate, bool switch2) {
+    if (score <= 0) {
+        return score;
+    }
+    const bool edition = IsSwitch2EditionName(candidate);
+    if (edition && !switch2) {
+        return 0;
+    }
+    return edition ? score + 60 : score;
+}
+
+/// The best entry of a folder for the game, or empty; `score_out` gets its score. Switch 1 games
+/// skip "Switch 2 Edition" entries and Switch 2 games prefer them (EditionScore).
 fs::path BestMatch(const fs::path& folder, bool directories, const QString& title, u64 program_id,
-                   int* score_out = nullptr) {
+                   bool switch2, int* score_out = nullptr) {
     std::error_code ec;
     fs::path best;
     int best_score = 0;
@@ -142,7 +158,7 @@ fs::path BestMatch(const fs::path& folder, bool directories, const QString& titl
         }
         const QString name = directories ? Utf8(entry.path().filename())
                                          : Utf8(entry.path().stem());
-        const int score = Score(name, title, program_id);
+        const int score = EditionScore(Score(name, title, program_id), name, switch2);
         if (score > best_score) {
             best_score = score;
             best = entry.path();
@@ -181,12 +197,12 @@ std::vector<fs::path> BannerFolders() {
 
 /// The best entry for the game across folders (the earlier folder on a tie).
 fs::path BestMatchIn(const std::vector<fs::path>& folders, bool directories, const QString& title,
-                     u64 program_id, int* score_out = nullptr) {
+                     u64 program_id, bool switch2, int* score_out = nullptr) {
     fs::path best;
     int best_score = 0;
     for (const fs::path& folder : folders) {
         int score = 0;
-        const fs::path found = BestMatch(folder, directories, title, program_id, &score);
+        const fs::path found = BestMatch(folder, directories, title, program_id, switch2, &score);
         if (!found.empty() && score > best_score) {
             best = found;
             best_score = score;
@@ -223,8 +239,8 @@ QImage Read(const fs::path& path, std::optional<int> max_height, std::optional<i
     return image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 }
 
-std::shared_ptr<const Art> ReadArt(const QString& title, u64 program_id) {
-    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id);
+std::shared_ptr<const Art> ReadArt(const QString& title, u64 program_id, bool switch2) {
+    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id, switch2);
     if (game.empty()) {
         return nullptr;
     }
@@ -289,34 +305,36 @@ fs::path Folder() {
     return Common::FS::GetEdenPath(Common::FS::EdenPath::EdenDir) / "case_art";
 }
 
-std::shared_ptr<const Art> Load(const QString& title, u64 program_id) {
+std::shared_ptr<const Art> Load(const QString& title, u64 program_id, bool switch2) {
+    const std::string key = CacheKey(title, program_id, switch2);
     {
         std::scoped_lock lock{cache_mutex};
-        if (const auto it = art_cache.find(CacheKey(title, program_id)); it != art_cache.end()) {
+        if (const auto it = art_cache.find(key); it != art_cache.end()) {
             return it->second;
         }
     }
-    auto art = ReadArt(title, program_id);
+    auto art = ReadArt(title, program_id, switch2);
     std::scoped_lock lock{cache_mutex};
-    art_cache[CacheKey(title, program_id)] = art;
+    art_cache[key] = art;
     return art;
 }
 
-std::vector<u8> BannerBytes(const QString& title, u64 program_id) {
+std::vector<u8> BannerBytes(const QString& title, u64 program_id, bool switch2) {
+    const std::string key = CacheKey(title, program_id, switch2);
     {
         std::scoped_lock lock{cache_mutex};
-        if (const auto it = banner_cache.find(CacheKey(title, program_id)); it != banner_cache.end()) {
+        if (const auto it = banner_cache.find(key); it != banner_cache.end()) {
             return it->second;
         }
     }
     std::vector<u8> bytes;
-    const fs::path file = BestMatchIn(BannerFolders(), false, title, program_id);
+    const fs::path file = BestMatchIn(BannerFolders(), false, title, program_id, switch2);
     if (!file.empty() && IsImage(file)) {
         std::ifstream stream(file, std::ios::binary);
         bytes.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
     }
     std::scoped_lock lock{cache_mutex};
-    banner_cache[CacheKey(title, program_id)] = bytes;
+    banner_cache[key] = bytes;
     return bytes;
 }
 
@@ -331,7 +349,7 @@ QString DisplayName(const QString& title, u64 program_id) {
         return title;
     }
     int score = 0;
-    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id, &score);
+    const fs::path game = BestMatchIn(CasesFolders(), true, title, program_id, true, &score);
     // Only a name found inside the title (not initials like "OOT", not a title ID folder).
     if (game.empty() || score < 700 || score > 880) {
         return title;
@@ -349,22 +367,32 @@ int MatchScore(const QString& candidate, const QString& title, u64 program_id) {
     return Score(candidate, title, program_id);
 }
 
+bool IsSwitch2EditionName(const QString& name) {
+    static const QRegularExpression edition{QStringLiteral(R"(switch\s*2|\bns2\b)"),
+                                            QRegularExpression::CaseInsensitiveOption};
+    return edition.match(name).hasMatch();
+}
+
 namespace {
-fs::path PackMissPath(u64 program_id) {
-    return PackFolder() / "missing" / fmt::format("{:016X}", program_id);
+fs::path PackMissPath(u64 program_id, bool switch2) {
+    // "missing_v2": earlier builds marked Switch 1 games missing after asking only the pack (and
+    // Switch Cabinet's host was refused), which would hold off their first real look for a day.
+    // A game marked missing as Switch 1 looks again once its Switch 2 Edition is installed.
+    return PackFolder() / "missing_v2" /
+           fmt::format("{:016X}{}", program_id, switch2 ? ".switch2" : "");
 }
 } // Anonymous namespace
 
-bool PackRecentlyMissing(u64 program_id) {
+bool PackRecentlyMissing(u64 program_id, bool switch2) {
     std::error_code ec;
-    const auto written = fs::last_write_time(PackMissPath(program_id), ec);
+    const auto written = fs::last_write_time(PackMissPath(program_id, switch2), ec);
     return !ec && fs::file_time_type::clock::now() - written < std::chrono::hours{24};
 }
 
-void MarkPackMissing(u64 program_id) {
+void MarkPackMissing(u64 program_id, bool switch2) {
     std::error_code ec;
-    fs::create_directories(PackMissPath(program_id).parent_path(), ec);
-    std::ofstream file(PackMissPath(program_id), std::ios::trunc);
+    fs::create_directories(PackMissPath(program_id, switch2).parent_path(), ec);
+    std::ofstream file(PackMissPath(program_id, switch2), std::ios::trunc);
 }
 
 void Reset() {

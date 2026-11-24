@@ -15,6 +15,7 @@
 #include "input_common/drivers/udp_client.h"
 #include "input_common/drivers/virtual_amiibo.h"
 #include "input_common/drivers/virtual_gamepad.h"
+#include "input_common/drivers/switch2.h"
 #include "input_common/helpers/stick_from_buttons.h"
 #include "input_common/helpers/touch_from_buttons.h"
 #include "input_common/input_engine.h"
@@ -90,6 +91,9 @@ struct InputSubsystem::Impl {
 #endif
         RegisterEngine("virtual_amiibo", virtual_amiibo);
         RegisterEngine("virtual_gamepad", virtual_gamepad);
+#ifdef _WIN32
+        RegisterEngine("switch2", switch2);
+#endif
 #ifdef HAVE_SDL3
         RegisterEngine("sdl", sdl);
         RegisterEngine("joycon", joycon);
@@ -124,6 +128,9 @@ struct InputSubsystem::Impl {
 #endif
         UnregisterEngine(virtual_amiibo);
         UnregisterEngine(virtual_gamepad);
+#ifdef _WIN32
+        UnregisterEngine(switch2);
+#endif
 #ifdef HAVE_SDL3
         UnregisterEngine(sdl);
         UnregisterEngine(joycon);
@@ -154,6 +161,10 @@ struct InputSubsystem::Impl {
 #endif
         auto udp_devices = udp_client->GetInputDevices();
         devices.insert(devices.end(), udp_devices.begin(), udp_devices.end());
+#ifdef _WIN32
+        auto switch2_devices = switch2->GetInputDevices();
+        devices.insert(devices.end(), switch2_devices.begin(), switch2_devices.end());
+#endif
 #ifdef HAVE_SDL3
         auto joycon_devices = joycon->GetInputDevices();
         devices.insert(devices.end(), joycon_devices.begin(), joycon_devices.end());
@@ -189,6 +200,11 @@ struct InputSubsystem::Impl {
         if (engine == udp_client->GetEngineName()) {
             return udp_client;
         }
+#ifdef _WIN32
+        if (engine == switch2->GetEngineName()) {
+            return switch2;
+        }
+#endif
 #ifdef HAVE_SDL3
         if (engine == sdl->GetEngineName()) {
             return sdl;
@@ -280,6 +296,11 @@ struct InputSubsystem::Impl {
         if (engine == virtual_gamepad->GetEngineName()) {
             return true;
         }
+#ifdef _WIN32
+        if (engine == switch2->GetEngineName()) {
+            return true;
+        }
+#endif
 #ifdef HAVE_SDL3
         if (engine == sdl->GetEngineName()) {
             return true;
@@ -301,6 +322,9 @@ struct InputSubsystem::Impl {
         gcadapter->BeginConfiguration();
 #endif
         udp_client->BeginConfiguration();
+#ifdef _WIN32
+        switch2->BeginConfiguration();
+#endif
 #ifdef HAVE_SDL3
         sdl->BeginConfiguration();
         joycon->BeginConfiguration();
@@ -317,6 +341,9 @@ struct InputSubsystem::Impl {
         gcadapter->EndConfiguration();
 #endif
         udp_client->EndConfiguration();
+#ifdef _WIN32
+        switch2->EndConfiguration();
+#endif
 #ifdef HAVE_SDL3
         sdl->EndConfiguration();
         joycon->EndConfiguration();
@@ -345,6 +372,9 @@ struct InputSubsystem::Impl {
     std::shared_ptr<Camera> camera;
     std::shared_ptr<VirtualAmiibo> virtual_amiibo;
     std::shared_ptr<VirtualGamepad> virtual_gamepad;
+#ifdef _WIN32
+    std::shared_ptr<Switch2Controllers> switch2;
+#endif
 
 #ifdef ENABLE_LIBUSB
     std::shared_ptr<GCAdapter> gcadapter;
@@ -436,6 +466,14 @@ VirtualGamepad* InputSubsystem::GetVirtualGamepad() {
 
 const VirtualGamepad* InputSubsystem::GetVirtualGamepad() const {
     return impl->virtual_gamepad.get();
+}
+
+Switch2Controllers* InputSubsystem::GetSwitch2Controllers() {
+#ifdef _WIN32
+    return impl->switch2.get();
+#else
+    return nullptr;
+#endif
 }
 
 std::vector<Common::ParamPackage> InputSubsystem::GetInputDevices() const {

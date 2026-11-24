@@ -67,6 +67,9 @@
 #include "phoenix/mod_store/mod_store_dialog.h"
 #include "qt_common/game_list/game_list_p.h"
 #include "phoenix/music_extract_dialog.h"
+#include "phoenix/switch2_controllers_dialog.h"
+#include "input_common/drivers/switch2.h"
+#include "input_common/main.h"
 #include "phoenix/nup_dialogs.h"
 #include "phoenix/recommended_settings_dialog.h"
 #include "phoenix/shader_warm_dialog.h"
@@ -112,6 +115,7 @@
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QMessageBox>
+#include <QButtonGroup>
 #include <QHBoxLayout>
 #include <QTextBrowser>
 #include <QVBoxLayout>
@@ -1399,6 +1403,16 @@ void MainWindow::InitializeWidgets() {
         statusBar()->addPermanentWidget(label);
     }
 
+    game_fps_label->setObjectName(QStringLiteral("InGameFpsLabel"));
+    // In a game: a pill that opens the quick menu (as F10 does).
+    in_game_menu_button = new QPushButton(tr("☰  Menu"));
+    in_game_menu_button->setObjectName(QStringLiteral("InGameMenuButton"));
+    in_game_menu_button->setCursor(Qt::PointingHandCursor);
+    in_game_menu_button->setFocusPolicy(Qt::NoFocus);
+    in_game_menu_button->setVisible(false);
+    connect(in_game_menu_button, &QPushButton::clicked, this, &MainWindow::OnToggleQuickMenu);
+    statusBar()->addPermanentWidget(in_game_menu_button);
+
     firmware_label = new QLabel();
     firmware_label->setObjectName(QStringLiteral("FirmwareLabel"));
     firmware_label->setVisible(false);
@@ -2139,11 +2153,13 @@ void MainWindow::SetupCustomizeMenu() {
     menuBar()->insertAction(ui->menu_Help->menuAction(), action);
     connect(action, &QAction::triggered, this, &MainWindow::ToggleCustomizePanel);
     connect(game_list, &GameList::CustomizeRequested, this, &MainWindow::ToggleCustomizePanel);
+    connect(game_list, &GameList::ListViewRequested, this,
+            [this] { SetGameListMode(Settings::GameListMode::TreeView); });
 
     // The home view's controller chip and window (after Jinra's Home).
     connect(game_list, &GameList::ControllersRequested, this, [this] {
         ControllersDialog dialog{input_subsystem.get(), [this] {
-                                     configure_start_page = 5;
+                                     configure_start_page = 4; // Controls
                                      OnConfigure();
                                  },
                                  this};
@@ -2156,8 +2172,95 @@ void MainWindow::SetupCustomizeMenu() {
         }
         game_list->SetControllerCount(
             static_cast<int>(ControllersDialog::ConnectedPads(input_subsystem.get()).size()));
+        AutoAssignSwitch2Controller();
     });
     controller_count_timer.start();
+}
+
+void MainWindow::AutoAssignSwitch2Controller() {
+    if (auto* const switch2 = input_subsystem->GetSwitch2Controllers()) {
+        switch2->SetMouseEnabled(UISettings::values.switch2_mouse.GetValue());
+    }
+    // A Switch 2 controller paired over Bluetooth is played with at once: it becomes Player 1
+    // when Player 1 is on the keyboard, or on a Switch 2 controller that has gone. A pair of
+    // Joy-Con 2 is preferred, then a Pro or GameCube controller, then a single Joy-Con.
+    std::vector<Common::ParamPackage> found;
+    for (const auto& device : input_subsystem->GetInputDevices()) {
+        if (device.Get("engine", "") == "switch2") {
+            found.push_back(device);
+        }
+    }
+    using Kind = InputCommon::Switch2Controllers::Kind;
+    const auto rank = [](const Common::ParamPackage& device) {
+        switch (static_cast<Kind>(device.Get("pad", 0))) {
+        case Kind::Dual:
+            return 3;
+        case Kind::Pro:
+        case Kind::GameCube:
+            return 2;
+        default:
+            return 1;
+        }
+    };
+    std::ranges::sort(found, [&](const auto& a, const auto& b) { return rank(a) > rank(b); });
+    const auto key_of = [](const Common::ParamPackage& device) {
+        return device.Get("guid", "") + device.Get("guid2", "") + device.Get("port", "0");
+    };
+    if (found.empty()) {
+        switch2_assigned.clear();
+        return;
+    }
+    const std::string best = key_of(found.front());
+    if (best == switch2_assigned) {
+        return;
+    }
+    auto* const p1 = QtCommon::system->HIDCore().GetEmulatedController(Core::HID::NpadIdType::Player1);
+    const std::string current_engine = p1->GetButtonParam(Settings::NativeButton::A).Get("engine", "");
+    const bool replaceable = current_engine == "keyboard" || current_engine.empty() ||
+                             (current_engine == "switch2" && !switch2_assigned.empty());
+    if (!replaceable || (emulation_running && current_engine != "switch2")) {
+        return; // the player chose another controller, or a game is using the keyboard
+    }
+    const Common::ParamPackage& device = found.front();
+    p1->EnableConfiguration();
+    for (const auto& [index, param] : input_subsystem->GetButtonMappingForDevice(device)) {
+        p1->SetButtonParam(index, param);
+    }
+    for (const auto& [index, param] : input_subsystem->GetAnalogMappingForDevice(device)) {
+        p1->SetStickParam(index, param);
+    }
+    for (const auto& [index, param] : input_subsystem->GetMotionMappingForDevice(device)) {
+        p1->SetMotionParam(index, param);
+    }
+    Core::HID::NpadStyleIndex style = Core::HID::NpadStyleIndex::Fullkey;
+    switch (static_cast<Kind>(device.Get("pad", 0))) {
+    case Kind::Dual:
+        style = Core::HID::NpadStyleIndex::JoyconDual;
+        break;
+    case Kind::JoyconLeft:
+        style = Core::HID::NpadStyleIndex::JoyconLeft;
+        break;
+    case Kind::JoyconRight:
+        style = Core::HID::NpadStyleIndex::JoyconRight;
+        break;
+    case Kind::GameCube:
+        style = Core::HID::NpadStyleIndex::GameCube;
+        break;
+    default:
+        break;
+    }
+    if (!emulation_running) {
+        p1->SetNpadStyleIndex(style);
+    }
+    p1->Connect(true);
+    p1->SaveCurrentConfig();
+    p1->DisableConfiguration();
+    config->SaveAllValues();
+    switch2_assigned = best;
+    const QString name = QString::fromStdString(device.Get("display", "Switch 2 controller"));
+    statusBar()->showMessage(tr("%1 is now Player 1").arg(name), 6000);
+    LOG_INFO(Frontend, "Switch 2 controllers: {} assigned to Player 1",
+             device.Get("display", ""));
 }
 
 void MainWindow::ToggleCustomizePanel() {
@@ -2377,6 +2480,37 @@ void MainWindow::ConnectMenuEvents() {
         follower->place = place_seam;
         menuBar()->installEventFilter(follower);
         place_seam();
+
+        // The library's tabs at the bar's right: every game, Switch 2 games, Switch 1 games.
+        auto* const tabs = new QWidget(menuBar());
+        tabs->setObjectName(QStringLiteral("PhoenixLibraryTabs"));
+        tabs->setAttribute(Qt::WA_StyledBackground);
+        auto* const tab_row = new QHBoxLayout(tabs);
+        tab_row->setContentsMargins(3, 3, 3, 3);
+        tab_row->setSpacing(2);
+        auto* const tab_group = new QButtonGroup(tabs);
+        tab_group->setExclusive(true);
+        const QStringList names{tr("All"), tr("Switch 2"), tr("Switch 1")};
+        for (int i = 0; i < names.size(); ++i) {
+            auto* const tab = new QPushButton(names[i], tabs);
+            tab->setObjectName(QStringLiteral("PhoenixLibraryTab"));
+            tab->setCheckable(true);
+            tab->setCursor(Qt::PointingHandCursor);
+            tab->setFocusPolicy(Qt::NoFocus);
+            tab->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+            tab->setChecked(static_cast<u32>(i) == UISettings::values.library_platform.GetValue());
+            tab_group->addButton(tab, i);
+            tab_row->addWidget(tab);
+        }
+        connect(tab_group, &QButtonGroup::idClicked, this,
+                [this](int id) { game_list->SetPlatformFilter(static_cast<u32>(id)); });
+        auto* const corner = new QWidget(menuBar());
+        auto* const corner_row = new QHBoxLayout(corner);
+        corner_row->setContentsMargins(0, 1, 10, 3);
+        tabs->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        corner_row->addStretch(1);
+        corner_row->addWidget(tabs);
+        menuBar()->setCornerWidget(corner, Qt::TopRightCorner);
     }
     SetupCustomizeMenu();
     SetupUserMenu();
@@ -2570,6 +2704,11 @@ void MainWindow::ConnectMenuEvents() {
         setup->addMenu(ui->menuInstall_Firmware);
         setup->addAction(ui->action_Verify_installed_contents);
         setup->addAction(ui->action_Data_Manager);
+        setup->addSeparator();
+        setup->addAction(tr("Switch 2 Controllers..."), this, [this] {
+            Switch2ControllersDialog dialog(input_subsystem.get(), this);
+            dialog.exec();
+        });
 
         QMenu* const system_menu = tools->addMenu(tr("S&ystem"));
         system_menu->addMenu(ui->menu_cabinet_applet);
@@ -3741,6 +3880,9 @@ void MainWindow::OnEmulationStopped() {
     emu_speed_label->setVisible(false);
     game_fps_label->setVisible(false);
     emu_frametime_label->setVisible(false);
+    if (in_game_menu_button != nullptr) {
+        in_game_menu_button->setVisible(false);
+    }
     renderer_status_button->setEnabled(!UISettings::values.has_broken_vulkan);
     frame_gen_status_button->setEnabled(true);
     upscale_status_button->setEnabled(true);
@@ -5615,6 +5757,14 @@ void MainWindow::OpenPerGameConfiguration(u64 title_id, const std::string& file_
     Settings::SetConfiguringGlobal(false);
     ConfigurePerGame dialog(this, title_id, file_name, vk_device_records, *QtCommon::system);
     dialog.LoadFromFile(Core::GetGameFileFromPath(QtCommon::vfs, file_name));
+    if (const QModelIndex game = game_list->SelectedGame();
+        game.isValid() && game.data(GameListItemPath::ProgramIdRole).toULongLong() == title_id) {
+        QPixmap picture = game.data(GameListItemPath::LargePictureRole).value<QPixmap>();
+        if (picture.isNull()) {
+            picture = game.data(Qt::DecorationRole).value<QPixmap>();
+        }
+        dialog.SetListInfo(game.data(GameListItemPath::TitleRole).toString(), picture);
+    }
 
     const auto result = dialog.exec();
 
@@ -5987,7 +6137,7 @@ void MainWindow::OnShaderRecipeDialog() {
 }
 
 void MainWindow::OnAlbumDialog() {
-    AlbumDialog dialog(this);
+    AlbumDialog dialog(this, game_list);
     dialog.exec();
 }
 
@@ -7182,18 +7332,21 @@ void MainWindow::UpdateStatusBar() {
                                     Settings::values.frame_gen.GetValue();
     frame_gen_added_fps =
         amd_frame_gen ? results.average_game_fps : built_in_frame_gen ? generated_fps : 0.0;
+    // One readout: the game's frames, then (with frame generation) what reaches the screen, and
+    // the frame time: "59 -> 117 FPS · 16.9 ms".
+    const double shown_fps = amd_frame_gen        ? results.average_game_fps * 2.0
+                             : built_in_frame_gen ? results.average_game_fps + generated_fps
+                                                  : results.average_game_fps;
     QString fpsText =
-        amd_frame_gen
-            ? tr("Game: %1 FPS (%2 + FG)")
-                  .arg(std::round(results.average_game_fps * 2.0), 0, 'f', 0)
+        amd_frame_gen || built_in_frame_gen
+            ? tr("%1 → %2 FPS")
                   .arg(std::round(results.average_game_fps), 0, 'f', 0)
-        : built_in_frame_gen
-            ? tr("Game: %1 FPS (%2 + FG)")
-                  .arg(std::round(results.average_game_fps + generated_fps), 0, 'f', 0)
-                  .arg(std::round(results.average_game_fps), 0, 'f', 0)
-            : tr("Game: %1 FPS").arg(std::round(results.average_game_fps), 0, 'f', 0);
+                  .arg(std::round(shown_fps), 0, 'f', 0)
+            : tr("%1 FPS").arg(std::round(results.average_game_fps), 0, 'f', 0);
     if (!m_fpsSuffix.isEmpty())
         fpsText = fpsText % QStringLiteral(" (%1)").arg(m_fpsSuffix);
+    fpsText = fpsText % QStringLiteral(" · ") %
+              tr("%1 ms").arg(results.frametime * 1000.0, 0, 'f', 1);
 
     game_fps_label->setText(fpsText);
 
@@ -7255,7 +7408,10 @@ void MainWindow::UpdateStatusBar() {
     res_scale_label->setVisible(res_scale != 1 || res_info.downscale);
     emu_speed_label->setVisible(!Settings::values.use_multi_core.GetValue());
     game_fps_label->setVisible(true);
-    emu_frametime_label->setVisible(true);
+    emu_frametime_label->setVisible(false); // the frame time is in the FPS readout
+    if (in_game_menu_button != nullptr) {
+        in_game_menu_button->setVisible(true);
+    }
     firmware_label->setVisible(false);
 }
 

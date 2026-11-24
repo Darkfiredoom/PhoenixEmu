@@ -28,7 +28,7 @@ class QDialogButtonBox;
 class QLabel;
 class QStandardItem;
 class QStandardItemModel;
-class QTreeView;
+class QListView;
 class QVBoxLayout;
 class QListWidget;
 
@@ -90,7 +90,7 @@ private:
     std::vector<uint8_t> DecompressYaz0(const FileSys::VirtualFile& file);
 
     QVBoxLayout* layout;
-    QTreeView* tree_view;
+    QListView* tree_view; ///< The profiles, as cards
     QStandardItemModel* item_model;
     QGraphicsScene* scene;
     ConfigureProfileManagerDeleteDialog* confirm_dialog;

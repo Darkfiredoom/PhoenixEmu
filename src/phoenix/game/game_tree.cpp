@@ -121,7 +121,7 @@ void GameTree::ApplyFilter(const QString& edit_filter_text, GameListModel* model
     int children_total = 0;
     int result_count = 0;
 
-    if (edit_filter_text.isEmpty()) {
+    if (edit_filter_text.isEmpty() && UISettings::values.library_platform.GetValue() == 0) {
         children_total = FilterClosedResultCount(model);
         emit FilterResultReady(children_total, children_total);
         return;

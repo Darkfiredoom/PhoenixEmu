@@ -8,6 +8,7 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmapCache>
 #include <QPolygonF>
 #include <QTransform>
 
@@ -217,5 +218,179 @@ void DrawCaseBox(QPainter& p, const QModelIndex& index, const QRectF& local, qre
         p.drawPixmap(source, picture_of_face, QRectF(picture_of_face.rect()));
         p.fillRect(source, QColor(0, 0, 0, static_cast<int>((1.0 - lit) * 110)));
         p.restore();
+    }
+}
+
+namespace {
+/// The back of a game card: the player's photos of a Switch 2 card (red) and a Switch 1 card
+/// (dark grey), cut out to the card's shape.
+QPixmap CartridgeBack(bool is_switch2) {
+    const QString path = is_switch2 ? QStringLiteral(":/game_borders/cartridge_back_switch2.png")
+                                    : QStringLiteral(":/game_borders/cartridge_back_switch1.png");
+    QPixmap back;
+    if (!QPixmapCache::find(path, &back)) {
+        back.load(path);
+        QPixmapCache::insert(path, back);
+    }
+    return back;
+}
+} // Anonymous namespace
+
+void DrawCartridgeBox(QPainter& p, bool is_switch2, const QRectF& local, qreal dpr,
+                      qreal angle_deg, const QPixmap& picture) {
+    using Style = GameCard::Style;
+    // The card itself, without the frame's clear margin.
+    const QRectF body = GameCard::FrameBody(Style::Cartridge, local);
+    const qreal box_w = body.width();
+    const qreal box_h = body.height();
+    if (box_w < 2 || box_h < 2) {
+        return;
+    }
+    // A real game card is 21 x 31 x 3.3 mm: about a sixth as thick as it is wide.
+    const qreal thick = box_w * 0.157;
+    const qreal eye = box_w * 4.43;
+    const qreal radius = GameCard::FrameRadius(Style::Cartridge, local.width());
+    const qreal angle = angle_deg * 3.14159265358979 / 180.0;
+    const qreal cs = std::cos(angle);
+    const qreal sn = std::sin(angle);
+    const QPointF centre = body.center();
+    struct Vec {
+        qreal x, y, z;
+    };
+    const auto turn = [&](const Vec& v) {
+        return Vec{cs * v.x + sn * v.z, v.y, -sn * v.x + cs * v.z};
+    };
+    const auto project = [&](const Vec& v) {
+        const Vec r = turn(v);
+        const qreal f = eye / (eye - r.z);
+        return QPointF(centre.x() + r.x * f, centre.y() + r.y * f);
+    };
+    const qreal hw = box_w / 2;
+    const qreal hh = box_h / 2;
+    const qreal hd = thick / 2;
+    const QSizeF face_size{box_w, box_h};
+    const QRectF whole{QPointF(0, 0), face_size};
+    const QSize face_px{std::max(1, qRound(box_w * dpr)), std::max(1, qRound(box_h * dpr))};
+
+    // A layer of the card at depth z (its picture's top left at the card's top left).
+    const auto draw_layer = [&](const QPixmap& layer, qreal z, bool mirrored, int shade) {
+        QPolygonF quad;
+        if (mirrored) {
+            quad << project({hw, -hh, z}) << project({-hw, -hh, z}) << project({-hw, hh, z})
+                 << project({hw, hh, z});
+        } else {
+            quad << project({-hw, -hh, z}) << project({hw, -hh, z}) << project({hw, hh, z})
+                 << project({-hw, hh, z});
+        }
+        const QPolygonF from{whole.topLeft(), whole.topRight(), whole.bottomRight(),
+                             whole.bottomLeft()};
+        QTransform onto;
+        if (!QTransform::quadToQuad(from, quad, onto)) {
+            return;
+        }
+        p.save();
+        p.setTransform(onto, true);
+        p.drawPixmap(whole, layer, QRectF(layer.rect()));
+        if (shade > 0) {
+            QPainterPath shape;
+            shape.addRoundedRect(whole, radius, radius);
+            p.fillPath(shape, QColor(0, 0, 0, shade));
+        }
+        p.restore();
+    };
+
+    // The faces' pictures.
+    const auto make_front = [&]() {
+        QPixmap face(face_px);
+        face.setDevicePixelRatio(dpr);
+        face.fill(Qt::transparent);
+        QPainter fp(&face);
+        fp.setRenderHint(QPainter::Antialiasing);
+        fp.setRenderHint(QPainter::SmoothPixmapTransform);
+        QPainterPath shape;
+        shape.addRoundedRect(whole, radius, radius);
+        fp.setClipPath(shape);
+        const QRectF frame_rect = local.translated(-body.topLeft());
+        const QPixmap frame = GameCard::CartridgePixmap(qRound(frame_rect.height()), dpr, is_switch2);
+        fp.drawPixmap(frame_rect, frame, QRectF(frame.rect()));
+        const QRectF label = GameCard::CartridgeLabelRect(frame_rect);
+        QPainterPath label_clip;
+        label_clip.addRoundedRect(label, label.width() * 0.04, label.width() * 0.04);
+        fp.setClipPath(label_clip, Qt::IntersectClip);
+        if (!picture.isNull()) {
+            GameCard::DrawCoverCropped(fp, picture, label);
+        } else {
+            fp.fillRect(label, QColor(0x22, 0x1C, 0x18));
+        }
+        return face;
+    };
+    const auto make_back = [&]() {
+        QPixmap face(face_px);
+        face.setDevicePixelRatio(dpr);
+        face.fill(Qt::transparent);
+        QPainter fp(&face);
+        fp.setRenderHint(QPainter::Antialiasing);
+        fp.setRenderHint(QPainter::SmoothPixmapTransform);
+        const QPixmap back = CartridgeBack(is_switch2);
+        if (!back.isNull()) {
+            fp.drawPixmap(whole, back, QRectF(back.rect()));
+        } else {
+            fp.setPen(Qt::NoPen);
+            fp.setBrush(is_switch2 ? QColor(0xD8, 0x26, 0x1A) : QColor(0x35, 0x3B, 0x3C));
+            fp.drawRoundedRect(whole, radius, radius);
+        }
+        return face;
+    };
+    // One slice of the edge: the card's outline in its plastic. Drawn small (only its rim shows
+    // past the slices in front of it), and scaled up onto the layer.
+    const QColor edge = is_switch2 ? QColor(0xB4, 0x1A, 0x10) : QColor(0x28, 0x2D, 0x2E);
+    QPixmap slice(QSize(std::max(1, qRound(box_w * dpr * 0.5)), std::max(1, qRound(box_h * dpr * 0.5))));
+    slice.fill(Qt::transparent);
+    {
+        QPainter sp(&slice);
+        sp.setRenderHint(QPainter::Antialiasing);
+        const QRectF r{QPointF(0, 0), QSizeF(slice.size())};
+        QLinearGradient fill{r.topLeft(), r.bottomLeft()};
+        fill.setColorAt(0.0, edge.lighter(122));
+        fill.setColorAt(0.5, edge);
+        fill.setColorAt(1.0, edge.darker(125));
+        sp.setPen(Qt::NoPen);
+        sp.setBrush(fill);
+        const qreal rr = radius * dpr * 0.5;
+        sp.drawRoundedRect(r, rr, rr);
+    }
+
+    // A soft shadow under it: its outline, a little below.
+    QPolygonF outline;
+    for (const qreal z : {-hd, hd}) {
+        outline = outline.united(QPolygonF{project({-hw, -hh, z}), project({hw, -hh, z}),
+                                           project({hw, hh, z}), project({-hw, hh, z})});
+    }
+    p.setPen(Qt::NoPen);
+    for (int spread = 1; spread <= 5; ++spread) {
+        p.setBrush(QColor(0, 0, 0, 14));
+        p.drawPolygon(outline.translated(0, 3.0 + spread));
+    }
+
+    // Which face is towards the eye (at z = eye in front of the middle)?
+    const Vec front_normal = turn({0, 0, 1});
+    const Vec front_centre = turn({0, 0, hd});
+    const bool front_shows = front_normal.x * -front_centre.x + front_normal.z * (eye - front_centre.z) > 0;
+    // The light from the front, a little left: a face turned away from it darker; the edge
+    // lighter on the side the light reaches.
+    const qreal lit = std::clamp(std::abs(cs) * 0.85 + 0.15 - sn * 0.12 * (front_shows ? 1 : -1),
+                                 0.0, 1.0);
+    const int edge_shade = static_cast<int>(std::clamp(0.35 - sn * 0.25, 0.05, 0.6) * 255 * 0.6);
+    const int steps = std::clamp(static_cast<int>(thick * std::abs(sn) / 1.2), 2, 28);
+    for (int i = 0; i <= steps; ++i) {
+        // From the far face to the near one.
+        const qreal t = static_cast<qreal>(i) / steps;
+        const qreal z = front_shows ? -hd + thick * t : hd - thick * t;
+        draw_layer(slice, z * 0.98, false, edge_shade);
+    }
+    if (front_shows) {
+        draw_layer(make_front(), hd, false, static_cast<int>((1.0 - lit) * 120));
+    } else {
+        draw_layer(make_back(), -hd, true, static_cast<int>((1.0 - lit) * 120));
     }
 }

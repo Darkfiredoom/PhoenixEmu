@@ -66,6 +66,8 @@ public:
     /// Save all button configurations to settings file
     void ApplyConfiguration();
 
+    /// The name and picture the game list shows, used when the game file has none of its own.
+    void SetListInfo(const QString& title, const QPixmap& picture);
     void LoadFromFile(FileSys::VirtualFile file_);
 
 private:
@@ -99,6 +101,32 @@ private:
     std::shared_ptr<std::atomic_bool> detect_cancel;
 
     QGraphicsScene* scene;
+
+    /// The settings shell around the pages (settings_shell.h): a sidebar with the game and its
+    /// pages, a header with its picture, name, badge and how many settings are its own.
+    void BuildShell();
+    void FillPages();
+    void FilterPages();
+    void UpdateHeader(const QPixmap& icon);
+    QString list_title;   ///< The game list's name and picture, for dumps without their own
+    QPixmap list_picture;
+    QPixmap header_picture;
+    struct PageInfo {
+        QWidget* page;
+        QString name;
+        int icon;
+        bool advanced;
+    };
+    std::vector<PageInfo> page_infos;
+    class QListWidget* page_list{};
+    class QLineEdit* page_search{};
+    class QLabel* side_icon{};
+    class QLabel* side_name{};
+    class QLabel* header_icon{};
+    class QLabel* header_name{};
+    class QLabel* header_changes{};
+    class QLabel* header_badge{};
+    class QLabel* header_meta{};
 
     std::unique_ptr<QtConfig> game_config;
 

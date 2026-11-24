@@ -459,7 +459,8 @@ CustomizePanel::CustomizePanel(std::function<void(bool)> apply_,
         c->setContentsMargins(0, 4, 0, 0);
         c->setSpacing(6);
         c->addWidget(new QLabel(tr("Home layout")));
-        layout_group = Segments(c, {tr("Stack"), tr("Row"), tr("Shelf")}, [this](int id) {
+        layout_group = Segments(c, {tr("Stack"), tr("Row"), tr("Shelf"), tr("Library")},
+                                [this](int id) {
             UISettings::values.carousel_layout = static_cast<u32>(id);
             Changed();
         });
@@ -832,9 +833,11 @@ void CustomizePanel::Refresh() {
     const bool home = v.game_list_mode.GetValue() == Settings::GameListMode::CarouselView;
     carousel_options->setVisible(home);
     icon_options->setVisible(!home);
-    layout_group->button(static_cast<int>(std::min(v.carousel_layout.GetValue(), 2U)))
+    layout_group->button(static_cast<int>(std::min(v.carousel_layout.GetValue(), 3U)))
         ->setChecked(true);
-    stack_options->setVisible(v.carousel_layout.GetValue() != 1); // the shelf uses them too
+    // The stack's options; the shelf uses them too (the row and the library do not).
+    stack_options->setVisible(v.carousel_layout.GetValue() == 0 ||
+                              v.carousel_layout.GetValue() == 2);
     card_size_group->button(static_cast<int>(std::min(v.carousel_card_size.GetValue(), 4U)))
         ->setChecked(true);
     side_count_group

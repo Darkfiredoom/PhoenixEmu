@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <QList>
@@ -34,6 +35,7 @@ enum class GameListItemType;
 
 namespace FileSys {
 class NCA;
+class PatchManager;
 class VfsFilesystem;
 } // namespace FileSys
 
@@ -77,6 +79,11 @@ private:
 
 private:
     void AddTitlesToGameList(GameListDir* parent_dir, GameListItemType parent_type);
+
+    /// Whether the game shows as a Switch 2 game, and why when only its update, upgrade pack or
+    /// a mod makes it one (empty otherwise). The player's own choice for the game wins.
+    std::pair<bool, std::string> Platform(const FileSys::VirtualFile& file, u64 program_id,
+                                          const FileSys::PatchManager& patch) const;
 
     enum class ScanTarget {
         FillManualContentProvider,

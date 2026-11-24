@@ -139,7 +139,9 @@ struct System::Impl {
 
     u64 program_id;
 
-    bool Initialize(System& system) {
+    /// Creates the guest memory, left empty when the host can't give it (no backing pages).
+    void AllocateDeviceMemory() {
+        device_memory.reset();
         try {
             device_memory.emplace();
         } catch (const std::bad_alloc&) {
@@ -148,6 +150,10 @@ struct System::Impl {
         if (device_memory && !device_memory->buffer.BackingBasePointer()) {
             device_memory.reset();
         }
+    }
+
+    bool Initialize(System& system) {
+        AllocateDeviceMemory();
 
         is_multicore = Settings::values.use_multi_core.GetValue();
         memory_layout = Settings::values.memory_layout_mode.GetValue();
@@ -303,9 +309,15 @@ struct System::Impl {
         LOG_DEBUG(Core, "initialized OK");
 
         // ShutdownMainProcess releases it after a Switch 2 game; create it before the check below
-        // so an empty slot alone does not rerun the full Initialize.
+        // so an empty slot alone does not rerun the full Initialize. Made through
+        // AllocateDeviceMemory: a bare emplace kept an allocation that failed, and the kernel then
+        // wrote its slab heaps into nothing.
         if (!device_memory.has_value()) {
-            device_memory.emplace();
+            AllocateDeviceMemory();
+            if (!device_memory) {
+                LOG_CRITICAL(Core, "Not enough host memory to start the guest kernel");
+                return SystemResultStatus::ErrorMemoryAllocation;
+            }
         }
 
         // Setting changes may require a full system reinitialization (e.g., disabling multicore).

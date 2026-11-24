@@ -107,6 +107,9 @@ public:
     static constexpr int CaseSpineRole = SortRole + 10;
     /// The case's back from the case art (at most 640 px tall), or a null pixmap.
     static constexpr int CaseBackRole = SortRole + 11;
+    /// Why a Switch 1 game shows as its Switch 2 Edition ("update 1.2.0", "upgrade pack (add-on
+    /// 1)", "mod ..."), or nothing: it is a Switch 2 game itself or a Switch 1 one.
+    static constexpr int Switch2EditionRole = SortRole + 12;
 
     GameListItemPath() = default;
     GameListItemPath(const QString& game_path, const std::vector<u8>& picture_data,

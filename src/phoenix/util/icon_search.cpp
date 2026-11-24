@@ -168,8 +168,11 @@ constexpr std::string_view IconSiteHost = "https://switchiconshowdown.com";
 constexpr std::string_view SgdbApiBase = "https://www.steamgriddb.com/api/v2";
 
 bool IsAllowedIconHost(std::string_view host) {
+    // cdn.switch-images-julio.com: Switch Cabinet's case scans (DownloadSwitchCabinetArt). Left
+    // off this list, every Switch 1 cover request was refused here and no case ever came.
     return host == "switchiconshowdown.com" || host == "steamgriddb.com" ||
-           host.ends_with(".steamgriddb.com") || host == "raw.githubusercontent.com";
+           host.ends_with(".steamgriddb.com") || host == "raw.githubusercontent.com" ||
+           host == "cdn.switch-images-julio.com";
 }
 
 enum class HttpStatus { Ok, NetworkError, Timeout, Cancelled, Unauthorized };
@@ -664,7 +667,8 @@ std::vector<u8> DownloadGamePicture(const std::string& url, const std::atomic_bo
     return EncodeSquareIcon(image);
 }
 
-CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::atomic_bool& cancel) {
+CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, bool switch2,
+                             const std::atomic_bool& cancel) {
     using namespace std::chrono;
     namespace fs = std::filesystem;
     const std::string base = fmt::format("https://raw.githubusercontent.com/{}/case-art/",
@@ -702,7 +706,10 @@ CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::a
     if (json.is_discarded() || !json.contains("games") || !json["games"].is_array()) {
         return CaseArtFetch::Failed;
     }
-    // The game: its title ID (or its base game's), else the best name.
+    // The game: its title ID (or its base game's), else the best name. A Switch 2 Edition shares
+    // its Switch 1 game's title ID, so the names tell them apart: a Switch 1 game skips entries
+    // named "... Switch 2 Edition" (Switch Cabinet then has its Switch 1 case), a Switch 2 game
+    // prefers them.
     const std::string id = fmt::format("{:016X}", title_id);
     const std::string base_id = fmt::format("{:016X}", title_id & ~u64{0xFFF});
     const QString title = QString::fromStdString(name);
@@ -710,6 +717,20 @@ CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::a
     int best_score = 0;
     for (const auto& game : json["games"]) {
         if (!game.is_object() || !game.contains("files") || !game["files"].is_array()) {
+            continue;
+        }
+        bool edition = false;
+        if (game.contains("folder") && game["folder"].is_string()) {
+            edition = CaseArt::IsSwitch2EditionName(
+                QString::fromStdString(game["folder"].get<std::string>()));
+        }
+        if (game.contains("names") && game["names"].is_array()) {
+            for (const auto& n : game["names"]) {
+                edition = edition || (n.is_string() && CaseArt::IsSwitch2EditionName(
+                                                           QString::fromStdString(n.get<std::string>())));
+            }
+        }
+        if (edition && !switch2) {
             continue;
         }
         int score = 0;
@@ -737,6 +758,9 @@ CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::a
                 score = std::max(score, CaseArt::MatchScore(QString::fromStdString(candidate),
                                                             title, title_id));
             }
+        }
+        if (edition && score > 0) {
+            score += 60;
         }
         if (score >= 600 && score > best_score) {
             best = &game;

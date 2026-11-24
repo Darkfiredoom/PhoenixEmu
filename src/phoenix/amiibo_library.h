@@ -13,7 +13,9 @@
 #include <QTimer>
 
 class ControllerNavigation;
+class QButtonGroup;
 class QComboBox;
+class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
@@ -30,7 +32,9 @@ class InputSubsystem;
 }
 
 // Amiibo files the player added once, tapped onto the virtual reader from a list instead of a file
-// dialog each time. A tap made while the game isn't scanning waits until it is.
+// dialog each time. A tap made while the game isn't scanning waits until it is. The figures sit on
+// cards in a grid (pills above it pick all, favorites, a group or a series); the picked one is
+// shown large beside them with what is known about it and what can be done with it.
 class AmiiboLibraryDialog final : public QDialog {
     Q_OBJECT
 
@@ -89,6 +93,11 @@ private:
     QString OnReaderPath();
     QString LabelFor(const QString& path) const;
     void UpdateState();
+    /// The panel beside the grid: the picked figure (or the one on the reader), large.
+    void UpdateDetails(const QString& on_reader, int state);
+    /// The pills above the grid, one per entry of `view`.
+    void RebuildPills();
+    void BackUp(const QString& path);
 
     InputCommon::InputSubsystem* input_subsystem;
     ControllerNavigation* controller_navigation = nullptr;
@@ -101,6 +110,23 @@ private:
     QPushButton* tap_button = nullptr;
     QPushButton* remove_tag_button = nullptr;
     QPushButton* forget_button = nullptr;
+    QPushButton* rename_button = nullptr;
+    QPushButton* favorite_button = nullptr;
+    QPushButton* group_button = nullptr;
+    QPushButton* backup_button = nullptr;
+    QLabel* count_label = nullptr;
+    QLabel* listening_label = nullptr;
+    QLabel* detail_heading = nullptr;
+    QLabel* detail_picture = nullptr;
+    QLabel* detail_name = nullptr;
+    QLabel* detail_series = nullptr;
+    QLabel* detail_group = nullptr;
+    QLabel* detail_file = nullptr;
+    QLabel* detail_id = nullptr;
+    QHBoxLayout* pill_row = nullptr;
+    QButtonGroup* pill_group = nullptr;
+    QString details_path;
+    int details_state = -1;
 
     std::vector<Row> rows;
     QHash<QString, QIcon> icons;

@@ -77,7 +77,17 @@
 #include "phoenix/configuration/configure_per_game.h"
 #include "phoenix/configuration/configure_per_game_addons.h"
 #include "phoenix/configuration/configure_system.h"
+#include "phoenix/configuration/settings_shell.h"
 #include "phoenix/util/util.h"
+
+#include <QButtonGroup>
+#include <QGraphicsPixmapItem>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QTabBar>
+#include <QVBoxLayout>
 
 namespace {
 
@@ -413,7 +423,8 @@ ConfigurePerGame::ConfigurePerGame(QWidget* parent, u64 title_id_, const std::st
     ui->tabWidget->addTab(applets_tab.get(), tr("Applets"));
 
     setFocusPolicy(Qt::ClickFocus);
-    setWindowTitle(tr("Properties"));
+    setWindowTitle(tr("Game Settings"));
+    BuildShell();
     // The tabs scroll as one, so the window is no longer at least 900 wide and fits a small
     // screen: it opens at the size it always had, or at what the screen has room for.
     {
@@ -620,6 +631,217 @@ void ConfigurePerGame::LoadConfiguration() {
 
     const auto valueText = QtCommon::ReadableByteSize(file->GetSize());
     ui->display_size->setText(valueText);
+    QPixmap own_picture;
+    for (QGraphicsItem* const item : scene->items()) {
+        if (auto* const pixmap = dynamic_cast<QGraphicsPixmapItem*>(item)) {
+            own_picture = pixmap->pixmap();
+        }
+    }
+    UpdateHeader(own_picture);
+}
+
+void ConfigurePerGame::BuildShell() {
+    using SettingsShell::Icon;
+    // The game's details (picture, name, IDs, file) become the first page, Overview.
+    ui->horizontalLayout->removeWidget(ui->groupBox);
+    auto* const overview = new QWidget(this);
+    auto* const overview_column = new QVBoxLayout(overview);
+    overview_column->setContentsMargins(12, 12, 12, 12);
+    ui->groupBox->setTitle(QString{});
+    ui->groupBox->setMaximumWidth(QWIDGETSIZE_MAX);
+    ui->groupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    overview_column->addWidget(ui->groupBox);
+    overview_column->addStretch(1);
+    ui->tabWidget->insertTab(0, overview, tr("Overview"));
+
+    // The pages in the order the sidebar lists them; the advanced ones only in Advanced.
+    const struct {
+        int tab;
+        QString name;
+        Icon icon;
+        bool advanced;
+    } order[] = {
+        {0, tr("Overview"), Icon::Overview, false},
+        {4, tr("Graphics"), Icon::Graphics, false},
+        {5, tr("Graphics (advanced)"), Icon::FrameRate, true},
+        {6, tr("Graphics extensions"), Icon::Graphics, true},
+        {3, tr("CPU"), Icon::Cpu, true},
+        {8, tr("Controls"), Icon::Controls, false},
+        {7, tr("Audio"), Icon::Audio, false},
+        {2, tr("System"), Icon::System, false},
+        {9, tr("Network"), Icon::Network, true},
+        {10, tr("Applets"), Icon::Applets, true},
+        {1, tr("Mods, updates and DLC"), Icon::Mods, false},
+    };
+    for (const auto& entry : order) {
+        if (entry.tab < ui->tabWidget->count()) {
+            page_infos.push_back({ui->tabWidget->widget(entry.tab), entry.name,
+                                  static_cast<int>(entry.icon), entry.advanced});
+        }
+    }
+    ui->tabWidget->tabBar()->hide();
+    ui->tabWidget->setObjectName(QStringLiteral("SettingsTabs"));
+    ui->tabWidget->setCurrentIndex(0); // opens on Overview
+
+    // The sidebar: the game, a search box, the pages.
+    page_list = new QListWidget(this);
+    const auto sidebar = SettingsShell::BuildSidebar(this, page_list, QString{},
+                                                     tr("Search this game's settings"));
+    sidebar.title->hide();
+    page_search = sidebar.search;
+    auto* const game_row = new QHBoxLayout;
+    game_row->setSpacing(10);
+    side_icon = new QLabel(sidebar.frame);
+    side_icon->setFixedSize(44, 44);
+    side_icon->setScaledContents(true);
+    auto* const game_text = new QVBoxLayout;
+    game_text->setSpacing(0);
+    side_name = new QLabel(sidebar.frame);
+    side_name->setObjectName(QStringLiteral("GameSettingsName"));
+    auto* const caption = new QLabel(tr("Game settings"), sidebar.frame);
+    caption->setObjectName(QStringLiteral("GameSettingsCaption"));
+    game_text->addWidget(side_name);
+    game_text->addWidget(caption);
+    game_row->addWidget(side_icon);
+    game_row->addLayout(game_text, 1);
+    sidebar.top->addLayout(game_row);
+    ui->horizontalLayout->insertWidget(0, sidebar.frame);
+
+    // The header: the game's picture, name, how many settings are its own, badge and version.
+    auto* const header = new QWidget(this);
+    header->setObjectName(QStringLiteral("SettingsHeader"));
+    auto* const header_row = new QHBoxLayout(header);
+    header_row->setContentsMargins(6, 6, 6, 10);
+    header_row->setSpacing(16);
+    header_icon = new QLabel(header);
+    header_icon->setFixedSize(76, 76);
+    header_icon->setScaledContents(true);
+    header_row->addWidget(header_icon, 0, Qt::AlignTop);
+    auto* const header_text = new QVBoxLayout;
+    header_text->setSpacing(4);
+    header_name = new QLabel(header);
+    header_name->setObjectName(QStringLiteral("SettingsPageTitle"));
+    header_changes = new QLabel(header);
+    header_changes->setObjectName(QStringLiteral("SettingsPageSubtitle"));
+    auto* const meta_row = new QHBoxLayout;
+    meta_row->setSpacing(10);
+    header_badge = new QLabel(header);
+    header_badge->setObjectName(QStringLiteral("GameSettingsBadge"));
+    header_meta = new QLabel(header);
+    header_meta->setObjectName(QStringLiteral("GameSettingsMeta"));
+    meta_row->addWidget(header_badge);
+    meta_row->addWidget(header_meta);
+    meta_row->addStretch(1);
+    header_text->addWidget(header_name);
+    header_text->addWidget(header_changes);
+    header_text->addLayout(meta_row);
+    header_row->addLayout(header_text, 1);
+    auto* const header_right = new QHBoxLayout;
+    QButtonGroup* const mode = SettingsShell::BuildModeSwitch(
+        header, header_right, UISettings::values.settings_advanced.GetValue());
+    header_row->addLayout(header_right);
+    ui->VerticalLayout->removeWidget(ui->tabWidget);
+    ui->VerticalLayout->addWidget(header);
+    ui->VerticalLayout->addWidget(ui->tabWidget, 1);
+    setMinimumSize(980, 680);
+
+    connect(page_list, &QListWidget::currentRowChanged, this, [this](int row) {
+        if (row >= 0) {
+            ui->tabWidget->setCurrentIndex(page_list->item(row)->data(Qt::UserRole).toInt());
+        }
+    });
+    connect(mode, &QButtonGroup::idClicked, this, [this](int id) {
+        UISettings::values.settings_advanced = id == 1;
+        FillPages();
+    });
+    connect(page_search, &QLineEdit::textChanged, this, [this] { FilterPages(); });
+    FillPages();
+}
+
+void ConfigurePerGame::FillPages() {
+    QWidget* const shown = ui->tabWidget->currentWidget();
+    const bool advanced = UISettings::values.settings_advanced.GetValue();
+    const QSignalBlocker blocker(page_list);
+    page_list->clear();
+    int select = 0;
+    for (const PageInfo& info : page_infos) {
+        if (info.advanced && !advanced) {
+            continue;
+        }
+        auto* const item = new QListWidgetItem(
+            SettingsShell::MakeIcon(static_cast<SettingsShell::Icon>(info.icon)), info.name);
+        item->setData(Qt::UserRole, ui->tabWidget->indexOf(info.page));
+        item->setSizeHint(QSize(0, 40));
+        if (info.page == shown) {
+            select = page_list->count();
+        }
+        page_list->addItem(item);
+    }
+    page_list->setCurrentRow(select);
+    ui->tabWidget->setCurrentIndex(page_list->item(select)->data(Qt::UserRole).toInt());
+    FilterPages();
+}
+
+void ConfigurePerGame::FilterPages() {
+    const QString query = page_search->text().trimmed();
+    int first = -1;
+    for (int row = 0; row < page_list->count(); ++row) {
+        QListWidgetItem* const item = page_list->item(row);
+        const bool match = query.isEmpty() || item->text().contains(query, Qt::CaseInsensitive) ||
+                           SettingsShell::ContainsText(
+                               ui->tabWidget->widget(item->data(Qt::UserRole).toInt()), query);
+        item->setHidden(!match);
+        if (match && first < 0) {
+            first = row;
+        }
+    }
+    if ((page_list->currentItem() == nullptr || page_list->currentItem()->isHidden()) && first >= 0) {
+        page_list->setCurrentRow(first);
+    }
+}
+
+void ConfigurePerGame::SetListInfo(const QString& title, const QPixmap& picture) {
+    list_title = title;
+    list_picture = picture;
+    if (scene->items().isEmpty() && !picture.isNull()) {
+        UpdateIconPreview(picture); // Overview's picture box, for a dump without its own
+    }
+    UpdateHeader(header_picture);
+}
+
+void ConfigurePerGame::UpdateHeader(const QPixmap& icon) {
+    if (header_name == nullptr) {
+        return;
+    }
+    header_picture = icon;
+    // A loose dump may have no name or picture of its own: the game list's are shown then.
+    QString name = ui->display_name->text().trimmed();
+    if (name.isEmpty()) {
+        name = list_title;
+    }
+    header_name->setText(name);
+    side_name->setText(fontMetrics().elidedText(name, Qt::ElideRight, 160));
+    const QPixmap shown = icon.isNull() ? list_picture : icon;
+    if (!shown.isNull()) {
+        header_icon->setPixmap(shown);
+        side_icon->setPixmap(shown);
+    }
+    // How many settings this game sets itself, rather than taking the global ones.
+    int own = 0;
+    for (const auto& [category, settings] : Settings::values.linkage.by_category) {
+        for (const auto* setting : settings) {
+            if (setting->Switchable() && !setting->UsingGlobal()) {
+                ++own;
+            }
+        }
+    }
+    header_changes->setText(own == 0 ? tr("Uses your global settings.")
+                                     : tr("Uses your global settings, except %n change(s).",
+                                          nullptr, own));
+    const bool switch2 = file != nullptr && Loader::IsSwitch2Program(file, title_id);
+    header_badge->setText(switch2 ? tr("Switch 2") : tr("Switch"));
+    header_meta->setText(QStringLiteral("v%1  \u00B7  %2")
+                             .arg(ui->display_version->text(), ui->display_title_id->text()));
 }
 
 void ConfigurePerGame::UpdateIconPreview(const QPixmap& map) {

@@ -24,6 +24,8 @@ public:
     ~GameCarousel() override;
 
     void SetModel(GameListModel* model);
+    /// Picks the first game still shown when the picked one is hidden (a library tab).
+    void EnsureVisiblePick();
     void ApplyFilter(const QString& edit_filter_text, GameListModel* model);
     void UpdateIconSize();
     /// The name on the home view's user button.
@@ -42,7 +44,14 @@ signals:
     void CustomizeRequested();
     /// The picked game's case was clicked (the Case look): open it.
     void CaseOpenRequested(const QModelIndex& game);
+    /// The Cartridge look: the picked cartridge held up to be turned over (CartridgeViewer).
+    void CartridgeOpenRequested(const QModelIndex& game);
     void ControllersRequested();
+    /// The Library layout's hero: "Game settings" and the "..." button (the game's menu).
+    void GameSettingsRequested(const QModelIndex& game);
+    void GameMenuRequested(const QModelIndex& game, const QPoint& global_pos);
+    /// The Library layout's list button: the game list as a list.
+    void ListViewRequested();
 
 protected:
     /// The warm background, a greeting and a clock, then the tiles.
@@ -58,6 +67,33 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
 
 private:
+    /// UISettings::carousel_layout 3: the Library (PhoenixEmu's Paper design): the picked game
+    /// large at the top (its badge, title, Play, Game settings and its menu), the games in a grid
+    /// under it: covers, cases on shelves or cartridges in a rack, by the game card look.
+    [[nodiscard]] static bool LibraryLayout();
+    /// The views that lay out and paint their cards themselves (the stack, shelf and library).
+    [[nodiscard]] static bool CustomLayout();
+    struct LibraryGeometry {
+        int left = 48;
+        int hero_badge_y = 0;  ///< The badge line's middle
+        int hero_title_y = 0;  ///< The title's baseline
+        int heading_y = 0;     ///< The "Library" heading's top
+        QRect tiles;           ///< Where the tiles are (they scroll inside it)
+        int columns = 1;
+        QSizeF tile;           ///< A tile's picture (a cover, a case, a cartridge slot)
+        QSizeF cell;           ///< A tile with its gaps and name
+        QRectF hero_art;       ///< The case or cartridge at the top right (Case, Cartridge looks)
+    };
+    [[nodiscard]] LibraryGeometry Library() const;
+    [[nodiscard]] QRectF LibraryTileRect(int position, const LibraryGeometry& g) const;
+    [[nodiscard]] QModelIndex LibraryIndexAt(const QPoint& point) const;
+    void PaintLibrary(QPainter& painter);
+    void ScrollLibraryTo(int position);
+    qreal m_libraryScroll = 0.0;
+    class QPushButton* m_settingsButton = nullptr;
+    class QPushButton* m_moreButton = nullptr;
+    /// Grid, list, cases, cartridges: the Library heading's view buttons.
+    std::vector<class QPushButton*> m_viewButtons;
     /// UISettings::carousel_layout: one big card with the others tilted behind it (after
     /// Eglantine's home screen redesign), else the row of tiles.
     [[nodiscard]] static bool Stacked();

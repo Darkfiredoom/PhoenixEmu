@@ -339,6 +339,9 @@ struct BufferCacheTestAccess {
         channel.uniform_buffers[0][0] = {.device_addr = address, .size = size, .buffer_id = id};
         cache.BindHostGraphicsUniformBuffer(0, 0, 0, true);
     }
+    static void NextFrame(Cache& cache) {
+        cache.native_indirect_uniforms_this_frame.clear();
+    }
     static u32 CpuMarks(Cache& cache) {
         return cache.memory_tracker.cpu_marks;
     }
@@ -1014,27 +1017,23 @@ TEST_CASE("Native uniform banks upload directly without overwriting GPU-owned by
     std::memset(f.bytes + 0x10000, 0x5a, 0x10000);
     Access::Uniform(*f.cache, channel, id, 0x20000, 0x10000);
     REQUIRE(f.runtime.upload_bytes == 0x10000);
-    REQUIRE(Access::CpuMarks(*f.cache) == 16);
+    // The bank is uploaded whole, once a frame (the per-page check gave way to this in the
+    // Ocarina 60 fps work: its compares cost frame rate), without marking pages.
+    REQUIRE(Access::CpuMarks(*f.cache) == 0);
     REQUIRE(Access::Get(*f.cache, id).bytes[0xffff] == 0x5a);
-    const u32 uploads = f.runtime.uploads;
     Access::Uniform(*f.cache, channel, id, 0x20000, 0x10000);
-    REQUIRE(f.runtime.uploads == uploads);
-    REQUIRE(Access::CpuMarks(*f.cache) == 16);
-    // A write the tracker missed is found on the next bind, and only its page is marked (this
-    // tree compares the bank on every bind: upstream's guest sync epoch isn't in it).
-    std::memset(f.bytes + 0x13000, 0x77, 0x1000);
-    Access::Uniform(*f.cache, channel, id, 0x20000, 0x10000);
-    REQUIRE(Access::CpuMarks(*f.cache) == 17);
-    REQUIRE(f.runtime.upload_bytes == 0x11000);
-    REQUIRE(Access::Get(*f.cache, id).bytes[0x3000] == 0x77);
+    REQUIRE(f.runtime.uploads == 1);
+    Access::NextFrame(*f.cache);
+    // Bytes the GPU wrote are not overwritten by the next frame's upload.
     Access::Dirty(*f.cache, 0x21000, 0x1000);
     std::memset(f.bytes + 0x10000, 0xa5, 0x10000);
     Access::Uniform(*f.cache, channel, id, 0x20000, 0x10000);
-    REQUIRE(f.runtime.upload_bytes == 0x11000);
+    REQUIRE(f.runtime.uploads == 1);
     REQUIRE(Access::Get(*f.cache, id).bytes[0x1000] == 0x5a);
 }
 
-TEST_CASE("Native uniform bank checks stop at holes", "[buffer_ports]") {
+TEST_CASE("Native uniform uploads stop at holes and keep unaligned bank boundaries",
+          "[buffer_ports]") {
     Fixture f;
     f.memory->EnableNativeTiling();
     Tegra::Control::ChannelState state{0};
@@ -1048,18 +1047,20 @@ TEST_CASE("Native uniform bank checks stop at holes", "[buffer_ports]") {
     std::memset(f.bytes + 0x10000, 0x6b, 0x20000);
     f.device.Unmap(0x22000, 0x1000);
     Access::Uniform(*f.cache, channel, id, 0x20123, 0x10000);
-    REQUIRE(Access::CpuMarks(*f.cache) == 2);
-    REQUIRE(f.runtime.upload_bytes == 0x2000);
+    REQUIRE(f.runtime.upload_bytes == 0x1edd);
     const auto& data = Access::Get(*f.cache, id).bytes;
+    REQUIRE(data[0x122] == 0);
     REQUIRE(data[0x123] == 0x6b);
     REQUIRE(data[0x1fff] == 0x6b);
     REQUIRE(data[0x2000] == 0);
     REQUIRE(data[0x3000] == 0);
+    REQUIRE(Access::CpuMarks(*f.cache) == 0);
     f.device.Map(0x22000, 0x22000, 0x1000, f.asid);
+    Access::NextFrame(*f.cache);
     Access::Uniform(*f.cache, channel, id, 0x20123, 0x10000);
-    REQUIRE(Access::CpuMarks(*f.cache) == 17);
-    REQUIRE(data[0x2000] == 0x6b);
+    REQUIRE(f.runtime.upload_bytes == 0x11edd);
     REQUIRE(data[0x10122] == 0x6b);
+    REQUIRE(data[0x10123] == 0);
 }
 
 TEST_CASE("Downloads keep CPU writes collected and not yet applied", "[buffer_ports]") {

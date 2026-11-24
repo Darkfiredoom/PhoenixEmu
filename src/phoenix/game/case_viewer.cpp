@@ -111,7 +111,8 @@ void CaseViewer::Open(const QModelIndex& index) {
     game = first;
     title = first.data(GameListItemPath::TitleRole).toString();
     is_switch2 = first.data(GameListItemPath::Switch2Role).toBool();
-    art = CaseArt::Load(title, first.data(GameListItemPath::ProgramIdRole).toULongLong());
+    art = CaseArt::Load(title, first.data(GameListItemPath::ProgramIdRole).toULongLong(),
+                        is_switch2);
     picture = first.data(GameListItemPath::LargePictureRole).value<QPixmap>();
     if (picture.isNull()) {
         picture = first.data(Qt::DecorationRole).value<QPixmap>();

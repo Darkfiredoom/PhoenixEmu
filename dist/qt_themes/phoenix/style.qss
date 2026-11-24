@@ -3497,3 +3497,234 @@ QWidget#PhoenixMenuSeam {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E0452B, stop:0.35 #FF8A3D,
                                       stop:0.6 #FFC83D, stop:1 rgba(255, 200, 61, 0));
 }
+
+/* The library's tabs (All / Switch 2 / Switch 1) at the top bar's right. */
+QWidget#PhoenixLibraryTabs {
+    background-color: rgba(255, 230, 180, 16);
+    border: 1px solid rgba(255, 200, 61, 45);
+    border-radius: 15px;
+}
+
+QPushButton#PhoenixLibraryTab {
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    color: #E9DCC2;
+    padding: 3px 13px;
+    min-height: 18px;
+    font-weight: 600;
+}
+
+QPushButton#PhoenixLibraryTab:hover {
+    background-color: rgba(255, 200, 61, 30);
+}
+
+QPushButton#PhoenixLibraryTab:checked {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF8A3D, stop:1 #FFC83D);
+    color: #2A1600;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Settings shell (build 13): Settings and a game's settings share a sidebar of pages with drawn
+ * icons, a search box, a header naming the page, an Everyday / Advanced switch and pill tabs
+ * (configuration/settings_shell.cpp).
+ * --------------------------------------------------------------------------------------------- */
+QFrame#SettingsSidebar {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1E1710, stop:1 #15100B);
+    border: none;
+    border-right: 1px solid rgba(255, 200, 61, 28);
+}
+
+QLabel#SettingsTitle {
+    color: #FFF4DA;
+    font-size: 17pt;
+    font-weight: 800;
+    padding: 2px 4px 0px 4px;
+}
+
+QLabel#SettingsFooter {
+    color: rgba(233, 220, 194, 120);
+    font-size: 8.5pt;
+    padding-left: 6px;
+}
+
+QLineEdit#SettingsSearch {
+    background-color: rgba(255, 230, 180, 14);
+    border: 1px solid rgba(255, 230, 180, 30);
+    border-radius: 16px;
+    padding: 6px 12px;
+    min-height: 20px;
+}
+
+QLineEdit#SettingsSearch:focus {
+    border: 1px solid #FFC83D;
+    background-color: rgba(255, 200, 61, 20);
+}
+
+QListWidget#SettingsPages {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+QListWidget#SettingsPages::item {
+    color: #EDE2CC;
+    border-radius: 10px;
+    padding: 4px 8px;
+    margin: 1px 0px;
+    font-weight: 600;
+}
+
+QListWidget#SettingsPages::item:hover {
+    background-color: rgba(255, 200, 61, 18);
+}
+
+QListWidget#SettingsPages::item:selected {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(255, 138, 61, 70),
+                                      stop:1 rgba(255, 82, 48, 25));
+    border-left: 3px solid #FF8A3D;
+    color: #FFF4DA;
+}
+
+QLabel#SettingsPageTitle {
+    color: #FFF4DA;
+    font-size: 20pt;
+    font-weight: 800;
+}
+
+QLabel#SettingsPageSubtitle {
+    color: rgba(233, 220, 194, 170);
+    font-size: 10pt;
+}
+
+QFrame#SettingsModeSwitch {
+    background-color: rgba(255, 230, 180, 14);
+    border: 1px solid rgba(255, 200, 61, 40);
+    border-radius: 16px;
+}
+
+QPushButton#SettingsModeButton {
+    background: transparent;
+    border: none;
+    border-radius: 13px;
+    padding: 5px 14px;
+    color: #E9DCC2;
+    font-weight: 700;
+}
+
+QPushButton#SettingsModeButton:checked {
+    background-color: #FFF4DA;
+    color: #2A1600;
+}
+
+QTabWidget#SettingsTabs::pane {
+    border: 1px solid rgba(255, 200, 61, 26);
+    border-radius: 14px;
+    background-color: rgba(255, 230, 180, 6);
+    top: 6px;
+}
+
+QTabWidget#SettingsTabs > QTabBar::tab {
+    background: rgba(255, 230, 180, 12);
+    border: 1px solid rgba(255, 230, 180, 24);
+    border-radius: 14px;
+    padding: 6px 16px;
+    margin-right: 6px;
+    color: #E9DCC2;
+    font-weight: 600;
+}
+
+QTabWidget#SettingsTabs > QTabBar::tab:hover {
+    background: rgba(255, 200, 61, 26);
+}
+
+QTabWidget#SettingsTabs > QTabBar::tab:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF8A3D, stop:1 #FFC83D);
+    border: 1px solid #FFC83D;
+    color: #2A1600;
+}
+
+/* A game's settings: the game at the sidebar's top, and the header's picture and badge. */
+QLabel#GameSettingsName {
+    color: #FFF4DA;
+    font-weight: 800;
+    font-size: 11pt;
+}
+
+QLabel#GameSettingsCaption {
+    color: rgba(233, 220, 194, 150);
+    font-size: 9pt;
+}
+
+QLabel#GameSettingsBadge {
+    background-color: rgba(255, 82, 48, 50);
+    border: 1px solid #FF8A3D;
+    border-radius: 9px;
+    color: #FFB08A;
+    font-weight: 800;
+    font-size: 8.5pt;
+    padding: 1px 9px;
+}
+
+QLabel#GameSettingsMeta {
+    color: rgba(233, 220, 194, 160);
+    font-weight: 600;
+}
+
+/* In a game: the FPS readout and the pill that opens the quick menu. */
+QLabel#InGameFpsLabel {
+    color: #FFF4DA;
+    font-weight: 700;
+}
+
+QPushButton#InGameMenuButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF5230, stop:1 #FF8A3D);
+    border: 1px solid #FFB08A;
+    border-radius: 11px;
+    color: #FFF6E8;
+    font-weight: 800;
+    padding: 2px 12px;
+    margin: 2px 4px;
+}
+
+QPushButton#InGameMenuButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF7050, stop:1 #FFA060);
+}
+
+QPushButton#SettingsHeaderButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF5230, stop:1 #FF8A3D);
+    border: 1px solid #FFB08A;
+    border-radius: 15px;
+    color: #FFF6E8;
+    font-weight: 800;
+    padding: 6px 14px;
+}
+
+QLabel#SettingsBattery {
+    background-color: rgba(126, 224, 138, 26);
+    border: 1px solid rgba(126, 224, 138, 90);
+    border-radius: 15px;
+    color: #CFF5D4;
+    font-weight: 700;
+    padding: 6px 12px;
+}
+
+/* Controls: the mapping buttons are compact, so a player's page fits the window (the 100 px
+   minimum every button has pushed it past the edge). */
+QWidget#ConfigureInputPlayer QPushButton {
+    min-width: 0px;
+    padding: 4px 6px;
+}
+
+QWidget#ConfigureInputPlayer QGroupBox {
+    margin-top: 14px;
+}
+
+/* The settings windows: solid, a deep ember (they were see-through glass). */
+ConfigureDialog, ConfigurePerGame, Switch2ControllersDialog {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1F1711, stop:1 #120D0A);
+}
+
+QWidget#SettingsContent {
+    background: transparent;
+}

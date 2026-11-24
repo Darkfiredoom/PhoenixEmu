@@ -35,6 +35,7 @@ add_library(qt_common STATIC
     game_list/worker.h game_list/worker.cpp
     game_list/game_list_p.h
     game_list/case_art.h game_list/case_art.cpp
+    game_list/platform_override.h game_list/platform_override.cpp
 
     qt_string_lookup.h
     qt_compat.h

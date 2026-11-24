@@ -33,11 +33,12 @@ struct Art {
 [[nodiscard]] std::filesystem::path Folder();
 
 /// The game's case art, or null when the folder has none for it. Reads the files the first time
-/// (any thread); cached after.
-[[nodiscard]] std::shared_ptr<const Art> Load(const QString& title, u64 program_id);
+/// (any thread); cached after. A Switch 1 game (`switch2` false) never takes a "Switch 2
+/// Edition" case; a Switch 2 one prefers it.
+[[nodiscard]] std::shared_ptr<const Art> Load(const QString& title, u64 program_id, bool switch2);
 
-/// The game's banner file (JPEG or PNG bytes), or empty.
-[[nodiscard]] std::vector<u8> BannerBytes(const QString& title, u64 program_id);
+/// The game's banner file (JPEG or PNG bytes), or empty; the edition counts as for Load.
+[[nodiscard]] std::vector<u8> BannerBytes(const QString& title, u64 program_id, bool switch2);
 
 /// The name to show for a game: when its name came from a file ("Pokopia_v2.0.1a (update)")
 /// and holds the name of a case art folder ("Pokopia"), that folder's name; else `title`.
@@ -47,9 +48,12 @@ struct Art {
 [[nodiscard]] std::filesystem::path PackFolder();
 /// How well a name fits the game (0 none; 600 initials; 800+ found in the title; 1000 the ID).
 [[nodiscard]] int MatchScore(const QString& candidate, const QString& title, u64 program_id);
-/// The pack had nothing for the game in the last day (so it isn't asked again yet).
-[[nodiscard]] bool PackRecentlyMissing(u64 program_id);
-void MarkPackMissing(u64 program_id);
+/// Whether a case art name is a Switch 2 Edition's ("... - Nintendo Switch 2 Edition").
+[[nodiscard]] bool IsSwitch2EditionName(const QString& name);
+/// The pack had nothing for the game, as a Switch 1 or Switch 2 game, in the last day (so it
+/// isn't asked again yet).
+[[nodiscard]] bool PackRecentlyMissing(u64 program_id, bool switch2);
+void MarkPackMissing(u64 program_id, bool switch2);
 
 /// Forgets what was read (the folder or its files changed).
 void Reset();

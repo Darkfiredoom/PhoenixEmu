@@ -66,7 +66,8 @@ enum class CaseArtFetch { Downloaded, AlreadyHere, NotInPack, Failed };
 /// pack (the case-art branch of the update repository: manifest.json, then the game's files)
 /// into CaseArt::PackFolder(). The game is found by title ID, else by name. Blocks; run it off
 /// the UI thread. The manifest is downloaded at most once a day.
-CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, const std::atomic_bool& cancel);
+CaseArtFetch DownloadCaseArt(u64 title_id, const std::string& name, bool switch2,
+                             const std::atomic_bool& cancel);
 
 /// Fetches a Switch 1 game's case scans (front, back, spine, inside) from Switch Cabinet
 /// (cdn.switch-images-julio.com) into CaseArt::PackFolder()/Cases/<title ID>. The game is found

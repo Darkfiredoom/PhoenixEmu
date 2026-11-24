@@ -6,6 +6,7 @@
 #include <QStandardItem>
 #include <QStringList>
 
+#include "qt_common/config/uisettings.h"
 #include "qt_common/game_list/game_list_p.h"
 
 namespace Phoenix {
@@ -17,7 +18,19 @@ inline bool ContainsAllWords(const QString& haystack, const QString& userinput) 
     });
 }
 
+/// The library's All / Switch 2 / Switch 1 tabs.
+inline bool PlatformMatches(const QStandardItem* item) {
+    const u32 platform = UISettings::values.library_platform.GetValue();
+    if (platform == 0) {
+        return true;
+    }
+    const bool switch2 = item->data(GameListItemPath::Switch2Role).toBool();
+    return platform == 1 ? switch2 : !switch2;
+}
+
 inline bool FilterMatches(const QString& filter, const QStandardItem* item) {
+    if (!PlatformMatches(item))
+        return false;
     if (filter.isEmpty())
         return true;
 

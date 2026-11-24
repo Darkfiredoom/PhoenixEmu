@@ -9,11 +9,14 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QList>
+#include <QPixmap>
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QString>
@@ -70,6 +73,8 @@ class GameList : public QWidget {
     Q_OBJECT
 
 public:
+    /// The library's tabs: 0 every game, 1 Switch 2, 2 Switch 1.
+    void SetPlatformFilter(u32 platform);
     explicit GameList(std::shared_ptr<FileSys::VfsFilesystem> vfs_,
                       FileSys::ManualContentProvider* provider_,
                       PlayTime::PlayTimeManager& play_time_manager_, Core::System& system_,
@@ -106,6 +111,10 @@ public:
 
     /// The game picked in the shown view (invalid when none).
     QModelIndex SelectedGame() const;
+    /// A game's name and picture, by its title ID (empty when it is not in the list).
+    [[nodiscard]] std::pair<QString, QPixmap> GameNameAndPicture(u64 program_id);
+    /// Makes `image` the game's banner on the home screen (the Album's "Use as banner").
+    bool SetBannerImage(u64 program_id, QImage image);
     /// The game's right-click menu at a screen position.
     void ShowGameMenu(const QModelIndex& game, const QPoint& global_pos);
     /// Adds or removes a game from Favorites.
@@ -148,6 +157,8 @@ signals:
     void CopyTIDRequested(u64 program_id);
     void UserMenuRequested(const QPoint& global_pos);
     void CustomizeRequested();
+    /// The home Library's list button: show the games as a list.
+    void ListViewRequested();
     void ControllersRequested();
     void CreateShortcut(u64 program_id, const std::string& game_path,
                         const QtCommon::Game::ShortcutTarget target);
@@ -194,6 +205,7 @@ private:
     void ApplyBanner(u64 program_id, const std::vector<u8>& banner);
     /// Opens the game's case over the list (the Case look).
     void OpenCase(const QModelIndex& game);
+    void OpenCartridge(const QModelIndex& game);
     void resizeEvent(QResizeEvent* event) override;
     void ChooseBannerFile(u64 program_id);
     void ResetBanner(u64 program_id);
@@ -239,6 +251,7 @@ private:
     bool picture_search_running{};
     IconSearch* picture_search = nullptr;
     class CaseViewer* case_viewer = nullptr;
+    class CartridgeViewer* cartridge_viewer = nullptr;
     u64 picture_search_target{};
 };
 

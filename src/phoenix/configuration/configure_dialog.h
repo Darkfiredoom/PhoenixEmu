@@ -84,6 +84,27 @@ private:
     void SetConfiguration();
     void UpdateVisibleTabs();
     void PopulateSelectionList();
+    /// Builds the sidebar, header and Everyday / Advanced switch around the pages.
+    void BuildShell();
+    /// Shows the pages whose settings match the search box (and the mode).
+    void FilterPages();
+
+    struct PageInfo {
+        QString name;
+        QString subtitle;
+        QList<QWidget*> everyday;
+        QList<QWidget*> advanced; ///< Shown too in Advanced mode
+        int icon;
+        bool advanced_only;
+    };
+    std::vector<PageInfo> pages;
+    class QLineEdit* search_box{};
+    class QLabel* page_title{};
+    class QLabel* page_subtitle{};
+    class QPushButton* switch2_button{};
+    class QLabel* battery_label{};
+    void UpdateBattery();
+    InputCommon::InputSubsystem* switch2_input{};
 
     std::unique_ptr<Ui::ConfigureDialog> ui;
     HotkeyRegistry& registry;
@@ -102,6 +123,8 @@ private:
     std::unique_ptr<ConfigureGraphicsExtensions> graphics_extensions_tab;
     std::unique_ptr<ConfigureUi> ui_tab;
     std::unique_ptr<ConfigureGraphics> graphics_tab;
+    /// Graphics as most players want it (presets, picture, smoothness); applied after the rest.
+    std::unique_ptr<class ConfigureGraphicsEveryday> graphics_everyday_tab;
     std::unique_ptr<ConfigureHotkeys> hotkeys_tab;
     std::unique_ptr<ConfigureInput> input_tab;
     std::unique_ptr<ConfigureNetwork> network_tab;

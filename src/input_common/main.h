@@ -39,6 +39,7 @@ class Mouse;
 class TouchScreen;
 class VirtualAmiibo;
 class VirtualGamepad;
+class Switch2Controllers;
 struct MappingData;
 } // namespace InputCommon
 
@@ -121,6 +122,9 @@ public:
 
     /// Retrieves the underlying virtual gamepad input device.
     [[nodiscard]] VirtualGamepad* GetVirtualGamepad();
+
+    /// Switch 2 controllers over Bluetooth LE (null where they are not supported).
+    [[nodiscard]] Switch2Controllers* GetSwitch2Controllers();
 
     /// Retrieves the underlying virtual gamepad input device.
     [[nodiscard]] const VirtualGamepad* GetVirtualGamepad() const;

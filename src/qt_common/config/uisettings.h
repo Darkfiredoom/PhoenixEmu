@@ -266,7 +266,8 @@ struct Values {
     /// 3 a game case (PyroCade-like).
     Setting<u32, true> game_card_style{linkage, 1, 0, 3, "game_card_style", Category::UiGameList};
     /// The home view's carousel: 0 a stack (one big card, the others tilted behind it), 1 a row.
-    Setting<u32, true> carousel_layout{linkage, 0, 0, 2, "carousel_layout", Category::UiGameList};
+    /// The home view: 0 stack, 1 row, 2 shelf, 3 library (the Paper design, the default).
+    Setting<u32, true> carousel_layout{linkage, 3, 0, 3, "carousel_layout", Category::UiGameList};
     /// The centred card's share of the height: 0 full, 1 3/4, 2 2/3, 3 1/2, 4 1/3.
     Setting<u32, true> carousel_card_size{linkage, 2, 0, 4, "carousel_card_size", Category::UiGameList};
     Setting<u32, true> carousel_side_count{linkage, 5, 3, 8, "carousel_side_count", Category::UiGameList};
@@ -276,6 +277,12 @@ struct Values {
     /// The greeting ("Good evening!" and the line under it) and the quote, top left.
     Setting<bool> home_show_greeting{linkage, true, "home_show_greeting", Category::UiGameList};
     Setting<bool> home_show_quote{linkage, true, "home_show_quote", Category::UiGameList};
+    /// The library's tabs: 0 every game, 1 Switch 2 games, 2 Switch 1 games.
+    Setting<u32> library_platform{linkage, 0, "library_platform", Category::UiGameList};
+    /// Settings windows show every page and tab (Advanced) or the everyday ones.
+    Setting<bool> settings_advanced{linkage, false, "settings_advanced", Category::Ui};
+    /// A Joy-Con 2 on its side on a table moves the pointer.
+    Setting<bool> switch2_mouse{linkage, true, "switch2_mouse", Category::Ui};
     /// The picked game's picture as the home background, sharp rather than a soft glow.
     Setting<bool> carousel_banner_background{linkage, true, "carousel_banner_background",
                                              Category::UiGameList};

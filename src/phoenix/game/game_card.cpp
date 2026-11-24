@@ -309,7 +309,7 @@ void GameCard::paint(QPainter* painter, const QStyleOptionViewItem& option,
         painter->restore();
     }
 
-    const u32 icon_size = UISettings::values.game_icon_size.GetValue();
+    const u32 icon_size = GridIconSize();
     QPixmap icon_pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
 
     QRect iconRect;
@@ -574,6 +574,11 @@ void GameCard::PaintHomeTile(QPainter* painter, const QStyleOptionViewItem& opti
         painter->drawText(pill, Qt::AlignCenter, shown);
     }
     painter->restore();
+}
+
+unsigned GameCard::GridIconSize() {
+    const u32 chosen = UISettings::values.game_icon_size.GetValue();
+    return CurrentStyle() == Style::Cartridge ? std::max<unsigned>(chosen, 192) : chosen;
 }
 
 QRect GameCard::getCardRect(const QStyleOptionViewItem& option, const QModelIndex& index) const {

@@ -73,6 +73,8 @@ add_executable(phoenix
     configuration/configure_debug_tab.h
     configuration/configure_debug_tab.ui
     configuration/configure_dialog.cpp
+    configuration/settings_shell.cpp
+    configuration/settings_shell.h
     configuration/configure_dialog.h
     configuration/configure_filesystem.cpp
     configuration/configure_filesystem.h
@@ -82,6 +84,8 @@ add_executable(phoenix
     configuration/configure_general.ui
     configuration/configure_graphics.cpp
     configuration/configure_graphics.h
+    configuration/configure_graphics_everyday.cpp
+    configuration/configure_graphics_everyday.h
     configuration/nvidia_dlss_panel.cpp
     configuration/nvidia_dlss_panel.h
     configuration/configure_graphics.ui
@@ -192,6 +196,8 @@ add_executable(phoenix
     game/case_box.cpp
     game/case_viewer.h
     game/case_viewer.cpp
+    game/cartridge_viewer.h
+    game/cartridge_viewer.cpp
     steam_shortcuts.h
     steam_shortcuts.cpp
     mod_store/mod_store_client.cpp
@@ -266,6 +272,7 @@ add_executable(phoenix
     phoenix.rc
     migration_dialog.h migration_dialog.cpp
     music_extract_dialog.h music_extract_dialog.cpp
+    switch2_controllers_dialog.h switch2_controllers_dialog.cpp
     nup_dialogs.h nup_dialogs.cpp
     shader_warm_dialog.h shader_warm_dialog.cpp
     recommended_settings_dialog.h recommended_settings_dialog.cpp
@@ -331,6 +338,17 @@ if (WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${FSR4_DIR}/LICENSE.md" "$<TARGET_FILE_DIR:phoenix>/AMD-FidelityFX-LICENSE.md"
         VERBATIM)
+endif()
+
+# The resources (the menu music, the icon pack, the frames) come to tens of megabytes: as a
+# generated C++ file (AUTORCC) that is ~100 MB of source, which ran MSVC out of heap on 8 GB
+# PCs. rcc writes them straight into an object file instead.
+set_source_files_properties(phoenix.qrc PROPERTIES SKIP_AUTORCC ON)
+qt_add_big_resources(PHOENIX_BIG_RESOURCES phoenix.qrc)
+target_sources(phoenix PRIVATE ${PHOENIX_BIG_RESOURCES})
+if (MSVC AND TARGET rcc_object_phoenix)
+    # The placeholder file rcc compiles holds raw bytes, not UTF-8 text.
+    target_compile_options(rcc_object_phoenix PRIVATE /wd4828)
 endif()
 
 if (PHOENIX_CRASH_DUMPS)

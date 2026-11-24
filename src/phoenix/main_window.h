@@ -308,6 +308,9 @@ private:
     void SetupCustomizeMenu();
     /// Opens or closes the Customize panel beside the game list.
     void ToggleCustomizePanel();
+    /// Makes a newly connected Switch 2 controller Player 1 when Player 1 is on the keyboard.
+    void AutoAssignSwitch2Controller();
+    std::string switch2_assigned; ///< The Switch 2 controller made Player 1, by its ids
     /// Shows the game details beside the games when they apply, hides them otherwise.
     void UpdateGameDetailsPanel();
     /// The User menu (menu bar and the home view's user button): pick the current user.
@@ -637,6 +640,7 @@ private:
     QLabel* res_scale_label = nullptr;
     QLabel* emu_speed_label = nullptr;
     QLabel* game_fps_label = nullptr;
+    QPushButton* in_game_menu_button = nullptr;
     /// Tools > Capture Glitch (made in InitializeHotkeys, added to Tools in ConnectMenuEvents).
     QAction* action_capture_glitch = nullptr;
     QLabel* emu_frametime_label = nullptr;

@@ -20,17 +20,23 @@
 #include <QEvent>
 #include <QFutureWatcher>
 #include <QGridLayout>
+#include <QButtonGroup>
 #include <QHash>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
+#include <QPainter>
+#include <QPainterPath>
+#include <QStyledItemDelegate>
 #include <QMessageBox>
 #include <QPointer>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSignalBlocker>
@@ -45,6 +51,7 @@
 #include "common/scm_rev.h"
 #include "phoenix/mod_store/mod_store_client.h"
 #include "phoenix/mod_store/mod_store_install.h"
+#include "qt_common/config/uisettings.h"
 
 namespace ModStore {
 namespace {
@@ -59,13 +66,14 @@ const QString PrimaryButtonStyle = QStringLiteral(
     "QPushButton:hover { background: #bc1f4b; border-color: #bc1f4b; }"
     "QPushButton:pressed { background: #a61942; border-color: #a61942; }"
     "QPushButton:focus { border-color: palette(window-text); }");
+// The ember of PhoenixEmu's theme (dist/qt_themes/phoenix/style.qss).
 const QString DarkPrimaryButtonStyle = QStringLiteral(
-    "QPushButton { background: #f0386b; border-color: #f0386b; color: white; font-weight: 600;"
-    " border-width: 1px; border-style: solid; border-radius: 7px; padding: 0 12px;"
-    " min-height: 30px; }"
-    "QPushButton:hover { background: #f45a85; border-color: #f45a85; }"
-    "QPushButton:pressed { background: #d42c5a; border-color: #d42c5a; }"
-    "QPushButton:focus { border-color: white; }");
+    "QPushButton { background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #FF5A1F, stop:1 #FF8A3D);"
+    " border: none; color: #FFF6EC; font-weight: 900; border-radius: 12px; padding: 0 18px;"
+    " min-height: 36px; }"
+    "QPushButton:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #FF6B33, stop:1 #FFC23D); }"
+    "QPushButton:pressed { background: #D9461A; }"
+    "QPushButton:focus { border: 1px solid #FFE3D2; }");
 
 enum class Compatibility { Match, Unknown, Mismatch };
 
@@ -164,6 +172,113 @@ protected:
     }
 };
 
+/// A mod as a card (after Lichii's store): its picture across the top, its name, who made it
+/// with its type and date, and where it comes from.
+class ModCardDelegate final : public QStyledItemDelegate {
+public:
+    static constexpr int MetaRole = Qt::UserRole + 1;
+    static constexpr int SourceRole = Qt::UserRole + 2;
+    static constexpr int IdRole = Qt::UserRole + 3;
+    /// A badge at the card's corner: its text, and 1 (on, green), 2 (gold) or 3 (muted).
+    static constexpr int BadgeRole = Qt::UserRole + 4;
+    static constexpr int BadgeKindRole = Qt::UserRole + 5;
+
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const override {
+        return {292, 252};
+    }
+
+    void paint(QPainter* p, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override {
+        p->save();
+        p->setRenderHint(QPainter::Antialiasing);
+        p->setRenderHint(QPainter::SmoothPixmapTransform);
+        const bool selected = (option.state & QStyle::State_Selected) != 0;
+        const bool hover = (option.state & QStyle::State_MouseOver) != 0;
+        const QRectF card = QRectF(option.rect).adjusted(5, 5, -5, -5);
+        QPainterPath shape;
+        shape.addRoundedRect(card, 14, 14);
+        p->fillPath(shape, QColor(255, 230, 180, selected ? 26 : hover ? 18 : 11));
+        // The picture, cropped to fill, or a placeholder while it loads.
+        const QRectF picture{card.left() + 7, card.top() + 7, card.width() - 14, 148};
+        QPainterPath picture_shape;
+        picture_shape.addRoundedRect(picture, 10, 10);
+        p->setClipPath(picture_shape);
+        const QPixmap image = index.data(Qt::DecorationRole).value<QPixmap>();
+        if (!image.isNull()) {
+            const QSizeF scaled = QSizeF(image.size()).scaled(picture.size(), Qt::KeepAspectRatioByExpanding);
+            const QRectF source{(scaled.width() - picture.width()) / 2 * image.width() / scaled.width(),
+                                (scaled.height() - picture.height()) / 2 * image.height() / scaled.height(),
+                                picture.width() * image.width() / scaled.width(),
+                                picture.height() * image.height() / scaled.height()};
+            p->drawPixmap(picture, image, source);
+        } else {
+            p->fillRect(picture, QColor(0x1A, 0x14, 0x10));
+            p->setPen(QPen(QColor(255, 230, 180, 60), 1.6));
+            const QPointF c = picture.center();
+            p->drawRoundedRect(QRectF(c.x() - 14, c.y() - 11, 28, 22), 3, 3);
+            p->drawEllipse(QRectF(c.x() - 8, c.y() - 6, 5, 5));
+            p->drawLine(QPointF(c.x() - 12, c.y() + 9), QPointF(c.x() - 2, c.y()));
+            p->drawLine(QPointF(c.x() - 2, c.y()), QPointF(c.x() + 12, c.y() + 9));
+        }
+        p->setClipping(false);
+        // Name, then author, type and date, then where it comes from.
+        QFont name_font = option.font;
+        name_font.setBold(true);
+        name_font.setPointSizeF(name_font.pointSizeF() + 1.5);
+        p->setFont(name_font);
+        p->setPen(QColor(0xFF, 0xF4, 0xDA));
+        const QRectF name_rect{card.left() + 12, picture.bottom() + 8, card.width() - 24, 22};
+        p->drawText(name_rect, Qt::AlignLeft | Qt::AlignVCenter,
+                    QFontMetrics(name_font).elidedText(index.data(Qt::DisplayRole).toString(),
+                                                       Qt::ElideRight, int(name_rect.width())));
+        QFont small = option.font;
+        small.setPointSizeF(std::max(7.5, small.pointSizeF() - 0.5));
+        p->setFont(small);
+        p->setPen(QColor(233, 220, 194, 170));
+        const QRectF meta_rect{name_rect.left(), name_rect.bottom() + 2, name_rect.width(), 18};
+        p->drawText(meta_rect, Qt::AlignLeft | Qt::AlignVCenter,
+                    QFontMetrics(small).elidedText(index.data(MetaRole).toString(), Qt::ElideRight,
+                                                   int(meta_rect.width())));
+        p->setPen(QColor(233, 220, 194, 130));
+        const QRectF source_rect{name_rect.left(), meta_rect.bottom() + 4, name_rect.width(), 18};
+        p->drawText(source_rect, Qt::AlignLeft | Qt::AlignVCenter,
+                    QStringLiteral("\u25CE  ") + index.data(SourceRole).toString());
+        // Installed, on or off, or not checked by anyone: a badge at the right of that line.
+        if (const QString badge = index.data(BadgeRole).toString(); !badge.isEmpty()) {
+            const int kind = index.data(BadgeKindRole).toInt();
+            const QColor color = kind == 1   ? QColor(0x7F, 0xD4, 0x8A)
+                                 : kind == 2 ? QColor(0xFF, 0xC2, 0x3D)
+                                             : QColor(0xA8, 0x99, 0x8A);
+            QFont badge_font = small;
+            badge_font.setBold(true);
+            p->setFont(badge_font);
+            const QString text = kind == 1 ? QStringLiteral("\u25CF ") + badge : badge;
+            const qreal w = QFontMetricsF(badge_font).horizontalAdvance(text) + 16;
+            const QRectF pill{source_rect.right() - w, source_rect.top() - 1, w, 20};
+            if (kind == 3) {
+                p->setPen(color);
+                p->drawText(pill.adjusted(0, 0, -8, 0), Qt::AlignRight | Qt::AlignVCenter, text);
+            } else {
+                QColor fill = color;
+                fill.setAlpha(40);
+                p->setPen(QPen(color, 1));
+                p->setBrush(fill);
+                p->drawRoundedRect(pill, 10, 10);
+                p->setPen(color.lighter(112));
+                p->drawText(pill, Qt::AlignCenter, text);
+            }
+        }
+        // The edge: lit when picked.
+        p->setPen(selected ? QPen(QColor(0xFF, 0x5A, 0x1F), 2)
+                           : QPen(QColor(255, 230, 180, hover ? 50 : 26), 1));
+        p->setBrush(Qt::NoBrush);
+        p->drawPath(shape);
+        p->restore();
+    }
+};
+
 class Dialog final : public QDialog {
     Q_DECLARE_TR_FUNCTIONS(ModStore::Dialog)
 
@@ -171,13 +286,48 @@ public:
     Dialog(QWidget* parent, DialogContext ctx)
         : QDialog(parent), context(std::move(ctx)), client(context.base_url, this) {
         setWindowTitle(tr("Mod Store"));
-        resize(1050, 760);
+        // Room for three or four cards a row beside the details, within the screen.
+        {
+            QSize size{1480, 920};
+            if (const QScreen* const screen = parent != nullptr ? parent->screen() : nullptr) {
+                size = size.boundedTo(screen->availableGeometry().size() * 0.94);
+            }
+            resize(size);
+        }
         setMinimumSize(730, 520);
 
         const auto border = dark ? QStringLiteral("#2a2b30") : QStringLiteral("#cbd0d6");
         const auto tree_style = QStringLiteral("QTreeWidget { border: 1px solid %1; }").arg(border);
+        setObjectName(QStringLiteral("ModStore"));
+        if (dark) {
+            setStyleSheet(QStringLiteral(R"(
+                QDialog#ModStore { background: #0E0B09; }
+                QDialog#ModStore QLabel { background: transparent; color: #F6EBDD; }
+                QLabel#ModStoreTitle { font-size: 26px; font-weight: 900; }
+                QLabel#ModStoreMuted { color: #A8998A; }
+                QDialog#ModStore QLineEdit { background: #1A1512; border: 1px solid #3A2E25; border-radius: 18px;
+                    padding: 7px 14px; color: #F6EBDD; }
+                QDialog#ModStore QLineEdit:focus { border: 1px solid #FF5A1F; }
+                QDialog#ModStore QComboBox { background: #1A1512; border: 1px solid #3A2E25; border-radius: 16px;
+                    padding: 6px 14px; color: #F6EBDD; font-weight: 700; }
+                QDialog#ModStore QPushButton { background: #2A211B; border: 1px solid #3A2E25; border-radius: 12px;
+                    padding: 8px 16px; color: #F6EBDD; font-weight: 800; }
+                QDialog#ModStore QPushButton:hover { border: 1px solid #FF5A1F; }
+                QDialog#ModStore QPushButton:disabled { color: #6B5F55; border: 1px solid #2A211B; }
+                QDialog#ModStore QPushButton#ModStorePill { background: transparent; border: none; border-radius: 15px; padding: 6px 14px;
+                    color: #D9CBBB; font-weight: 700; }
+                QDialog#ModStore QPushButton#ModStorePill:hover { color: #FFFFFF; border: none; }
+                QDialog#ModStore QPushButton#ModStorePill:checked { background: #F6EBDD; color: #1A1512; }
+                QFrame#ModStorePills { background: #1A1512; border: 1px solid #2A211B; border-radius: 19px; }
+                QFrame#modStoreInspector { background: #15110E; border: 1px solid #2A211B; border-radius: 18px; }
+                QFrame#modStoreInspector QScrollArea, QFrame#modStoreInspector QScrollArea > QWidget > QWidget {
+                    background: transparent; }
+                QFrame#modStoreCompatibility { background: #0E0B09; border: 1px solid #2A211B; border-radius: 12px; }
+            )"));
+        }
         auto* root = new QVBoxLayout(this);
-        root->setSpacing(8);
+        root->setContentsMargins(24, 18, 24, 18);
+        root->setSpacing(12);
         auto* games_row = new QHBoxLayout;
         auto* toolbar = new QHBoxLayout;
         game_picker = new QComboBox(this);
@@ -187,17 +337,24 @@ public:
         all_games = new QPushButton(tr("All games"), this);
         installed_mode = new QPushButton(tr("Installed"), this);
         installed_mode->setCheckable(true);
-        games_row->addWidget(new QLabel(tr("Game:"), this));
+        auto* store_title = new QLabel(tr("Mod Store"), this);
+        store_title->setObjectName(QStringLiteral("ModStoreTitle"));
+        games_row->setSpacing(10);
+        games_row->addWidget(store_title);
+        games_row->addSpacing(6);
         games_row->addWidget(game_picker);
         games_row->addWidget(all_games);
         games_row->addStretch();
-        games_row->addWidget(refresh);
-        games_row->addWidget(installed_mode);
+        // The Installed pill below stands for this button, which stays as the switch behind it.
+        installed_mode->hide();
 
         search = new QLineEdit(this);
-        search->setPlaceholderText(tr("Enter a name, author, or description"));
+        search->setPlaceholderText(tr("Name, author or description"));
         search->setClearButtonEnabled(true);
         search->setMaxLength(128);
+        search->setMinimumWidth(300);
+        games_row->addWidget(search);
+        games_row->addWidget(refresh);
         type = new QComboBox(this);
         type->addItem(tr("All types"));
         for (const auto category : {ModType::Graphics, ModType::Fps, ModType::Cheats,
@@ -207,11 +364,52 @@ public:
         sort = new QComboBox(this);
         sort->addItem(tr("Recently updated"), static_cast<int>(Sort::Updated));
         sort->addItem(tr("Name A–Z"), static_cast<int>(Sort::Name));
-        toolbar->addWidget(new QLabel(tr("Filter:"), this));
-        toolbar->addWidget(search, 1);
-        toolbar->addWidget(new QLabel(tr("Type:"), this));
-        toolbar->addWidget(type);
-        toolbar->addWidget(new QLabel(tr("Sort by:"), this));
+        // The types as pills (the box stays as the list behind them), then Installed; the count and
+        // the order at the right.
+        type->hide();
+        auto* pills = new QFrame(this);
+        pills->setObjectName(QStringLiteral("ModStorePills"));
+        auto* pill_row = new QHBoxLayout(pills);
+        pill_row->setContentsMargins(4, 3, 4, 3);
+        pill_row->setSpacing(2);
+        type_pills = new QButtonGroup(this);
+        type_pills->setExclusive(true);
+        const auto add_pill = [&](const QString& text, int id) {
+            auto* pill = new QPushButton(text, pills);
+            pill->setObjectName(QStringLiteral("ModStorePill"));
+            pill->setCheckable(true);
+            pill->setCursor(Qt::PointingHandCursor);
+            type_pills->addButton(pill, id);
+            pill_row->addWidget(pill);
+        };
+        for (int i = 0; i < type->count(); ++i) {
+            add_pill(type->itemText(i), i);
+        }
+        add_pill(tr("Installed"), InstalledPill);
+        type_pills->button(0)->setChecked(true);
+        connect(type_pills, &QButtonGroup::idClicked, this, [this](int id) {
+            if (id == InstalledPill) {
+                installed_mode->setChecked(true);
+                return;
+            }
+            const bool was_installed = installed_mode->isChecked();
+            {
+                const QSignalBlocker block_type{type};
+                type->setCurrentIndex(id);
+            }
+            if (was_installed) {
+                installed_mode->setChecked(false); // reloads
+            } else {
+                debounce.stop();
+                ReloadMods();
+            }
+        });
+        count_label = new QLabel(this);
+        count_label->setObjectName(QStringLiteral("ModStoreMuted"));
+        toolbar->addWidget(pills);
+        toolbar->addStretch(1);
+        toolbar->addWidget(count_label);
+        toolbar->addSpacing(8);
         toolbar->addWidget(sort);
         root->addLayout(games_row);
         root->addLayout(toolbar);
@@ -242,8 +440,25 @@ public:
         results->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
         more = new QPushButton(tr("Load more"), middle);
         more->hide();
-        middle_layout->addWidget(results, 1);
-        middle_layout->addWidget(more);
+        // The mods are shown as cards; the list underneath still holds them (selection,
+        // details, installs) and stays hidden.
+        cards = new QListWidget(middle);
+        cards->setObjectName(QStringLiteral("ModStoreCards"));
+        cards->setViewMode(QListView::IconMode);
+        cards->setResizeMode(QListView::Adjust);
+        cards->setMovement(QListView::Static);
+        cards->setUniformItemSizes(true);
+        cards->setSpacing(4);
+        cards->setMouseTracking(true);
+        cards->setSelectionMode(QAbstractItemView::SingleSelection);
+        cards->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+        cards->setFrameShape(QFrame::NoFrame);
+        cards->setItemDelegate(new ModCardDelegate(cards));
+        cards->setStyleSheet(QStringLiteral("QListWidget#ModStoreCards { background: transparent; }"));
+        results->hide();
+        middle_layout->addWidget(results);
+        middle_layout->addWidget(cards, 1);
+        middle_layout->addWidget(more, 0, Qt::AlignHCenter);
 
         auto* inspector_frame = new QFrame(split);
         inspector_frame->setObjectName(QStringLiteral("modStoreInspector"));
@@ -259,12 +474,12 @@ public:
         inspector_layout->addWidget(inspector, 1);
         auto* pane = new QWidget(inspector);
         auto* detail = new QVBoxLayout(pane);
-        detail->setContentsMargins(8, 8, 8, 8);
-        detail->setSpacing(6);
+        detail->setContentsMargins(16, 16, 16, 12);
+        detail->setSpacing(8);
         name = PlainLabel(pane, true);
         QFont heading = name->font();
-        heading.setBold(true);
-        heading.setPointSizeF(heading.pointSizeF() + 2);
+        heading.setWeight(QFont::Black);
+        heading.setPixelSize(22);
         name->setFont(heading);
         byline = PlainLabel(pane, true);
         description = PlainLabel(pane, true);
@@ -273,7 +488,7 @@ public:
         description_toggle->setAutoRaise(true);
         preview = PlainLabel(pane);
         preview->setAlignment(Qt::AlignCenter);
-        preview->setFixedHeight(172);
+        preview->setFixedHeight(220);
         preview->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
         preview->setToolTip(tr("Mod preview"));
         preview_select = new QComboBox(pane);
@@ -347,7 +562,7 @@ public:
 
         auto* actions = new QWidget(inspector_frame);
         auto* actions_layout = new QVBoxLayout(actions);
-        actions_layout->setContentsMargins(8, 4, 8, 8);
+        actions_layout->setContentsMargins(16, 6, 16, 16);
         actions_layout->setSpacing(6);
         inspector_layout->addWidget(actions);
         hint = PlainLabel(actions, true);
@@ -367,8 +582,10 @@ public:
         actions_layout->addLayout(installed_actions);
         actions_layout->addWidget(hint);
         split->setChildrenCollapsible(false);
-        split->setSizes({208, 330, 500});
-        split->setStretchFactor(2, 1);
+        // The game picker above chooses the game; the grid gets the room.
+        game_tree->hide();
+        split->setSizes({0, 700, 360});
+        split->setStretchFactor(1, 1);
         root->addWidget(split, 1);
 
         auto* footer = new QHBoxLayout;
@@ -420,6 +637,10 @@ public:
         connect(installed_mode, &QPushButton::toggled, this, [this](bool installed) {
             type->setEnabled(!installed);
             sort->setEnabled(!installed);
+            if (QAbstractButton* pill =
+                    type_pills->button(installed ? InstalledPill : type->currentIndex())) {
+                pill->setChecked(true);
+            }
             ReloadMods();
         });
         connect(game_picker, &QComboBox::currentIndexChanged, this,
@@ -431,6 +652,18 @@ public:
         });
         connect(results, &QTreeWidget::currentItemChanged, this,
                 [this](QTreeWidgetItem* item) { SelectMod(item); });
+        connect(cards, &QListWidget::currentItemChanged, this, [this](QListWidgetItem* card) {
+            if (card == nullptr) {
+                return;
+            }
+            const QString id = card->data(ModCardDelegate::IdRole).toString();
+            for (int i = 0; i < results->topLevelItemCount(); ++i) {
+                if (results->topLevelItem(i)->data(0, IdRole).toString() == id) {
+                    results->setCurrentItem(results->topLevelItem(i));
+                    break;
+                }
+            }
+        });
         connect(more, &QPushButton::clicked, this, [this] {
             if (next && !debounce.isActive() && !reload_after_install) {
                 FetchMods(*next, list_epoch);
@@ -614,6 +847,8 @@ private:
         next.reset();
         more->hide();
         results->clear();
+        cards->clear();
+        preview_queue.clear();
         catalog.clear();
         ClearDetail();
         if (installed_mode->isChecked()) {
@@ -644,6 +879,8 @@ private:
                     return;
                 }
                 auto page = std::get<Page<Mod>>(std::move(response));
+                // What is installed, per game, for the cards' badges.
+                QHash<QString, std::vector<InstalledMod>> installed_by_title;
                 for (auto& mod : page.items) {
                     if (catalog.contains(mod.id)) {
                         continue;
@@ -652,16 +889,55 @@ private:
                     item->setSizeHint(0, QSize(0, row_height));
                     item->setData(0, IdRole, mod.id);
                     item->setToolTip(0, mod.summary);
+                    AddCard(mod.id, mod.name,
+                            QStringLiteral("%1 \u00B7 %2 \u00B7 %3")
+                                .arg(mod.author.isEmpty() ? tr("Unknown author")
+                                                          : tr("by %1").arg(mod.author),
+                                     TypeName(mod.type),
+                                     QLocale().toString(mod.updated_at.date(), QLocale::ShortFormat)),
+                            SourceName(mod.source), mod.summary);
+                    {
+                        const QString mod_title =
+                            !title.isEmpty() ? title
+                                             : (mod.title_ids.isEmpty() ? QString{} : mod.title_ids.front());
+                        QString badge;
+                        int kind = 0;
+                        if (!mod_title.isEmpty()) {
+                            if (!installed_by_title.contains(mod_title)) {
+                                const auto read = ReadInstalledMods(context.mods_root, mod_title);
+                                installed_by_title.insert(
+                                    mod_title, std::vector<InstalledMod>(read.begin(), read.end()));
+                            }
+                            const auto& installed = installed_by_title[mod_title];
+                            if (std::ranges::find(installed, mod.id, &InstalledMod::id) != installed.cend()) {
+                                const bool on = !context.is_enabled || context.is_enabled(mod_title, mod.id);
+                                badge = on ? tr("Installed \u00B7 On") : tr("Installed \u00B7 Off");
+                                kind = on ? 1 : 3;
+                            }
+                        }
+                        if (badge.isEmpty() && mod.external && !mod.external->files.isEmpty() &&
+                            std::ranges::all_of(mod.external->files,
+                                                [](const auto& file) { return file.sha256.isEmpty(); })) {
+                            badge = tr("Unverified");
+                            kind = 3;
+                        }
+                        SetBadge(cards->item(cards->count() - 1), badge, kind);
+                    }
+                    if (mod.preview_url.isValid()) {
+                        preview_queue.append(mod.id);
+                    }
                     const auto key = mod.id;
                     catalog.insert(key, std::move(mod));
                 }
                 next = page.next_offset && *page.next_offset > offset ? page.next_offset
                                                                       : std::nullopt;
+                LoadCardPreviews(epoch);
                 more->setVisible(next.has_value() && !debounce.isActive() && !reload_after_install);
                 more->setEnabled(true);
                 Status(catalog.isEmpty()
                            ? tr("No matching mods. Change the game, type, or search filter.")
                            : tr("%n result(s)", nullptr, static_cast<int>(catalog.size())));
+                count_label->setText(tr("%n mod(s)", nullptr, static_cast<int>(catalog.size())));
             });
     }
 
@@ -683,11 +959,81 @@ private:
                 item->setData(0, IdRole, installed.id);
                 item->setData(0, TitleRole, id);
                 item->setToolTip(0, installed.version);
+                AddCard(installed.id, installed.name,
+                        tr("Installed \u00B7 %1").arg(installed.version),
+                        game != games.cend() ? game->name : id, {});
+                {
+                    const bool on = !context.is_enabled || context.is_enabled(id, installed.id);
+                    SetBadge(cards->item(cards->count() - 1),
+                             on ? tr("Installed \u00B7 On") : tr("Installed \u00B7 Off"), on ? 1 : 3);
+                }
             }
         }
         results->headerItem()->setText(1, tr("Game"));
+        count_label->setText(tr("%n installed", nullptr, results->topLevelItemCount()));
         Status(results->topLevelItemCount() == 0 ? tr("No installed store mods match this filter.")
                                                  : tr("Installed mods are available offline."));
+    }
+
+    static QString SourceName(Source source) {
+        switch (source) {
+        case Source::GameBanana:
+            return QStringLiteral("GameBanana");
+        case Source::GitHub:
+            return QStringLiteral("GitHub");
+        case Source::Submission:
+            return tr("Submitted to the store");
+        case Source::Demo:
+            return tr("Demo");
+        }
+        return {};
+    }
+
+    void AddCard(const QString& id, const QString& mod_name, const QString& meta,
+                 const QString& origin, const QString& tooltip) {
+        auto* const card = new QListWidgetItem(mod_name, cards);
+        card->setData(ModCardDelegate::IdRole, id);
+        card->setData(ModCardDelegate::MetaRole, meta);
+        card->setData(ModCardDelegate::SourceRole, origin);
+        card->setToolTip(tooltip);
+    }
+
+    static void SetBadge(QListWidgetItem* card, const QString& badge, int kind) {
+        if (card == nullptr) {
+            return;
+        }
+        card->setData(ModCardDelegate::BadgeRole, badge);
+        card->setData(ModCardDelegate::BadgeKindRole, kind);
+    }
+
+    /// The cards' pictures, a few at a time, as the catalog's pages arrive.
+    void LoadCardPreviews(int epoch) {
+        while (previews_loading < 4 && !preview_queue.isEmpty()) {
+            const QString id = preview_queue.takeFirst();
+            const auto found = catalog.constFind(id);
+            if (found == catalog.cend()) {
+                continue;
+            }
+            ++previews_loading;
+            client.GetPreview(found.value(), [this, id, epoch](auto response) {
+                --previews_loading;
+                if (epoch != list_epoch) {
+                    return;
+                }
+                if (const auto* image = std::get_if<QImage>(&response)) {
+                    const QPixmap picture = QPixmap::fromImage(
+                        image->scaled(560, 296, Qt::KeepAspectRatioByExpanding,
+                                      Qt::SmoothTransformation));
+                    for (int i = 0; i < cards->count(); ++i) {
+                        if (cards->item(i)->data(ModCardDelegate::IdRole).toString() == id) {
+                            cards->item(i)->setData(Qt::DecorationRole, picture);
+                            break;
+                        }
+                    }
+                }
+                LoadCardPreviews(epoch);
+            });
+        }
     }
 
     void ClearDetail() {
@@ -1377,10 +1723,16 @@ private:
     bool busy{};
     bool applying{};
     bool reload_after_install{};
-    const bool dark = palette().color(QPalette::Window).lightness() < 128;
+    // The PhoenixEmu and dark themes are dark style sheets over a light palette.
+    const bool dark =
+        palette().color(QPalette::Window).lightness() < 128 || UISettings::IsDarkTheme();
     const int row_height = qMax(28, fontMetrics().height() + 10);
     QComboBox* game_picker{};
     QComboBox* type{};
+    /// The type pills over `type`, and Installed (InstalledPill) over `installed_mode`.
+    QButtonGroup* type_pills{};
+    static constexpr int InstalledPill = 1000;
+    QLabel* count_label{};
     QComboBox* sort{};
     QComboBox* release{};
     QComboBox* target_picker{};
@@ -1388,6 +1740,9 @@ private:
     QLineEdit* search{};
     QTreeWidget* game_tree{};
     QTreeWidget* results{};
+    QListWidget* cards{};
+    QStringList preview_queue;
+    int previews_loading{};
     QScrollArea* inspector{};
     QLabel* name{};
     QLabel* byline{};

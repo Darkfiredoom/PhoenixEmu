@@ -151,8 +151,10 @@ std::vector<Common::ParamPackage> ControllersDialog::ConnectedPads(
         return pads;
     }
     for (const auto& device : input->GetInputDevices()) {
-        // SDL pads; the extra "dual Joy-Con" entry (guid2) is a pair already listed.
-        if (device.Get("engine", "") == "sdl" && device.Get("guid2", "").empty()) {
+        // SDL pads and Switch 2 controllers over Bluetooth; the extra "dual Joy-Con" entry
+        // (guid2) is a pair already listed.
+        const std::string engine = device.Get("engine", "");
+        if ((engine == "sdl" || engine == "switch2") && device.Get("guid2", "").empty()) {
             pads.push_back(device);
         }
     }

@@ -65,13 +65,39 @@ inline bool Save(u64 program_id, std::span<const u8> png) {
     }
     std::filesystem::rename(temp, path, ec);
     std::filesystem::remove(MissPath(program_id), ec);
+    // A picture from anywhere but the icon pack is for both editions (MarkEdition follows).
+    std::error_code ignored;
+    std::filesystem::remove(std::filesystem::path(path).concat(".switch1"), ignored);
+    std::filesystem::remove(std::filesystem::path(path).concat(".switch2"), ignored);
     return !ec;
+}
+
+/// A picture taken from the icon pack for one edition: <id>.png.switch1 or .switch2 next to it.
+/// The pack has "Pokémon Legends Z-A" and "... - Nintendo Switch 2 Edition" apart; once the game
+/// changes edition (its upgrade installed or removed) the picture is picked again.
+inline std::filesystem::path EditionPath(u64 program_id, bool switch2) {
+    return std::filesystem::path(PicturePath(program_id))
+        .concat(switch2 ? ".switch2" : ".switch1");
+}
+
+inline void MarkEdition(u64 program_id, bool switch2) {
+    std::error_code ec;
+    std::filesystem::remove(EditionPath(program_id, !switch2), ec);
+    std::ofstream file(EditionPath(program_id, switch2), std::ios::trunc);
+}
+
+/// Whether the saved picture was the icon pack's for the other edition.
+inline bool PictureIsOtherEdition(u64 program_id, bool switch2) {
+    std::error_code ec;
+    return std::filesystem::exists(EditionPath(program_id, !switch2), ec);
 }
 
 inline void Remove(u64 program_id) {
     std::error_code ec;
     std::filesystem::remove(PicturePath(program_id), ec);
     std::filesystem::remove(MissPath(program_id), ec);
+    std::filesystem::remove(EditionPath(program_id, false), ec);
+    std::filesystem::remove(EditionPath(program_id, true), ec);
 }
 
 /// Remembers that no picture was found, so the automatic search skips the title for a while.

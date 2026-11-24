@@ -7,23 +7,44 @@ namespace Shader::IR {
 
 Value::Value(IR::Inst* value) noexcept : type{Type::Opaque}, inst{value} {}
 
-Value::Value(IR::Reg value) noexcept : type{Type::Reg}, reg{value} {}
+// The narrow immediates clear all eight bytes first. An optimizer may read U32() as the whole
+// 8-byte slot and index with it (MSVC's jump table in BlitConstantsPass did, the upper half being
+// whatever the stack held): with the slot cleared that read is the value itself.
+Value::Value(IR::Reg value) noexcept : type{Type::Reg}, imm_u64{} {
+    reg = value;
+}
 
-Value::Value(IR::Pred value) noexcept : type{Type::Pred}, pred{value} {}
+Value::Value(IR::Pred value) noexcept : type{Type::Pred}, imm_u64{} {
+    pred = value;
+}
 
-Value::Value(IR::Attribute value) noexcept : type{Type::Attribute}, attribute{value} {}
+Value::Value(IR::Attribute value) noexcept : type{Type::Attribute}, imm_u64{} {
+    attribute = value;
+}
 
-Value::Value(IR::Patch value) noexcept : type{Type::Patch}, patch{value} {}
+Value::Value(IR::Patch value) noexcept : type{Type::Patch}, imm_u64{} {
+    patch = value;
+}
 
-Value::Value(bool value) noexcept : type{Type::U1}, imm_u1{value} {}
+Value::Value(bool value) noexcept : type{Type::U1}, imm_u64{} {
+    imm_u1 = value;
+}
 
-Value::Value(u8 value) noexcept : type{Type::U8}, imm_u8{value} {}
+Value::Value(u8 value) noexcept : type{Type::U8}, imm_u64{} {
+    imm_u8 = value;
+}
 
-Value::Value(u16 value) noexcept : type{Type::U16}, imm_u16{value} {}
+Value::Value(u16 value) noexcept : type{Type::U16}, imm_u64{} {
+    imm_u16 = value;
+}
 
-Value::Value(u32 value) noexcept : type{Type::U32}, imm_u32{value} {}
+Value::Value(u32 value) noexcept : type{Type::U32}, imm_u64{} {
+    imm_u32 = value;
+}
 
-Value::Value(f32 value) noexcept : type{Type::F32}, imm_f32{value} {}
+Value::Value(f32 value) noexcept : type{Type::F32}, imm_u64{} {
+    imm_f32 = value;
+}
 
 Value::Value(u64 value) noexcept : type{Type::U64}, imm_u64{value} {}
 

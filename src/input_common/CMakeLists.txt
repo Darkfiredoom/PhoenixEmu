@@ -21,6 +21,8 @@ add_library(input_common STATIC
     drivers/virtual_amiibo.h
     drivers/virtual_gamepad.cpp
     drivers/virtual_gamepad.h
+    drivers/switch2.cpp
+    drivers/switch2.h
     helpers/stick_from_buttons.cpp
     helpers/stick_from_buttons.h
     helpers/touch_from_buttons.cpp
@@ -95,3 +97,8 @@ endif()
 
 create_target_directory_groups(input_common)
 target_link_libraries(input_common PUBLIC hid_core PRIVATE common Boost::headers)
+
+# Switch 2 controllers over Bluetooth LE (drivers/switch2.cpp) use Windows' own Bluetooth API.
+if (WIN32)
+    target_link_libraries(input_common PRIVATE windowsapp)
+endif()

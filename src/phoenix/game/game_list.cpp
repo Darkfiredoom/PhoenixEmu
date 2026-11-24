@@ -15,6 +15,7 @@
 #include <QBuffer>
 #include <QDir>
 #include <QFileDialog>
+#include <QActionGroup>
 #include <QFileInfo>
 #include <QImage>
 #include <QPointer>
@@ -44,8 +45,10 @@
 #include "core/file_sys/nup_writer.h"
 #ifdef LICHII_NX_TOOLS
 #include "phoenix/steam_shortcuts.h"
+#include "phoenix/game/cartridge_viewer.h"
 #include "phoenix/game/case_viewer.h"
 #include "qt_common/game_list/case_art.h"
+#include "qt_common/game_list/platform_override.h"
 #include "phoenix/nx_tools.h"
 #endif
 #include "core/file_sys/patch_manager.h"
@@ -290,18 +293,32 @@ std::vector<std::pair<QString, QString>> ListIconPack() {
 
 /// The pack's picture for a game as a PNG, or nothing. An exact name wins; otherwise the
 /// closest name that contains the game's or is contained in it ("Splatoon Raiders", "Raiders").
+/// A Switch 1 game never takes a "Switch 2 Edition" picture; a Switch 2 game prefers one.
 std::vector<u8> IconPackPicture(const std::vector<std::pair<QString, QString>>& pack,
-                                const std::string& name) {
+                                const std::string& name, bool switch2) {
     const QString key = PictureKey(QString::fromStdString(name));
     if (key.isEmpty()) {
         return {};
     }
     const QString* file = nullptr;
     qsizetype best = 0;
+    bool exact_edition = false;
     for (const auto& [pack_key, path] : pack) {
+        const bool edition = CaseArt::IsSwitch2EditionName(QFileInfo(path).completeBaseName());
+        if (edition && !switch2) {
+            continue;
+        }
         if (pack_key == key) {
-            file = &path;
-            break;
+            // An exact name: the Switch 2 Edition's for a Switch 2 game, else the first.
+            if (file == nullptr || best != -1 || (switch2 && edition && !exact_edition)) {
+                file = &path;
+                best = -1;
+                exact_edition = edition;
+            }
+            continue;
+        }
+        if (best == -1) {
+            continue;
         }
         const qsizetype shorter = (std::min)(pack_key.size(), key.size());
         const qsizetype distance = (std::max)(pack_key.size(), key.size()) - shorter;
@@ -349,7 +366,8 @@ void GameList::StartPictureSearch() {
         bool picture; ///< It has no picture
         bool banner;  ///< It has no banner, and the list may have one
         bool case_art; ///< It has no case art, and PhoenixEmu's pack may have it
-        bool switch2;  ///< A Switch 2 game (Switch Cabinet has only Switch 1 cases)
+        bool switch2;  ///< Shown as a Switch 2 game, its Switch 2 Edition included (Switch
+                       ///< Cabinet has only Switch 1 cases)
     };
     std::vector<Wanted> wanted;
     ForEachGameItem([&](GameListItemPath& item) {
@@ -366,12 +384,13 @@ void GameList::StartPictureSearch() {
                             item.data(GameListItemPath::BannerRole).value<QPixmap>().isNull() &&
                             !QtCommon::GamePictures::BannerRecentlyMissing(program_id);
         const bool picture = needs_picture && (search || !pack.empty());
+        const bool switch2 = item.data(GameListItemPath::Switch2Role).toBool();
         const bool case_art = online &&
                               item.data(GameListItemPath::CaseFrontRole).value<QPixmap>().isNull() &&
-                              !CaseArt::PackRecentlyMissing(program_id);
+                              !CaseArt::PackRecentlyMissing(program_id, switch2);
         if (picture || banner || case_art) {
             wanted.push_back({program_id, name.toStdString(), search, picture, banner, case_art,
-                              item.data(GameListItemPath::Switch2Role).toBool()});
+                              switch2});
         }
     });
     if (wanted.empty()) {
@@ -405,11 +424,12 @@ void GameList::StartPictureSearch() {
             if (!game.picture) {
                 continue;
             }
-            const auto png = IconPackPicture(pack, game.name);
+            const auto png = IconPackPicture(pack, game.name, game.switch2);
             if (!png.empty()) {
                 LOG_INFO(Frontend, "Game pictures: icon pack has one for {:016X} ({})",
                          game.program_id, game.name);
                 apply(game.program_id, png);
+                QtCommon::GamePictures::MarkEdition(game.program_id, game.switch2);
             } else if (game.online) {
                 remaining.push_back(game);
             }
@@ -488,7 +508,7 @@ void GameList::StartPictureSearch() {
             if (!game.case_art) {
                 continue;
             }
-            auto fetched = DownloadCaseArt(game.program_id, game.name, *cancel);
+            auto fetched = DownloadCaseArt(game.program_id, game.name, game.switch2, *cancel);
             if (fetched == CaseArtFetch::NotInPack && !game.switch2) {
                 // Switch 1 cases PhoenixEmu's pack lacks: Switch Cabinet's scans.
                 fetched = DownloadSwitchCabinetArt(game.program_id, game.name, *cancel);
@@ -498,7 +518,7 @@ void GameList::StartPictureSearch() {
                 new_case_art = true;
                 break;
             case CaseArtFetch::NotInPack:
-                CaseArt::MarkPackMissing(game.program_id);
+                CaseArt::MarkPackMissing(game.program_id, game.switch2);
                 break;
             default:
                 break;
@@ -527,10 +547,21 @@ void GameList::OpenCase(const QModelIndex& game) {
     case_viewer->Open(game);
 }
 
+void GameList::OpenCartridge(const QModelIndex& game) {
+    if (cartridge_viewer == nullptr) {
+        cartridge_viewer = new CartridgeViewer(this);
+        connect(cartridge_viewer, &CartridgeViewer::PlayRequested, this, &GameList::ValidateEntry);
+    }
+    cartridge_viewer->Open(game);
+}
+
 void GameList::resizeEvent(QResizeEvent* event) {
     QWidget::resizeEvent(event);
     if (case_viewer != nullptr && case_viewer->isVisible()) {
         case_viewer->setGeometry(rect());
+    }
+    if (cartridge_viewer != nullptr && cartridge_viewer->isVisible()) {
+        cartridge_viewer->setGeometry(rect());
     }
 }
 
@@ -548,9 +579,25 @@ void GameList::ChooseBannerFile(u64 program_id) {
     if (file.isEmpty()) {
         return;
     }
-    QImage image(file);
+    SetBannerImage(program_id, QImage(file));
+}
+
+std::pair<QString, QPixmap> GameList::GameNameAndPicture(u64 program_id) {
+    std::pair<QString, QPixmap> found;
+    ForEachGameItem([&](GameListItemPath& item) {
+        if (!found.first.isEmpty() ||
+            item.data(GameListItemPath::ProgramIdRole).toULongLong() != program_id) {
+            return;
+        }
+        found.first = item.data(GameListItemPath::TitleRole).toString();
+        found.second = item.data(Qt::DecorationRole).value<QPixmap>();
+    });
+    return found;
+}
+
+bool GameList::SetBannerImage(u64 program_id, QImage image) {
     if (image.isNull()) {
-        return;
+        return false;
     }
     if (image.width() > 1920) {
         image = image.scaledToWidth(1920, Qt::SmoothTransformation);
@@ -560,9 +607,11 @@ void GameList::ChooseBannerFile(u64 program_id) {
     buffer.open(QIODevice::WriteOnly);
     image.convertToFormat(QImage::Format_RGB32).save(&buffer, "JPG", 90);
     const std::vector<u8> bytes(jpg.begin(), jpg.end());
-    if (QtCommon::GamePictures::SaveBanner(program_id, bytes)) {
-        ApplyBanner(program_id, bytes);
+    if (!QtCommon::GamePictures::SaveBanner(program_id, bytes)) {
+        return false;
     }
+    ApplyBanner(program_id, bytes);
+    return true;
 }
 
 void GameList::ResetBanner(u64 program_id) {
@@ -648,6 +697,18 @@ void GameList::SetupViews() {
     connect(carousel_view, &GameCarousel::UserMenuRequested, this, &GameList::UserMenuRequested);
     connect(carousel_view, &GameCarousel::CustomizeRequested, this, &GameList::CustomizeRequested);
     connect(carousel_view, &GameCarousel::CaseOpenRequested, this, &GameList::OpenCase);
+    connect(carousel_view, &GameCarousel::CartridgeOpenRequested, this, &GameList::OpenCartridge);
+    connect(carousel_view, &GameCarousel::GameSettingsRequested, this, [this](const QModelIndex& game) {
+        emit OpenPerGameGeneralRequested(game.data(GameListItemPath::FullPathRole).toString().toStdString());
+    });
+    connect(carousel_view, &GameCarousel::GameMenuRequested, this,
+            [this](const QModelIndex& game, const QPoint& global_pos) {
+                QMenu menu;
+                AddGamePopup(menu, game.data(GameListItemPath::ProgramIdRole).toULongLong(),
+                             game.data(GameListItemPath::FullPathRole).toString().toStdString());
+                menu.exec(global_pos);
+            });
+    connect(carousel_view, &GameCarousel::ListViewRequested, this, &GameList::ListViewRequested);
     connect(carousel_view, &GameCarousel::ControllersRequested, this,
             &GameList::ControllersRequested);
 }
@@ -805,6 +866,16 @@ void GameList::OnTextChanged(const QString& new_text) {
         tree_view->ApplyFilter(edit_filter_text, item_model);
     } else {
         grid_view->ApplyFilter(edit_filter_text, item_model);
+        carousel_view->ApplyFilter(edit_filter_text, item_model);
+    }
+}
+
+void GameList::SetPlatformFilter(u32 platform) {
+    UISettings::values.library_platform = platform;
+    OnTextChanged(search_field->filterText());
+    // The picked game may be one the tab hides: pick the first one still shown.
+    if (m_currentView == carousel_view) {
+        carousel_view->EnsureVisiblePick();
     }
 }
 
@@ -897,7 +968,7 @@ void GameList::OnPopulatingCompleted(const QStringList& watch_list) {
 
     // A repopulate (a directory removed, deep scan toggled) replaces the rows: apply the search
     // text the user still has typed to them.
-    if (!search_field->filterText().isEmpty()) {
+    if (!search_field->filterText().isEmpty() || UISettings::values.library_platform.GetValue() != 0) {
         OnTextChanged(search_field->filterText());
     }
 
@@ -1046,6 +1117,9 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
     QAction* start_game = context_menu.addAction(tr("Start Game"));
     QAction* start_game_global =
         context_menu.addAction(tr("Start Game without Custom Configuration"));
+    // The game's case and cartridge up close (CaseViewer, CartridgeViewer), from any view.
+    QAction* open_case = context_menu.addAction(tr("Open Case"));
+    QAction* look_at_cartridge = context_menu.addAction(tr("Turn Over Cartridge"));
     context_menu.addSeparator();
     QAction* open_save_location = context_menu.addAction(tr("Open Save Data Location"));
     QAction* open_mod_location = context_menu.addAction(tr("Open Mod Data Location"));
@@ -1211,6 +1285,37 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
             std::filesystem::exists(QtCommon::GamePictures::BannerPath(program_id)));
         connect(reset_banner, &QAction::triggered, this,
                 [this, program_id] { ResetBanner(program_id); });
+        // Switch 1 or Switch 2: PhoenixEmu tells by the game, its update, its upgrade pack and
+        // its mods; this is for an edition it can't tell apart.
+        picture_menu->addSeparator();
+        QMenu* const platform_menu = picture_menu->addMenu(tr("Show As"));
+        auto* const platform_group = new QActionGroup(platform_menu);
+        const auto current = PlatformOverride::Get(program_id);
+        const QString why = [&] {
+            QString found;
+            ForEachGameItem([&](GameListItemPath& item) {
+                if (item.data(GameListItemPath::ProgramIdRole).toULongLong() == program_id) {
+                    found = item.data(GameListItemPath::Switch2EditionRole).toString();
+                }
+            });
+            return found;
+        }();
+        for (const auto& [choice, label] :
+             {std::pair{PlatformOverride::Choice::Automatic,
+                        why.isEmpty() ? tr("Automatic")
+                                      : tr("Automatic (Switch 2 Edition: %1)").arg(why)},
+              std::pair{PlatformOverride::Choice::Switch1, tr("Switch 1 Game")},
+              std::pair{PlatformOverride::Choice::Switch2, tr("Switch 2 Game")}}) {
+            QAction* const action = platform_menu->addAction(label);
+            action->setCheckable(true);
+            action->setChecked(choice == current);
+            platform_group->addAction(action);
+            connect(action, &QAction::triggered, this, [this, program_id, choice] {
+                PlatformOverride::Set(program_id, choice);
+                CaseArt::Reset();
+                RefreshGameDirectory();
+            });
+        }
     }
     // Compatibility reports go to the upstream project's website, which doesn't take PhoenixEmu
     // builds: the entry is hidden.
@@ -1244,6 +1349,27 @@ void GameList::AddGamePopup(QMenu& context_menu, u64 program_id, const std::stri
             [this, path]() { emit BootGame(QString::fromStdString(path), StartGameType::Normal); });
     connect(start_game_global, &QAction::triggered, this,
             [this, path]() { emit BootGame(QString::fromStdString(path), StartGameType::Global); });
+    const auto game_index = [this, path]() {
+        QModelIndex found;
+        const QString full_path = QString::fromStdString(path);
+        ForEachGameItem([&](GameListItemPath& item) {
+            if (!found.isValid() &&
+                item.data(GameListItemPath::FullPathRole).toString() == full_path) {
+                found = item.index();
+            }
+        });
+        return found;
+    };
+    connect(open_case, &QAction::triggered, this, [this, game_index]() {
+        if (const QModelIndex index = game_index(); index.isValid()) {
+            OpenCase(index);
+        }
+    });
+    connect(look_at_cartridge, &QAction::triggered, this, [this, game_index]() {
+        if (const QModelIndex index = game_index(); index.isValid()) {
+            OpenCartridge(index);
+        }
+    });
     connect(open_mod_location, &QAction::triggered, this, [this, program_id, path]() {
         emit OpenFolderRequested(program_id, GameListOpenTarget::ModData, path);
     });

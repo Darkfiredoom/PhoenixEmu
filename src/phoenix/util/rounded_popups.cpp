@@ -436,9 +436,10 @@ private:
                qstrcmp(widget->metaObject()->className(), "QComboBoxPrivateContainer") == 0;
     }
 
-    static bool IsGlassDialog(const QWidget* widget) {
-        const char* const name = widget->metaObject()->className();
-        return qstrcmp(name, "ConfigureDialog") == 0 || qstrcmp(name, "ConfigurePerGame") == 0;
+    static bool IsGlassDialog([[maybe_unused]] const QWidget* widget) {
+        // The settings windows were glass, the home screen showing through; with the sidebar
+        // and pages on top that read as see-through and odd. They are solid now (style.qss).
+        return false;
     }
 
     /// A tab bar's scroll button (the arrows when the tabs do not fit): drawn here, a capsule

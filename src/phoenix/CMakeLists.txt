@@ -342,13 +342,17 @@ endif()
 
 # The resources (the menu music, the icon pack, the frames) come to tens of megabytes: as a
 # generated C++ file (AUTORCC) that is ~100 MB of source, which ran MSVC out of heap on 8 GB
-# PCs. rcc writes them straight into an object file instead.
-set_source_files_properties(phoenix.qrc PROPERTIES SKIP_AUTORCC ON)
-qt_add_big_resources(PHOENIX_BIG_RESOURCES phoenix.qrc)
-target_sources(phoenix PRIVATE ${PHOENIX_BIG_RESOURCES})
-if (MSVC AND TARGET rcc_object_phoenix)
-    # The placeholder file rcc compiles holds raw bytes, not UTF-8 text.
-    target_compile_options(rcc_object_phoenix PRIVATE /wd4828)
+# PCs, so with MSVC rcc writes them straight into an object file instead. Only with MSVC itself:
+# rcc's big-resources mode patches the compiled object, and the release builds' clang objects
+# (ThinLTO bitcode on Windows) have nothing it can patch, which stopped every CI build.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set_source_files_properties(phoenix.qrc PROPERTIES SKIP_AUTORCC ON)
+    qt_add_big_resources(PHOENIX_BIG_RESOURCES phoenix.qrc)
+    target_sources(phoenix PRIVATE ${PHOENIX_BIG_RESOURCES})
+    if (TARGET rcc_object_phoenix)
+        # The placeholder file rcc compiles holds raw bytes, not UTF-8 text.
+        target_compile_options(rcc_object_phoenix PRIVATE /wd4828)
+    endif()
 endif()
 
 if (PHOENIX_CRASH_DUMPS)

@@ -496,7 +496,11 @@ struct Values {
                                       Specialization::Default, true, false};
 
     SwitchableSetting<FrameGenType> frame_gen_type{linkage,
+#ifdef _WIN32
+                                                   FrameGenType::AmdFsr,
+#else
                                                    FrameGenType::Fsr3,
+#endif
                                                    "frame_gen_type",
                                                    Category::Renderer,
                                                    Specialization::Default,
@@ -1089,6 +1093,9 @@ struct Values {
     // The Steam Deck memory tips (UMA frame buffer, swap) were shown once.
     Setting<bool> steam_deck_tips_shown{linkage, false, "steam_deck_tips_shown",
                                         Category::Miscellaneous};
+    // One-time migration to smooth anti-stutter defaults (async shaders, no reactive flushing, etc.).
+    Setting<bool> perf_defaults_v2_migrated{linkage, false, "perf_defaults_v2_migrated",
+                                            Category::Miscellaneous};
 
     // Network
     Setting<std::string> network_interface{linkage, std::string(), "network_interface",

@@ -644,11 +644,15 @@ GraphicsPipeline::GraphicsPipeline(
         if (worker_only_build) {
             const auto elapsed = std::chrono::steady_clock::now() - begin;
             static std::atomic<u32> logged{};
-            if (elapsed > std::chrono::milliseconds{100} ||
-                (elapsed > std::chrono::milliseconds{2} && logged.fetch_add(1) < 400)) {
+            if (elapsed > std::chrono::milliseconds{1000} ||
+                (elapsed > std::chrono::milliseconds{100} && logged.fetch_add(1) < 32)) {
                 LOG_INFO(Render_Vulkan,
                          "Nx2Perf async_pipelines: {:016x} worker emission and driver build {:.1f} ms",
                          key.Hash(), std::chrono::duration<double, std::milli>(elapsed).count());
+            } else if (elapsed > std::chrono::milliseconds{2}) {
+                LOG_DEBUG(Render_Vulkan,
+                          "Nx2Perf async_pipelines: {:016x} worker emission and driver build {:.1f} ms",
+                          key.Hash(), std::chrono::duration<double, std::milli>(elapsed).count());
             }
         }
     }};
@@ -1787,15 +1791,21 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass,
     auto input_assembly_topology = MaxwellToVK::PrimitiveTopology(device, key.state.topology);
     if (input_assembly_topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST) {
         if (!has_tess_stages) {
-            LOG_WARNING(Render_Vulkan, "Patch topology used without tessellation, using points");
+            static std::atomic<bool> logged_points{};
+            if (!logged_points.exchange(true, std::memory_order_relaxed)) {
+                LOG_WARNING(Render_Vulkan, "Patch topology used without tessellation, using points");
+            }
             input_assembly_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
         }
     } else {
         if (has_tess_stages) {
             // The Vulkan spec requires patch list IA topology be used with tessellation
             // shader stages. Forcing it fixes a crash on some drivers
-            LOG_WARNING(Render_Vulkan,
-                        "Patch topology not used with tessellation, using patch list");
+            static std::atomic<bool> logged_patch{};
+            if (!logged_patch.exchange(true, std::memory_order_relaxed)) {
+                LOG_WARNING(Render_Vulkan,
+                            "Patch topology not used with tessellation, using patch list");
+            }
             input_assembly_topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
         }
     }

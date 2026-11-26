@@ -266,8 +266,8 @@ ConfigureGraphicsEveryday::ConfigureGraphicsEveryday(QWidget* parent) : QWidget(
     begin_group();
     frame_gen = new QComboBox;
     frame_gen->addItem(tr("Off"), -1);
-    frame_gen->addItem(tr("FSR 3.1 ×2"), static_cast<int>(Settings::FrameGenType::Fsr3));
-    frame_gen->addItem(tr("AMD FSR ×2"), static_cast<int>(Settings::FrameGenType::AmdFsr));
+    frame_gen->addItem(tr("Optical Flow ×2"), static_cast<int>(Settings::FrameGenType::Fsr3));
+    frame_gen->addItem(tr("AMD FSR 3.1 ×2"), static_cast<int>(Settings::FrameGenType::AmdFsr));
     frame_gen->addItem(tr("Apex neural ×2"), static_cast<int>(Settings::FrameGenType::Anr));
     frame_gen->addItem(tr("Lossless ×2"), static_cast<int>(Settings::FrameGenType::Lsfg));
     add_row(SettingsShell::Icon::FrameRate, tr("Frame generation"),

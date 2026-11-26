@@ -468,8 +468,8 @@ QuickMenuOverlay::QuickMenuOverlay(MainWindow* parent)
 
     m_frame_gen_box = new QComboBox(this);
     m_frame_gen_box->addItem(tr("Off"), -1);
-    m_frame_gen_box->addItem(tr("FSR 3.1 ×2"), static_cast<int>(Settings::FrameGenType::Fsr3));
-    m_frame_gen_box->addItem(tr("AMD FSR ×2"), static_cast<int>(Settings::FrameGenType::AmdFsr));
+    m_frame_gen_box->addItem(tr("Optical Flow ×2"), static_cast<int>(Settings::FrameGenType::Fsr3));
+    m_frame_gen_box->addItem(tr("AMD FSR 3.1 ×2"), static_cast<int>(Settings::FrameGenType::AmdFsr));
     m_frame_gen_box->addItem(tr("Apex neural ×2"), static_cast<int>(Settings::FrameGenType::Anr));
     m_frame_gen_box->addItem(tr("Lossless ×2"), static_cast<int>(Settings::FrameGenType::Lsfg));
     connect(m_frame_gen_box, &QComboBox::activated, this, [this](int index) {

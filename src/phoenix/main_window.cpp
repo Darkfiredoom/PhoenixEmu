@@ -6209,6 +6209,21 @@ void MainWindow::OfferRecommendedSettings() {
     if (emulation_running || boot_in_progress || close_pending) {
         return;
     }
+    if (!Settings::values.perf_defaults_v2_migrated.GetValue()) {
+        Settings::values.perf_defaults_v2_migrated = true;
+        Settings::values.use_asynchronous_shaders = true;
+        Settings::values.use_reactive_flushing = false;
+        Settings::values.native_pipeline_wait_ms = 4;
+        Settings::values.vsync_mode = Settings::VSyncMode::FifoRelaxed;
+        Settings::values.gpu_accuracy = Settings::GpuAccuracy::Low;
+        Settings::values.current_gpu_accuracy = Settings::GpuAccuracy::Low;
+#ifdef _WIN32
+        Settings::values.frame_gen_type = Settings::FrameGenType::AmdFsr;
+#endif
+        Settings::UpdateGPUAccuracy();
+        OnSaveConfig();
+        LOG_INFO(Config, "Migrated existing config to anti-stutter performance defaults");
+    }
     if (!Settings::values.recommended_settings_prompt_shown.GetValue()) {
         OnApplyRecommendedSettings();
     }

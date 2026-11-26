@@ -34,6 +34,7 @@
 #include "qt_common/config/qt_config.h"
 #include "qt_common/qt_common.h"
 #include "qt_common/util/game.h"
+#include "frontend_common/pkmod.h"
 #include "phoenix/compatibility_report.h"
 #include "phoenix/hotkeys.h"
 #include "phoenix/user_data_migration.h"
@@ -602,14 +603,20 @@ private:
     MultiplayerState* multiplayer_state = nullptr;
     bool use_recommended_mkw_settings = false;
     bool asked_recommended_mkw_settings = false;
+    bool use_recommended_pokopia_settings = false;
+    bool asked_recommended_pokopia_settings = false;
     bool is_quick_sleeping = false;
     int pre_sleep_volume = 100;
+
+    // PkMod native plugin loader (loads/unloads DLLs per game session)
+    PkMod::PkModLoader pkmod_loader_;
 
     GRenderWindow* render_window = nullptr;
     GameList* game_list = nullptr;
     LoadingScreen* loading_screen = nullptr;
     QTimer shutdown_timer;
     QTimer emu_terminate_timer;
+    bool shutdown_game_in_progress{};
     QTimer nextendo_session_timer;
     QFutureWatcher<Common::Nextendo::SignOutReason> nextendo_session_watcher;
     QFutureWatcher<std::optional<Common::Nextendo::OnlineStatus>> nextendo_status_watcher;

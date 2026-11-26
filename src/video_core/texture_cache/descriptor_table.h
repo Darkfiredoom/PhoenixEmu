@@ -44,6 +44,10 @@ public:
             (std::min)(bound_ids.size(), size_t{current_limit} + 1));
     }
 
+    void Retry(u32 index) noexcept {
+        read_descriptors[index / 64] &= ~(1ULL << (index % 64));
+    }
+
     template <class MemoryManager>
     [[nodiscard]] std::pair<T, bool> Read(const MemoryManager& gpu_memory, u32 index) noexcept {
         DEBUG_ASSERT(index <= current_limit);

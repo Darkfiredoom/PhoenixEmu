@@ -1,0 +1,73 @@
+# Experiment, not for main: fsr4-vk built with the exact INT8 rewrites of
+# github.com/zgauthier2000/fsr4-shader-performance-overrides (tools/fsr4vk/apply_performance_overrides.py).
+name: fsr4-vk performance overrides (experiment)
+
+on:
+  push:
+    branches: [fsr4vk-overrides-experiment]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      FSR4_VK_COMMIT: b0125ea9798633750f83ebabbc00279bcb49d8dd
+      OVERRIDES_COMMIT: 3eba1233e3ae2d062a1caddfd6c6c8cfe8315218
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build stock fsr4-vk assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build llvm python3-zstandard \
+            libvulkan-dev unzip g++-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          git clone https://github.com/Astyyyyy/fsr4-vk.git fsr4-vk
+          git -C fsr4-vk checkout --detach "$FSR4_VK_COMMIT"
+          git -C fsr4-vk submodule update --init --recursive
+          git clone --filter=blob:limit=2m https://github.com/zgauthier2000/fsr4-shader-performance-overrides.git overrides
+          git -C overrides checkout --detach "$OVERRIDES_COMMIT"
+          curl -fsSL --retry 8 --retry-all-errors --retry-delay 20 -o sdk.zip \
+            https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/releases/download/v2.3.0/FidelityFX-Samples-v2.3.0-prebuilt.zip
+          mkdir sdk
+          unzip -q sdk.zip -d sdk
+          dll=$(find "$PWD/sdk" -path '*FidelityFX_FSR/dx12/x64/Release/amd_fidelityfx_upscaler_dx12.dll' | head -n 1)
+          test -n "$dll"
+          cd fsr4-vk
+          python3 tools/setup.py --dll "$dll"
+
+      - name: Put the rewritten shaders in
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 tools/fsr4vk/apply_performance_overrides.py --fsr4vk fsr4-vk \
+            --overrides overrides/windows/prebuilt/fsr4-overrides --report out/report.json
+
+      - name: Build fsr4-vk
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd fsr4-vk
+          FSR4_BUILD_JOBS=4 bash tools/build/linux.sh
+          FSR4_BUILD_JOBS=4 bash tools/build/windows.sh
+          cd ..
+          for platform in linux-x86_64 windows-x86_64; do
+            mkdir -p "out/$platform"
+            cp -r fsr4-vk/LICENSE fsr4-vk/LICENSES fsr4-vk/THIRD_PARTY_NOTICES.md "out/$platform/"
+            cp overrides/windows/prebuilt/NOTICE.md "out/$platform/OVERRIDES-NOTICE.md"
+            printf 'fsr4-vk %s with the exact INT8 rewrites of fsr4-shader-performance-overrides %s.\n' \
+              "$FSR4_VK_COMMIT" "$OVERRIDES_COMMIT" > "out/$platform/SOURCE.txt"
+          done
+          cp fsr4-vk/build/linux/amd_fidelityfx_upscaler_vk.so out/linux-x86_64/libphoenix_fsr4_vk.so
+          cp fsr4-vk/build/windows/amd_fidelityfx_upscaler_vk.dll out/windows-x86_64/phoenix_fsr4_vk.dll
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fsr4-vk-performance-overrides
+          path: out/
+          if-no-files-found: error
+          retention-days: 14

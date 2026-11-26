@@ -34,4 +34,37 @@ inline bool ApplyMarioKartWorldPreset(Values& settings, u64 program_id, bool acc
     return true;
 }
 
+// --- Pokopia (RE Engine, Switch 2) ---
+inline constexpr u64 PokokpiaProgramId = 0x0400A3A01EE4C000ULL;
+
+inline void SetPokopiaRecommendedSettings(Values& settings, bool global) {
+    const auto session = [global](auto& setting, auto value) {
+        setting.SetGlobal(global);
+        setting.SetValue(value);
+    };
+    session(settings.renderer_backend, RendererBackend::Vulkan);
+    session(settings.resolution_setup, ResolutionSetup::Res1X);
+    session(settings.gpu_accuracy, GpuAccuracy::Low);
+    session(settings.use_asynchronous_shaders, true);
+    session(settings.precache_shaders, PrecacheShaders::Always);
+    session(settings.astc_recompression, AstcRecompression::Bc3);
+    session(settings.vram_usage_mode, VramUsageMode::Auto);
+    session(settings.use_reactive_flushing, false);
+    session(settings.vsync_mode, VSyncMode::FifoRelaxed);
+    session(settings.native_async_draws, NativeAsyncDraws::Transient);
+    session(settings.native_pipeline_wait_ms, u32{4});
+    session(settings.use_disk_shader_cache, true);
+    session(settings.gpu_clock, GpuClock::Boost);
+    session(settings.pin_gpu_threads, true);
+    session(settings.frame_pacing_mode, FramePacingMode::Target_Auto);
+}
+
+inline bool ApplyPokopiaPreset(Values& settings, u64 program_id, bool accepted) {
+    if (!accepted || program_id != PokokpiaProgramId) {
+        return false;
+    }
+    SetPokopiaRecommendedSettings(settings, false);
+    return true;
+}
+
 } // namespace Settings

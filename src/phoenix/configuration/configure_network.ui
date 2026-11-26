@@ -20,6 +20,63 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
+      <widget class="QGroupBox" name="rooms_group">
+       <property name="title">
+        <string>Multiplayer Rooms &amp; Public Lobby</string>
+       </property>
+       <layout class="QVBoxLayout" name="rooms_layout">
+        <item>
+         <widget class="QLabel" name="rooms_description">
+          <property name="text">
+           <string>Browse active public rooms to join local-wireless games over the internet, host your own room, or connect directly to a friend's IP address.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="rooms_buttons">
+          <item>
+           <widget class="QPushButton" name="browse_public_lobby">
+            <property name="text">
+             <string>Browse Public Game Lobby</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="create_room">
+            <property name="text">
+             <string>Create Room...</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="direct_connect">
+            <property name="text">
+             <string>Direct Connect...</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="rooms_spacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="groupBox_2">
        <property name="title">
         <string>General</string>

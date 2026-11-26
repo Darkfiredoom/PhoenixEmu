@@ -120,6 +120,10 @@ struct Profile {
 
     /// Maxwell and earlier nVidia architectures have broken robust support
     bool has_broken_robust{};
+    /// NVIDIA's Pascal-and-older compiler miscompiles accesses that call the non-inlined
+    /// select_global_memory_buffer search: Ocarina's terrain and objects draw black, white or
+    /// with holes (#2382, #2442). Every stage searches inline there, as task and mesh programs do.
+    bool has_broken_global_memory_search_call{};
 
     u64 min_ssbo_alignment{};
     u32 max_user_clip_distances{};

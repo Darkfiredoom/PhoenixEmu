@@ -8,6 +8,7 @@
 #include <QDialog>
 
 #include "common/common_types.h"
+#include "frontend_common/pkmod.h"
 
 class QCheckBox;
 class QComboBox;
@@ -29,6 +30,7 @@ private:
     void ToggleMod(int row);
     void OpenModFolder();
     void InstallModFromZip();
+    void InstallPkMod();
     void ApplyPreset60FPS();
     void ApplyPresetDynamicRes();
     void ApplyPresetUltrawide();
@@ -42,6 +44,8 @@ private:
         QString name;
         std::filesystem::path path;
         bool enabled = true;
+        bool is_pkmod = false;
+        PkMod::Manifest pkmod_manifest;
     };
 
     std::vector<GameInfo> m_games;
@@ -52,5 +56,6 @@ private:
     QListWidget* m_mod_list = nullptr;
     QLabel* m_mod_status = nullptr;
     QPushButton* m_install_btn = nullptr;
+    QPushButton* m_install_pkmod_btn = nullptr;
     QPushButton* m_open_folder_btn = nullptr;
 };

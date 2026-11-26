@@ -74,7 +74,14 @@ ConfigureNetwork::ConfigureNetwork(const Core::System& system_, QWidget* parent,
     RetranslateUI();
     this->SetConfiguration();
 
+    ui->rooms_group->setVisible(!per_game);
     ui->nextendo_group->setVisible(!per_game);
+    connect(ui->browse_public_lobby, &QPushButton::clicked, this,
+            &ConfigureNetwork::BrowsePublicLobbyRequested);
+    connect(ui->create_room, &QPushButton::clicked, this,
+            &ConfigureNetwork::CreateRoomRequested);
+    connect(ui->direct_connect, &QPushButton::clicked, this,
+            &ConfigureNetwork::DirectConnectRequested);
     if (!per_game) {
         RenewNextendoToken();
         if (!ui->nextendo_friends->isHidden()) {

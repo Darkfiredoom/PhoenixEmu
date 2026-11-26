@@ -61,6 +61,8 @@ enum class ImageFlagBits : u32 {
     /// device memory when the guest memory under it can hold data (Image::BindTiles), and only
     /// the parts written are uploaded.
     SparseTiles = 1 << 23,
+    GuestReplacedContents = 1 << 25,
+    CompactLayers = 1 << 26,
 };
 DECLARE_ENUM_FLAG_OPERATORS(ImageFlagBits)
 
@@ -105,7 +107,7 @@ struct ImageBase {
 
     ImageInfo info;
 
-    u32 guest_size_bytes = 0;
+    u64 guest_size_bytes = 0;
     u32 unswizzled_size_bytes = 0;
     u32 converted_size_bytes = 0;
     u32 scale_rating = 0;
@@ -126,6 +128,9 @@ struct ImageBase {
     /// it was too (bit n: n frames earlier; bit 0 is target_frame itself).
     u64 target_frame = ~u64{0};
     u32 target_history = 0;
+    /// frame_tick + 1 of the first frame a render pass other than a clear wrote it, or 0.
+    u64 first_written_frame = 0;
+    bool xc2_lut_view = false;
 
     /// The channel and GPU address space whose page table RegisterImage put the image in.
     size_t channel = 0;
@@ -188,6 +193,7 @@ bool AddImageAlias(ImageBase& lhs, ImageBase& rhs, ImageId lhs_id, ImageId rhs_i
 /// Sets an image's modification tick and raises its aliases' newest_alias_tick to it.
 template <typename Images>
 void SetModificationTick(Images& images, ImageBase& image, u64 tick) {
+    image.flags &= ~ImageFlagBits::GuestReplacedContents;
     image.modification_tick = tick;
     for (const AliasedImage& alias : image.aliased_images) {
         u64& newest = images[alias.id].newest_alias_tick;

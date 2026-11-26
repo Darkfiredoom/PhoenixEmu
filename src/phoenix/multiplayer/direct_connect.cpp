@@ -50,6 +50,12 @@ DirectConnectWindow::DirectConnectWindow(Core::System& system_, QWidget* parent)
     // TODO(jroweboy): Show or hide the connection options based on the current value of the combo
     // box. Add this back in when the traversal server support is added.
     connect(ui->connect, &QPushButton::clicked, this, &DirectConnectWindow::Connect);
+    connect(ui->browse_lobby, &QPushButton::clicked, this, [this] {
+        close();
+        if (auto* const mp = qobject_cast<MultiplayerState*>(parentWidget())) {
+            mp->OnViewLobby();
+        }
+    });
 }
 
 DirectConnectWindow::~DirectConnectWindow() = default;

@@ -111,11 +111,13 @@ ModManagerDialog::ModManagerDialog(QWidget* parent, u64 program_id)
     // Bottom Action Row
     auto* const action_layout = new QHBoxLayout();
     m_install_btn = new QPushButton(tr("➕ Install Mod Folder..."), this);
+    m_install_pkmod_btn = new QPushButton(tr("📦 Install .pkmod..."), this);
     m_open_folder_btn = new QPushButton(tr("📂 Open Mods Directory"), this);
     auto* const online_btn = new QPushButton(tr("🌐 Mod Archive"), this);
     auto* const close_btn = new QPushButton(tr("Close"), this);
 
     connect(m_install_btn, &QPushButton::clicked, this, &ModManagerDialog::InstallModFromZip);
+    connect(m_install_pkmod_btn, &QPushButton::clicked, this, &ModManagerDialog::InstallPkMod);
     connect(m_open_folder_btn, &QPushButton::clicked, this, &ModManagerDialog::OpenModFolder);
     connect(online_btn, &QPushButton::clicked, this, [] {
         QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/eden-emulator/yuzu-mod-archive")));
@@ -123,6 +125,7 @@ ModManagerDialog::ModManagerDialog(QWidget* parent, u64 program_id)
     connect(close_btn, &QPushButton::clicked, this, &QDialog::accept);
 
     action_layout->addWidget(m_install_btn);
+    action_layout->addWidget(m_install_pkmod_btn);
     action_layout->addWidget(m_open_folder_btn);
     action_layout->addWidget(online_btn);
     action_layout->addStretch();
@@ -220,19 +223,75 @@ void ModManagerDialog::RefreshMods() {
     }
 
     for (const auto& mod : m_mods) {
-        const QString text = QStringLiteral("%1 %2")
-                                 .arg(mod.enabled ? QStringLiteral("[✔ ENABLED]") : QStringLiteral("[✖ DISABLED]"))
-                                 .arg(mod.name);
+        QString text;
+        if (mod.is_pkmod) {
+            text = QStringLiteral("%1 📦 %2 v%3")
+                       .arg(mod.enabled ? QStringLiteral("[✔ ENABLED]") : QStringLiteral("[✖ DISABLED]"))
+                       .arg(mod.name)
+                       .arg(QString::fromStdString(mod.pkmod_manifest.version));
+        } else {
+            text = QStringLiteral("%1 %2")
+                       .arg(mod.enabled ? QStringLiteral("[✔ ENABLED]") : QStringLiteral("[✖ DISABLED]"))
+                       .arg(mod.name);
+        }
         auto* item = new QListWidgetItem(text, m_mod_list);
         if (!mod.enabled) {
             item->setForeground(QColor(160, 160, 160));
+        } else if (mod.is_pkmod) {
+            item->setForeground(QColor(100, 200, 255));
         } else {
             item->setForeground(QColor(100, 255, 120));
         }
-        item->setToolTip(tr("Double-click to toggle enabled/disabled"));
+        if (mod.is_pkmod && !mod.pkmod_manifest.description.empty()) {
+            item->setToolTip(QString::fromStdString(mod.pkmod_manifest.description));
+        } else {
+            item->setToolTip(tr("Double-click to toggle enabled/disabled"));
+        }
     }
 
-    m_mod_status->setText(tr("%1 mods installed. Double-click a mod to toggle it.").arg(m_mods.size()));
+    // Also scan for installed pkmods
+    auto pkmods = PkMod::ScanInstalledPkMods(m_current_program_id);
+    for (auto& pkmod : pkmods) {
+        // Check we haven't already listed it (by install_dir)
+        bool already_listed = false;
+        for (const auto& existing : m_mods) {
+            if (existing.path == pkmod.install_dir) {
+                already_listed = true;
+                break;
+            }
+        }
+        if (already_listed) continue;
+
+        ModEntry entry;
+        entry.name = QString::fromStdString(pkmod.manifest.name);
+        entry.path = pkmod.install_dir;
+        entry.enabled = pkmod.enabled;
+        entry.is_pkmod = true;
+        entry.pkmod_manifest = pkmod.manifest;
+        m_mods.push_back(std::move(entry));
+
+        QString text = QStringLiteral("%1 📦 %2 v%3")
+                           .arg(pkmod.enabled ? QStringLiteral("[✔ ENABLED]") : QStringLiteral("[✖ DISABLED]"))
+                           .arg(QString::fromStdString(pkmod.manifest.name))
+                           .arg(QString::fromStdString(pkmod.manifest.version));
+        auto* item = new QListWidgetItem(text, m_mod_list);
+        if (!pkmod.enabled) {
+            item->setForeground(QColor(160, 160, 160));
+        } else {
+            item->setForeground(QColor(100, 200, 255));
+        }
+        item->setToolTip(QString::fromStdString(pkmod.manifest.description));
+    }
+
+    const auto total = m_mods.size();
+    const auto pkmod_count = std::count_if(m_mods.begin(), m_mods.end(),
+                                           [](const ModEntry& m) { return m.is_pkmod; });
+    if (pkmod_count > 0) {
+        m_mod_status->setText(tr("%1 mods installed (%2 pkmod plugins). Double-click to toggle.")
+                                  .arg(total).arg(pkmod_count));
+    } else {
+        m_mod_status->setText(tr("%1 mods installed. Double-click a mod to toggle it.").arg(total));
+    }
 }
 
 void ModManagerDialog::ToggleMod(int row) {
@@ -363,4 +422,62 @@ void ModManagerDialog::ApplyPresetUltrawide() {
     QMessageBox::information(this, tr("Ultrawide Patch Installed"),
                              tr("21:9 Ultrawide patch template deployed!"));
     RefreshMods();
+}
+
+
+void ModManagerDialog::InstallPkMod() {
+    if (m_current_program_id == 0) {
+        QMessageBox::warning(this, tr("No Game Selected"),
+                             tr("Please select a game first before installing a pkmod."));
+        return;
+    }
+
+    const QString file = QFileDialog::getOpenFileName(
+        this, tr("Select .pkmod File"), QString(),
+        tr("PhoenixEmu Plugin Mods (*.pkmod);;All Files (*)"));
+    if (file.isEmpty()) {
+        return;
+    }
+
+    const std::filesystem::path pkmod_path(file.toStdString());
+    auto result = PkMod::InstallPkMod(pkmod_path, m_current_program_id);
+
+    if (result) {
+        QString details = tr("Name: %1\nVersion: %2\nDescription: %3\n\nAuthors: %4")
+                              .arg(QString::fromStdString(result->manifest.name))
+                              .arg(QString::fromStdString(result->manifest.version))
+                              .arg(QString::fromStdString(result->manifest.description))
+                              .arg(QString::fromStdString(
+                                  [&] {
+                                      std::string s;
+                                      for (size_t i = 0; i < result->manifest.authors.size(); ++i) {
+                                          if (i > 0) s += ", ";
+                                          s += result->manifest.authors[i];
+                                      }
+                                      return s;
+                                  }()));
+
+        if (!result->native_library.empty()) {
+            details += tr("\n\n⚠ This mod includes a native plugin (%1).\n"
+                          "It will be loaded when the game starts.")
+                           .arg(QString::fromStdString(result->native_library.filename().string()));
+        }
+
+        if (!result->manifest.settings.empty()) {
+            details += tr("\n\nConfigurable settings (%1):").arg(result->manifest.settings.size());
+            for (const auto& setting : result->manifest.settings) {
+                details += QStringLiteral("\n  • %1 (%2, default: %3)")
+                               .arg(QString::fromStdString(setting.label))
+                               .arg(QString::fromStdString(setting.type))
+                               .arg(QString::fromStdString(setting.default_value));
+            }
+        }
+
+        QMessageBox::information(this, tr("📦 PkMod Installed Successfully"), details);
+        RefreshMods();
+    } else {
+        QMessageBox::critical(this, tr("PkMod Install Failed"),
+                              tr("Failed to install the pkmod file.\n\n"
+                                 "Make sure it is a valid .pkmod archive containing a mod.toml manifest."));
+    }
 }

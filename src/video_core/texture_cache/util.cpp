@@ -570,7 +570,7 @@ void SwizzleBlockLinearImage(Tegra::MemoryManager& gpu_memory, GPUVAddr gpu_addr
                 dst(gpu_memory, gpu_addr + guest_offset, subresource_size, &tmp_buffer);
 
             SwizzleTexture(dst, src, bytes_per_block, num_tiles.width, num_tiles.height,
-                           num_tiles.depth, block.height, block.depth, 1, gpu_memory.UsesNativeTiling());
+                           num_tiles.depth, block.height, block.depth, 1, info.native_tiling);
         }
 
         host_offset += host_bytes_per_layer;
@@ -581,7 +581,7 @@ void SwizzleBlockLinearImage(Tegra::MemoryManager& gpu_memory, GPUVAddr gpu_addr
 
 } // Anonymous namespace
 
-u32 CalculateGuestSizeInBytes(const ImageInfo& info) noexcept {
+u64 CalculateGuestSizeInBytes(const ImageInfo& info) noexcept {
     if (info.type == ImageType::Buffer) {
         return info.size.width * BytesPerBlock(info.format);
     }
@@ -590,7 +590,7 @@ u32 CalculateGuestSizeInBytes(const ImageInfo& info) noexcept {
     }
     if (info.resources.layers > 1) {
         ASSERT(info.layer_stride != 0);
-        return info.layer_stride * info.resources.layers;
+        return u64{info.layer_stride} * static_cast<u64>(info.resources.layers);
     } else {
         return CalculateLayerSize(info);
     }
@@ -855,7 +855,8 @@ bool IsValidEntry(const Tegra::MemoryManager& gpu_memory, const TICEntry& config
 
 boost::container::small_vector<BufferImageCopy, 16> UnswizzleImage(
     Tegra::MemoryManager& gpu_memory, GPUVAddr gpu_addr, const ImageInfo& info,
-    std::span<const u8> input, std::span<u8> output, Tegra::Texture::UnswizzleWorker* worker) {
+    std::span<const u8> input, std::span<u8> output, Tegra::Texture::UnswizzleWorker* worker,
+    u32 first_level) {
     const size_t guest_size_bytes = input.size_bytes();
     const u32 bpp_log2 = BytesPerBlockLog2(info.format);
     const Extent2D tile_size = DefaultBlockSize(info.format);
@@ -891,20 +892,20 @@ boost::container::small_vector<BufferImageCopy, 16> UnswizzleImage(
                                             info.tile_width_spacing);
     size_t guest_offset = 0;
     u32 host_offset = 0;
-    boost::container::small_vector<BufferImageCopy, 16> copies(num_levels);
+    boost::container::small_vector<BufferImageCopy, 16> copies(num_levels - first_level);
 
-    for (s32 level = 0; level < num_levels; ++level) {
+    for (s32 level = static_cast<s32>(first_level); level < num_levels; ++level) {
         const Extent3D level_size = AdjustMipSize(size, level);
         const u32 num_blocks_per_layer = NumBlocks(level_size, tile_size);
         const u32 host_bytes_per_layer = num_blocks_per_layer << bpp_log2;
-        copies[level] = BufferImageCopy{
+        copies[level - first_level] = BufferImageCopy{
             .buffer_offset = host_offset,
             .buffer_size = static_cast<size_t>(host_bytes_per_layer) * num_layers,
             .buffer_row_length = Common::AlignUp(level_size.width, tile_size.width),
             .buffer_image_height = Common::AlignUp(level_size.height, tile_size.height),
             .image_subresource =
                 {
-                    .base_level = level,
+                    .base_level = level - static_cast<s32>(first_level),
                     .base_layer = 0,
                     .num_layers = info.resources.layers,
                 },
@@ -925,10 +926,10 @@ boost::container::small_vector<BufferImageCopy, 16> UnswizzleImage(
                 !worker->TryUnswizzle(
                     dst.first(host_bytes_per_layer), src.first(level_sizes[level]), 1U << bpp_log2,
                     num_tiles.width, num_tiles.height, num_tiles.depth, block.height, block.depth,
-                    stride_alignment, gpu_memory.UsesNativeTiling(), Nx2Perf::Verify())) {
+                    stride_alignment, info.native_tiling, Nx2Perf::Verify())) {
                 UnswizzleTexture(dst, src, 1U << bpp_log2, num_tiles.width, num_tiles.height,
                                  num_tiles.depth, block.height, block.depth, stride_alignment,
-                                 gpu_memory.UsesNativeTiling());
+                                 info.native_tiling);
             }
             guest_layer_offset += layer_stride;
             host_offset += host_bytes_per_layer;
@@ -1118,7 +1119,7 @@ std::vector<BufferImageCopy> UnswizzleImageRects(Tegra::MemoryManager& gpu_memor
             gpu_memory.ReadBlockUnsafe(row_addr, swizzled.data(), row_bytes);
             UnswizzleTexture(output.subspan(output_offset, bytes), swizzled, 1U << bpp_log2, width,
                              texel_rows, 1, level.block_height, 0, 0,
-                             gpu_memory.UsesNativeTiling());
+                             info.native_tiling);
             const u32 row_y = row * level.block_rows;
             const u32 y0 = (std::max)(rect.y, row_y);
             const u32 y1 = (std::min)(rect.y + rect.height, row_y + texel_rows);
@@ -1153,6 +1154,7 @@ UnswizzlePlan PlanUnswizzleImageRows(
     }
     const u32 bpp_log2 = BytesPerBlockLog2(info.format);
     plan.bpp_log2 = bpp_log2;
+    plan.native_tiling = info.native_tiling;
     const Extent2D tile_size = DefaultBlockSize(info.format);
     const LevelInfo level_info = MakeLevelInfo(info);
     const s32 num_levels = info.resources.levels;
@@ -1274,7 +1276,7 @@ void ExecuteUnswizzlePlan(Tegra::MemoryManager& gpu_memory, const UnswizzlePlan&
         Tegra::Texture::UnswizzleTexture(output.subspan(r.host_offset, r.host_bytes),
                                          run, 1U << plan.bpp_log2, r.run_tiles, r.tile_rows, 1,
                                          r.block.height, r.block.depth, r.run_alignment,
-                                         gpu_memory.UsesNativeTiling());
+                                         plan.native_tiling);
     }
 }
 
@@ -1567,13 +1569,29 @@ bool IsBlockLinearSizeCompatible(const ImageInfo& lhs, const ImageInfo& rhs, u32
     }
 }
 
-bool IsPaddedSquare(const ImageInfo& info) noexcept {
-    if (info.type != ImageType::e2D || info.num_samples != 1 || info.size.width <= info.size.height) {
+bool IsPaddedWidth(const ImageInfo& info, u32 width) noexcept {
+    if (info.type != ImageType::e2D || info.num_samples != 1 || width == 0 ||
+        info.size.width <= width) {
         return false;
     }
-    ImageInfo square = info;
-    square.size.width = info.size.height;
-    return IsBlockLinearSizeCompatible(info, square, 0, 0, false);
+    ImageInfo narrow = info;
+    narrow.size.width = width;
+    return IsBlockLinearSizeCompatible(info, narrow, 0, 0, false);
+}
+
+bool IsPaddedSquare(const ImageInfo& info) noexcept {
+    return IsPaddedWidth(info, info.size.height);
+}
+
+u32 PaddedTargetWidth(const ImageInfo& info, u32 clip_right) noexcept {
+    return IsPaddedWidth(info, clip_right) ? clip_right : info.size.width;
+}
+
+u32 PaddedBlitWidth(const ImageInfo& info, s32 x0, s32 x1) noexcept {
+    if (x0 < 0 || x0 >= x1 || !IsPaddedWidth(info, static_cast<u32>(x1))) {
+        return info.size.width;
+    }
+    return static_cast<u32>(x1);
 }
 
 bool IsBlockLinearSizeCompatibleBPPRelaxed(const ImageInfo& lhs, const ImageInfo& rhs,
@@ -1697,7 +1715,15 @@ std::optional<SubresourceBase> FindSubresource(const ImageInfo& candidate, const
     if (!IsBlockLinearSizeCompatible(existing, candidate, base->level, 0, strict_size)) {
         return std::nullopt;
     }
-    // TODO: compare block sizes
+    if (True(options & RelaxedOptions::RequireBlockLayout)) {
+        const LevelInfo existing_layout = MakeLevelInfo(existing);
+        const LevelInfo candidate_layout = MakeLevelInfo(candidate);
+        if (existing.format != candidate.format ||
+            TileShift(existing_layout, base->level) != TileShift(candidate_layout, 0) ||
+            NumGobs(existing_layout, base->level) != NumGobs(candidate_layout, 0)) {
+            return std::nullopt;
+        }
+    }
     return base;
 }
 
@@ -1764,7 +1790,7 @@ u32 MapSizeBytes(const ImageBase& image) {
         return tail * image.info.resources.layers;
     }
     if (True(image.flags & ImageFlagBits::AcceleratedUpload)) {
-        return image.guest_size_bytes;
+        return static_cast<u32>(image.guest_size_bytes);
     } else if (True(image.flags & ImageFlagBits::Converted)) {
         return image.converted_size_bytes;
     } else {

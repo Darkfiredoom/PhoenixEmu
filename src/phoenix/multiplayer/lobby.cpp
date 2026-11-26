@@ -72,7 +72,7 @@ Lobby::Lobby(QWidget* parent, QStandardItemModel* list,
         } else if (!GetProfileUsername().empty()) {
             ui->nickname->setText(QString::fromStdString(GetProfileUsername()));
         } else {
-            ui->nickname->setText(QStringLiteral("Eden"));
+            ui->nickname->setText(QStringLiteral("Player"));
         }
     }
 
@@ -84,6 +84,18 @@ Lobby::Lobby(QWidget* parent, QStandardItemModel* list,
     connect(ui->hide_full, &QCheckBox::toggled, proxy, &LobbyFilterProxyModel::SetFilterFull);
     connect(ui->room_list, &QTreeView::doubleClicked, this, &Lobby::OnJoinRoom);
     connect(ui->room_list, &QTreeView::clicked, this, &Lobby::OnExpandRoom);
+    connect(ui->room_list->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex& current) { ui->join_room_btn->setEnabled(current.isValid()); });
+    connect(ui->join_room_btn, &QPushButton::clicked, this, [this] {
+        if (const QModelIndex current = ui->room_list->currentIndex(); current.isValid()) {
+            OnJoinRoom(current);
+        }
+    });
+    connect(ui->create_room_btn, &QPushButton::clicked, this, [this] {
+        if (auto* const mp = qobject_cast<MultiplayerState*>(parentWidget())) {
+            mp->OnCreateRoom();
+        }
+    });
 
     // Actions
     connect(&room_list_watcher, &QFutureWatcher<AnnounceMultiplayerRoom::RoomList>::finished, this,
@@ -235,12 +247,14 @@ void Lobby::ResetModel() {
 void Lobby::RefreshLobby() {
     if (auto session = announce_multiplayer_session.lock()) {
         ResetModel();
+        ui->join_room_btn->setEnabled(false);
         ui->refresh_list->setEnabled(false);
         ui->refresh_list->setText(tr("Refreshing"));
+        ui->room_status_label->setText(tr("Fetching public rooms..."));
         room_list_watcher.setFuture(
             QtConcurrent::run([session]() { return session->GetRoomList(); }));
     } else {
-        // TODO(jroweboy): Display an error box about announce couldn't be started
+        ui->room_status_label->setText(tr("Unable to reach the public lobby service."));
     }
 }
 
@@ -294,6 +308,11 @@ void Lobby::OnRefreshLobby() {
     // Re-enable the refresh button and resize the columns
     ui->refresh_list->setEnabled(true);
     ui->refresh_list->setText(tr("Refresh List"));
+    ui->room_status_label->setText(
+        new_room_list.empty()
+            ? tr("No public rooms online right now. Click Create Room... to host one.")
+            : tr("%1 public rooms online — select one and click Join Selected Room.")
+                  .arg(new_room_list.size()));
     ui->room_list->header()->stretchLastSection();
     for (int i = 0; i < Column::TOTAL - 1; ++i) {
         ui->room_list->resizeColumnToContents(i);
@@ -301,9 +320,13 @@ void Lobby::OnRefreshLobby() {
 
     // Set the member list child items to span all columns
     for (int i = 0; i < proxy->rowCount(); i++) {
-        auto parent = model->item(i, 0);
+        const QModelIndex proxy_idx = proxy->index(i, 0);
+        auto* const parent = model->itemFromIndex(proxy->mapToSource(proxy_idx));
+        if (parent == nullptr) {
+            continue;
+        }
         for (int j = 0; j < parent->rowCount(); j++) {
-            ui->room_list->setFirstColumnSpanned(j, proxy->index(i, 0), true);
+            ui->room_list->setFirstColumnSpanned(j, proxy_idx, true);
         }
     }
 

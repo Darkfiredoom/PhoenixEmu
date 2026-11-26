@@ -122,6 +122,22 @@ ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry_,
     connect(ui_tab.get(), &ConfigureUi::LanguageChanged, this, &ConfigureDialog::OnLanguageChanged);
     connect(general_tab.get(), &ConfigureGeneral::ExternalContentDirsChanged, this,
             &ConfigureDialog::ExternalContentDirsChanged);
+    connect(network_tab.get(), &ConfigureNetwork::BrowsePublicLobbyRequested, this, [this] {
+        multiplayer_action_requested = MultiplayerAction::ViewLobby;
+        accept();
+    });
+    connect(network_tab.get(), &ConfigureNetwork::CreateRoomRequested, this, [this] {
+        multiplayer_action_requested = MultiplayerAction::CreateRoom;
+        accept();
+    });
+    connect(network_tab.get(), &ConfigureNetwork::DirectConnectRequested, this, [this] {
+        multiplayer_action_requested = MultiplayerAction::DirectConnect;
+        accept();
+    });
+    connect(web_tab.get(), &ConfigureWeb::BrowsePublicLobbyRequested, this, [this] {
+        multiplayer_action_requested = MultiplayerAction::ViewLobby;
+        accept();
+    });
     connect(ui->selectorList, &QListWidget::itemSelectionChanged, this,
             &ConfigureDialog::UpdateVisibleTabs);
 

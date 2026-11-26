@@ -122,7 +122,7 @@ namespace Vulkan {
                                          VmaAllocation& allocation,
                                          VmaAllocationInfo& info) const;
 
-        /// CreateImage, but a null image instead of an exception when there is no memory for it.
+        /// Returns a backed image, or a null image when memory is unavailable.
         vk::Image TryCreateImage(const VkImageCreateInfo &ci, bool dedicated = false) const;
 
         /// A sparse resident image with nothing bound (reads return zero, writes are dropped), or

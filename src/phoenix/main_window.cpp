@@ -1972,6 +1972,7 @@ void MainWindow::RestoreUIState() {
     ToggleWindowMode();
 
     ui->action_Fullscreen->setChecked(UISettings::values.fullscreen.GetValue());
+    ui->action_Preserve_Window_Size->setChecked(UISettings::values.preserve_window_size.GetValue());
 
     ui->action_Enable_Overlay_Applet->setChecked(Settings::values.enable_overlay.GetValue());
 
@@ -2654,6 +2655,11 @@ void MainWindow::ConnectMenuEvents() {
     ui->action_Post_Processing_Shaders->setVisible(false);
 #endif
 
+    connect(ui->action_Preserve_Window_Size, &QAction::triggered, this, [this](bool enabled) {
+        UISettings::values.preserve_window_size = enabled;
+        OnSaveConfig();
+    });
+
     connect_menu(ui->action_Reset_Window_Size_720, &MainWindow::ResetWindowSize720);
     connect_menu(ui->action_Reset_Window_Size_900, &MainWindow::ResetWindowSize900);
     connect_menu(ui->action_Reset_Window_Size_1080, &MainWindow::ResetWindowSize1080);
@@ -3212,7 +3218,7 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
         shader_warm_dialog->activateWindow();
         return;
     }
-    if (boot_in_progress || close_pending || mod_store_open) {
+    if (boot_in_progress || close_pending || mod_store_open || shutdown_game_in_progress) {
         return;
     }
     boot_in_progress = true;
@@ -3292,6 +3298,29 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
         QtCommon::system->ApplySettings();
         Settings::UpdateGPUAccuracy();
         LOG_INFO(Config, "Applied recommended MKW settings after per-game configuration");
+    }
+
+    if (title_id == Settings::PokokpiaProgramId && !asked_recommended_pokopia_settings) {
+        asked_recommended_pokopia_settings = true;
+        use_recommended_pokopia_settings =
+            QMessageBox::question(
+                this, tr("Recommended Pokopia settings"),
+                tr("Use the recommended settings for Pokopia?\n\n"
+                   "Vulkan, 1x resolution, GPU Fast, asynchronous shaders, precache shaders, "
+                   "BC3 ASTC, conservative VRAM, reactive flushing off, FIFO Relaxed VSync, "
+                   "async draws (Transient), 4ms pipeline wait, boosted GPU clock, and pinned "
+                   "GPU threads.\n\n"
+                   "They apply to Pokopia until PhoenixEmu is closed. Your saved settings "
+                   "are not changed."),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
+        LOG_INFO(Config, "Pokopia recommended settings accepted: {}",
+                 use_recommended_pokopia_settings);
+    }
+    if (Settings::ApplyPokopiaPreset(Settings::values, title_id,
+                                     use_recommended_pokopia_settings)) {
+        QtCommon::system->ApplySettings();
+        Settings::UpdateGPUAccuracy();
+        LOG_INFO(Config, "Applied recommended Pokopia settings after per-game configuration");
     }
     PrepareShaderPrecache(title_id, std::filesystem::path{filename.toStdU16String()});
     Settings::LogSettings();
@@ -3505,6 +3534,11 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
     emit EmulationStarting();
     QtCommon::emu_thread->start();
 
+    // Load pkmod native plugins for this game
+    if (title_id != 0) {
+        pkmod_loader_.LoadAll(title_id);
+    }
+
     // Register an ExecuteProgram callback such that Core can execute a sub-program
     QtCommon::system->RegisterExecuteProgramCallback(
         [this](std::size_t program_index_) { render_window->ExecuteProgram(program_index_); });
@@ -3625,7 +3659,8 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
     emulation_running = true;
     if (ui->action_Fullscreen->isChecked()) {
         ShowFullscreen();
-    } else if (!(ui->action_Single_Window_Mode->isChecked() ? isMaximized()
+    } else if (!UISettings::values.preserve_window_size.GetValue() &&
+               !(ui->action_Single_Window_Mode->isChecked() ? isMaximized()
                                                             : render_window->isMaximized())) {
         if (Settings::IsDockedMode()) {
             ResetWindowSize1080();
@@ -3731,6 +3766,7 @@ void MainWindow::OnEmulationStopTimeExpired() {
 
 void MainWindow::OnEmulationStopTimeout() {
     TerminateEmulationThread();
+    pkmod_loader_.UnloadAll();
     OnEmulationStopped();
 }
 
@@ -3980,9 +4016,14 @@ void MainWindow::OnEmulationStopped() {
 }
 
 void MainWindow::ShutdownGame() {
-    if (!emulation_running) {
+    if (!emulation_running || shutdown_game_in_progress) {
         return;
     }
+
+    shutdown_game_in_progress = true;
+    SCOPE_EXIT {
+        shutdown_game_in_progress = false;
+    };
 
     // TODO(crueter): make this common as well (frontend_common?)
     play_time_manager->Stop();
@@ -3999,6 +4040,7 @@ void MainWindow::ShutdownGame() {
         loop.exec(QEventLoop::ExcludeUserInputEvents);
     }
     TerminateEmulationThread();
+    pkmod_loader_.UnloadAll();
     OnEmulationStopped();
 }
 
@@ -4915,6 +4957,10 @@ void MainWindow::OnPauseContinueGame() {
 }
 
 void MainWindow::OnStopGame() {
+    if (!emulation_running || shutdown_game_in_progress || shutdown_dialog) {
+        return;
+    }
+
     if (ConfirmShutdownGame()) {
         play_time_manager->Stop();
         if (OnShutdownBegin()) {
@@ -4959,6 +5005,12 @@ void MainWindow::OnLoadComplete() {
 }
 
 void MainWindow::OnExecuteProgram(std::size_t program_index) {
+    if (!emulation_running || shutdown_game_in_progress || shutdown_dialog) {
+        LOG_WARNING(Frontend, "Dropping ExecuteProgram of index {}: no active session",
+                    program_index);
+        return;
+    }
+
     const u64 previous_program_id = QtCommon::system->GetApplicationProcessProgramID();
 
     const auto current_path =
@@ -4987,6 +5039,9 @@ void MainWindow::OnExecuteProgram(std::size_t program_index) {
 }
 
 void MainWindow::OnExit() {
+    if (shutdown_dialog) {
+        return;
+    }
     ShutdownGame();
 }
 
@@ -5336,6 +5391,7 @@ void MainWindow::OnConfigure() {
             &MainWindow::OnGameListRefresh);
 
     const auto result = configure_dialog.exec();
+    const auto mp_action = configure_dialog.RequestedMultiplayerAction();
     if (configure_dialog.BestSettingsRequested()) {
         // "Find Best Settings for This PC" closed the window without applying what was in it.
         QTimer::singleShot(0, this, &MainWindow::OnApplyRecommendedSettings);
@@ -5418,6 +5474,20 @@ void MainWindow::OnConfigure() {
     UISettings::values.configuration_applied = false;
 
     config->SaveAllValues();
+
+    switch (mp_action) {
+    case ConfigureDialog::MultiplayerAction::ViewLobby:
+        QTimer::singleShot(0, multiplayer_state, &MultiplayerState::OnViewLobby);
+        break;
+    case ConfigureDialog::MultiplayerAction::CreateRoom:
+        QTimer::singleShot(0, multiplayer_state, &MultiplayerState::OnCreateRoom);
+        break;
+    case ConfigureDialog::MultiplayerAction::DirectConnect:
+        QTimer::singleShot(0, multiplayer_state, &MultiplayerState::OnDirectConnectToRoom);
+        break;
+    case ConfigureDialog::MultiplayerAction::None:
+        break;
+    }
 
     if ((UISettings::values.hide_mouse || Settings::values.mouse_panning) && emulation_running) {
         render_window->installEventFilter(render_window);

@@ -533,7 +533,25 @@ u64 BufferCacheRuntime::GetMaxStorageBufferRange() const {
 void BufferCacheRuntime::TickFrame(
     [[maybe_unused]] Common::SlotVector<Buffer>& slot_buffers) noexcept {
     // Buffers' uses need no reset: they are kept by submission (VideoCommon::SubmissionUses).
-    multi_range_buffers.TickFrame(scheduler);
+    const u64 tick = scheduler.CurrentTick();
+    const u64 completed_tick = scheduler.GetMasterSemaphore().KnownGpuTick();
+    multi_range_buffers.TickFrame(scheduler, tick, completed_tick);
+    for (auto it = retired_sparse_sources.rbegin();
+         it != retired_sparse_sources.rend() && !it->tick; ++it) {
+        it->tick = tick;
+    }
+    while (!retired_sparse_sources.empty() &&
+           *retired_sparse_sources.front().tick <= completed_tick) {
+        retired_sparse_sources.pop_front();
+    }
+}
+
+bool BufferCacheRuntime::RetireBufferIfSparseSource(Buffer& buffer) {
+    if (!multi_range_buffers.DropOwner(scheduler, buffer.Handle())) {
+        return false;
+    }
+    retired_sparse_sources.push_back({.buffer = std::move(buffer)});
+    return true;
 }
 
 u64 BufferCacheRuntime::CurrentTick() {

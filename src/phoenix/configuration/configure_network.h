@@ -29,6 +29,11 @@ public:
     // Why nextendo.network refuses online play, from GET /api/online-status's reason.
     static QString OnlineRefusal(const std::string& reason);
 
+signals:
+    void BrowsePublicLobbyRequested();
+    void CreateRoomRequested();
+    void DirectConnectRequested();
+
 private:
     void changeEvent(QEvent*) override;
     // The Profiles page may have added or deleted users since the picker was filled.

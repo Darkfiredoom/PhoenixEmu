@@ -44,6 +44,8 @@ ConfigureWeb::ConfigureWeb(QWidget* parent)
     ui->edit_token->setValidator(token_validator);
 
     connect(ui->button_generate, &QPushButton::clicked, this, &ConfigureWeb::GenerateToken);
+    connect(ui->button_browse_lobby, &QPushButton::clicked, this,
+            &ConfigureWeb::BrowsePublicLobbyRequested);
 
 #ifndef USE_DISCORD_PRESENCE
     ui->discord_group->setVisible(false);

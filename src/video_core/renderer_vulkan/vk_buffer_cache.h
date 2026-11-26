@@ -7,6 +7,7 @@
 #pragma once
 
 #include <array>
+#include <deque>
 #include <limits>
 #include <source_location>
 #include <vector>
@@ -321,8 +322,11 @@ public:
         multi_range_buffers.Invalidate(key);
     }
 
-    void OnBufferDeleted(const Buffer& buffer) {
-        multi_range_buffers.DropOwner(scheduler, buffer.Handle());
+    [[nodiscard]] bool RetireBufferIfSparseSource(Buffer& buffer);
+
+    /// Call after GPU work finishes, before the live buffer cache destroys its sources.
+    void ClearMultiRangeBuffers() {
+        multi_range_buffers.Clear();
     }
 
     void BindUniformBuffer(const Buffer& buffer, u32 offset, u32 size) {
@@ -398,6 +402,11 @@ private:
     bool static_vertex_repack{};
     QuadIndexedPass quad_index_pass;
 
+    struct RetiredSparseSource {
+        Buffer buffer;
+        std::optional<u64> tick{};
+    };
+    std::deque<RetiredSparseSource> retired_sparse_sources;
     MultiRangeBufferCache multi_range_buffers;
     boost::container::small_vector<MultiRangeSource, 16> multi_range_sources;
     VkDeviceSize multi_range_total{};

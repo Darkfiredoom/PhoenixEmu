@@ -38,6 +38,7 @@
 #include "phoenix/bootmanager.h"
 #include "phoenix/controllers_dialog.h"
 #include "phoenix/game/game_list.h"
+#include "phoenix/multiplayer/state.h"
 #include "qt_common/game_list/game_list_p.h"
 #include "phoenix/render/quick_menu_overlay.h"
 #include "phoenix/util/phoenix_theme.h"
@@ -558,6 +559,22 @@ QuickMenuOverlay::QuickMenuOverlay(MainWindow* parent)
     const QString amiibo_key = KeyFor("Amiibo Library");
     add_row(tr("Amiibo"), amiibo_key.isEmpty() ? tr("Tap a figure in") : tr("Tap a figure in · %1").arg(amiibo_key),
             amiibo);
+
+    // Multiplayer: browse the public game lobby or open the active room.
+    auto* const multiplayer_btn = new QPushButton(tr("Browse Public Lobby..."), this);
+    multiplayer_btn->setObjectName(QStringLiteral("QuickSmall"));
+    multiplayer_btn->setCursor(Qt::PointingHandCursor);
+    connect(multiplayer_btn, &QPushButton::clicked, this, [this] {
+        hide();
+        if (m_main_window->multiplayer_state != nullptr) {
+            m_main_window->multiplayer_state->OnViewLobby();
+        }
+    });
+    const QString lobby_key = KeyFor("Browse Public Game Lobby");
+    add_row(tr("Multiplayer"),
+            lobby_key.isEmpty() ? tr("Public rooms & LAN play")
+                                : tr("Public rooms & LAN play · %1").arg(lobby_key),
+            multiplayer_btn);
 
     // Save slots: a copy of the game's save, kept apart and put back later.
     auto* const slots_label = new QLabel(tr("Save slots"), this);

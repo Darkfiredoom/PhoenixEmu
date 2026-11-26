@@ -25,6 +25,9 @@ public:
     void ApplyConfiguration();
     void SetWebServiceConfigEnabled(bool enabled);
 
+signals:
+    void BrowsePublicLobbyRequested();
+
 private:
     void changeEvent(QEvent* event) override;
     void RetranslateUI();

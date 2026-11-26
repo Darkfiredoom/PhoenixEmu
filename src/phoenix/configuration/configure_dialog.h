@@ -66,6 +66,16 @@ public:
         return best_settings_requested;
     }
 
+    enum class MultiplayerAction {
+        None,
+        ViewLobby,
+        CreateRoom,
+        DirectConnect,
+    };
+    [[nodiscard]] MultiplayerAction RequestedMultiplayerAction() const {
+        return multiplayer_action_requested;
+    }
+
 private slots:
     void OnLanguageChanged(const QString& locale);
 
@@ -80,6 +90,7 @@ private:
     void HandleApplyButtonClicked();
 
     bool best_settings_requested = false;
+    MultiplayerAction multiplayer_action_requested = MultiplayerAction::None;
 
     void SetConfiguration();
     void UpdateVisibleTabs();

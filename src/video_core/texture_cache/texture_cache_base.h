@@ -48,6 +48,7 @@
 #include "video_core/texture_cache/render_targets.h"
 #include "video_core/texture_cache/sampled_views.h"
 #include "video_core/texture_cache/types.h"
+#include "video_core/texture_cache/util.h"
 #include "video_core/textures/texture.h"
 #include "video_core/textures/unswizzle_worker.h"
 
@@ -417,6 +418,8 @@ public:
     /// Whether CommitAsyncFlushes would commit anything (downloads or their buffers).
     [[nodiscard]] bool HasAsyncFlushWork() const noexcept;
 
+    [[nodiscard]] bool RenderTargetsDirty() const noexcept;
+
     /// Return true when the caller should wait for async downloads
     [[nodiscard]] bool ShouldWaitAsyncFlushes() const noexcept;
 
@@ -511,15 +514,16 @@ private:
     void VerifyAstcUpload(Image& image);
 
     /// Create a new image view from a guest descriptor
-    [[nodiscard]] ImageViewId CreateImageView(const TICEntry& config);
+    [[nodiscard]] ImageViewId CreateImageView(const TICEntry& config, bool& retry);
 
     /// Find or create an image from the given parameters
     [[nodiscard]] ImageId FindOrInsertImage(const ImageInfo& info, GPUVAddr gpu_addr,
-                                            RelaxedOptions options = RelaxedOptions{});
+                                            RelaxedOptions options = RelaxedOptions{},
+                                            bool* retry = nullptr);
 
     /// Find an image from the given parameters
     [[nodiscard]] ImageId FindImage(const ImageInfo& info, GPUVAddr gpu_addr,
-                                    RelaxedOptions options);
+                                    RelaxedOptions options, bool* retry = nullptr);
 
     /// Create an image from the given parameters
     [[nodiscard]] ImageId InsertImage(const ImageInfo& info, GPUVAddr gpu_addr,
@@ -544,6 +548,9 @@ private:
 
     /// Find or create an image view for the depth buffer
     [[nodiscard]] ImageViewId FindDepthBuffer();
+
+    [[nodiscard]] bool UsePaddedTargetWidths() const;
+    void ClipPaddedTarget(ImageInfo& info) const;
 
     /// Find or create a view for a render target with the given image parameters
     [[nodiscard]] ImageViewId FindRenderTargetView(const ImageInfo& info, GPUVAddr gpu_addr);
@@ -585,6 +592,7 @@ private:
 
     /// Remove image views references from the cache
     void RemoveImageViewReferences(std::span<const ImageViewId> removed_views);
+    void InvalidateXc2LutViews(ImageBase& image);
 
     /// Per image view, the (channel, descriptor) entries of the channels' image_views maps that
     /// point to it. Deleting an image erased them by scanning every map (title 1: ~5,000 entries,
@@ -661,6 +669,17 @@ private:
     u64 gc_retiring_freed{}; ///< Memory their deletion will free
     void RetireDownloads();
     void DropRetiring(ImageId image_id);
+
+    struct AsyncGobViewDownload {
+        ImageId image_id;
+        u64 tick;
+        u64 modification_tick;
+        decltype(std::declval<Runtime&>().DownloadStagingBuffer(size_t{}, true)) map;
+        boost::container::small_vector<BufferImageCopy, 16> copies;
+    };
+    std::deque<AsyncGobViewDownload> async_gob_downloads;
+    void FinishAsyncGobDownloads();
+    [[nodiscard]] bool GobViewBytesReady(DAddr cpu_addr, size_t size);
     /// Whether a newer image the GPU wrote covers all of `image`'s memory: what it holds is
     /// dead (a frame's scratch target another target drew over), so the collector drops it
     /// without copying it back.
@@ -730,6 +749,7 @@ private:
     bool is_rescaling = false;
     /// The bound depth target is wider than tall by padding only (see FindDepthBuffer).
     bool depth_target_padded = false;
+    RenderTargetClip render_target_clip;
     u64 total_used_memory = 0;
     u64 minimum_memory;
     u64 expected_memory;
@@ -788,6 +808,21 @@ private:
     };
     std::deque<GpuSentencedImage> gpu_sentenced_images;
     u64 gpu_sentenced_bytes{};
+
+    /// Queued downloads can land before later GPU work using the image completes.
+    struct RetainedImageKeeper {
+        u64 tick;
+        std::shared_ptr<Image> image;
+    };
+    std::deque<RetainedImageKeeper> retained_image_keepers;
+    struct FreeGuardStats {
+        u64 retained_held{};
+        u64 landed_early{};
+        u64 freed_early{};
+        u64 unswizzle_dropped{};
+        u64 logged_total{};
+    };
+    FreeGuardStats free_guard{};
 
     /// Bytes of images per device memory block, for the collector (refreshed every 60 frames).
     std::unordered_map<u64, u64> block_image_bytes;

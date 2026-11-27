@@ -56,10 +56,11 @@ constexpr u32 MESH_EMULATION_UNUSED_VERTEX = ~0U;
 /// (RuntimeInfo::mesh_as_compute) that writes one block per workgroup to a u32 storage buffer:
 /// max_vertices * vertex_lines words (vertex v, line l at v * vertex_lines + l), then
 /// max_primitives * PrimitiveVertices() vertex indices (1 for points, 2 for lines, 3 for
-/// triangles).
+/// triangles), then max_primitives * primitive_lines per-primitive attribute words.
 [[nodiscard]] inline u32 MeshEmulationBlockWords(const MeshInfo& mesh) {
     return mesh.max_vertices * static_cast<u32>(mesh.vertex_lines.size()) +
-           mesh.max_primitives * mesh.PrimitiveVertices();
+           mesh.max_primitives * mesh.PrimitiveVertices() +
+           mesh.max_primitives * static_cast<u32>(mesh.primitive_lines.size());
 }
 
 /// Vertex shader drawing the emulation's output as a point, line or triangle list of

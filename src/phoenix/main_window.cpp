@@ -401,7 +401,7 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 constexpr int default_mouse_hide_timeout = 2500;
 constexpr int default_input_update_timeout = 1;
-constexpr int EmuThreadStopTimeoutMs = 10'000;
+constexpr int EmuThreadStopTimeoutMs = 30'000;
 
 constexpr size_t CopyBufferSize = 1_MiB;
 
@@ -6636,7 +6636,8 @@ void MainWindow::PrepareShaderPrecache(u64 title_id, const std::filesystem::path
     const auto mode = Settings::values.precache_shaders.GetValue();
     // The precache runs where the disk shader cache loads.
     if (title_id == 0 || mode == Settings::PrecacheShaders::Off ||
-        !Settings::values.use_disk_shader_cache.GetValue()) {
+        !Settings::values.use_disk_shader_cache.GetValue() ||
+        !Settings::values.preload_shaders_on_boot.GetValue()) {
         return;
     }
     if (!ShaderWarm::WarmPending(title_id)) {

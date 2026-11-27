@@ -209,7 +209,7 @@ private:
     std::unique_ptr<GraphicsPipeline> CreateCachedGraphicsPipeline(
         const GraphicsPipelineCacheKey& key,
         std::vector<std::vector<VideoCommon::FileEnvironment>>& records,
-        PipelineStatistics* statistics);
+        PipelineStatistics* statistics, size_t* out_chosen = nullptr);
 
     [[nodiscard]] bool StaleNullPointerSlot(const ComputePipelineCacheEntry& entry) const;
 

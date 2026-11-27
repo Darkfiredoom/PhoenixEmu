@@ -279,6 +279,11 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, use_disk_shader_cache, tr("Use persistent pipeline cache"),
            tr("Allows saving shaders to storage for faster loading on following game "
               "boots.\nDisabling it is only intended for debugging."));
+    INSERT(Settings, preload_shaders_on_boot, tr("Preload saved shaders on boot"),
+           tr("Translates and builds saved shader pipelines on the loading screen before the game "
+              "starts.\nWhen off (default), games start immediately and reuse saved compiled GPU "
+              "binaries and the Vulkan driver pipeline cache on demand with asynchronous shader "
+              "building."));
     INSERT(
         Settings, use_asynchronous_gpu_emulation, tr("Use asynchronous GPU emulation"),
         tr("Uses an extra CPU thread for rendering.\nThis option should always remain enabled."));

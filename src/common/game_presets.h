@@ -46,7 +46,8 @@ inline void SetPokopiaRecommendedSettings(Values& settings, bool global) {
     session(settings.resolution_setup, ResolutionSetup::Res1X);
     session(settings.gpu_accuracy, GpuAccuracy::Low);
     session(settings.use_asynchronous_shaders, true);
-    session(settings.precache_shaders, PrecacheShaders::Always);
+    session(settings.preload_shaders_on_boot, false);
+    session(settings.precache_shaders, PrecacheShaders::Off);
     session(settings.astc_recompression, AstcRecompression::Bc3);
     session(settings.vram_usage_mode, VramUsageMode::Auto);
     session(settings.use_reactive_flushing, false);

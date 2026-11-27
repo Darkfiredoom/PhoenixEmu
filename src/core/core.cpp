@@ -548,6 +548,8 @@ struct System::Impl {
         is_powered_on = false;
         exit_locked = false;
         exit_requested = false;
+        if (debugger)
+            debugger->NotifyShutdown();
         if (gpu_core)
             gpu_core->NotifyShutdown();
 
@@ -921,9 +923,12 @@ u64 System::ResolveCallerProgramId(u64 process_id) const {
     }
 
     const auto fallback = this->GetApplicationProcessProgramID();
-    LOG_WARNING(Core,
-                "Could not resolve caller process_id={}, falling back to application {:016X}",
-                process_id, fallback);
+    static std::atomic<u64> last_warned_pid{};
+    if (last_warned_pid.exchange(process_id, std::memory_order_relaxed) != process_id) {
+        LOG_DEBUG(Core,
+                  "Could not resolve caller process_id={}, falling back to application {:016X}",
+                  process_id, fallback);
+    }
     return fallback;
 }
 

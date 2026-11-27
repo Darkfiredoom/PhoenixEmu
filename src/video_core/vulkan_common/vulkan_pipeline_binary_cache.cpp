@@ -232,8 +232,8 @@ public:
     }
 
     template <typename CreateInfo, typename CreateFn>
-    bool Create(const CreateInfo& ci, VkPipelineCache cache, VkPipeline* out_pipeline,
-                VkResult* result, CreateFn&& create) {
+    bool Create(const CreateInfo& ci, [[maybe_unused]] VkPipelineCache cache,
+                VkPipeline* out_pipeline, VkResult* result, CreateFn&& create) {
         if (!Eligible(ci)) {
             ++stats.skipped;
             return false;
@@ -280,8 +280,11 @@ public:
         capture_ci.pNext = &flags2;
         VkResult res;
         {
+            // Vulkan spec VUID-vkCreateGraphicsPipelines-pNext-09617 /
+            // VUID-vkCreateComputePipelines-pNext-09617: pipelineCache must be VK_NULL_HANDLE
+            // when VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR is set.
             const CompileScope compiling_now;
-            res = create(capture_ci, cache, out_pipeline);
+            res = create(capture_ci, VK_NULL_HANDLE, out_pipeline);
         }
         if (res != VK_SUCCESS) {
             if (res < 0) {

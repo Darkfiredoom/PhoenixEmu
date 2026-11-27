@@ -310,6 +310,10 @@ public:
     }
     bool HasNativeInstructions() const override;
 
+    [[nodiscard]] bool HasMissingRecordedValue() const noexcept override {
+        return lacks_recorded_value;
+    }
+
     void Dump(u64 pipeline_hash, u64 shader_hash) override;
 
     /// Whether the translator asked for a constant buffer value, texture or pointer classification

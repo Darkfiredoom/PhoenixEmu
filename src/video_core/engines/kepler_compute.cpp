@@ -114,9 +114,9 @@ void KeplerCompute::ProcessNativeReportSemaphore(u32 argument) {
     const u32 operation = argument & 3;
     const bool one_word = (argument >> 28) & 1;
     static u32 logged{};
-    if (logged++ < 32) {
-        LOG_INFO(HW_GPU, "Native compute report semaphore {:#x} = {:#x}, control {:#x}", address,
-                 payload, argument);
+    if (logged++ < 8) {
+        LOG_DEBUG(HW_GPU, "Native compute report semaphore {:#x} = {:#x}, control {:#x}", address,
+                  payload, argument);
     }
     if (operation != 0 && operation != 2) {
         LOG_WARNING(HW_GPU, "Native compute report semaphore operation {} not supported", operation);

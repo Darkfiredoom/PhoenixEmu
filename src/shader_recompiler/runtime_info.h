@@ -88,6 +88,9 @@ struct RuntimeInfo {
     VaryingState previous_stage_stores;
     /// Fragment stage after a mesh program: generic inputs it writes per primitive.
     std::bitset<32> per_primitive_generics{};
+    /// Fragment stage after an emulated mesh program (without VK_EXT_mesh_shader): per-primitive
+    /// generic inputs forwarded through the emulation vertex shader as Flat varyings.
+    std::bitset<32> flat_generics{};
     /// Last pre-rasterization stage: generic outputs the fragment stage reads screen-linear.
     /// They are written times Position.w and the fragment stage reads them perspective-correct
     /// times FragCoord.w, so clipping a primitive close to the camera interpolates them right.

@@ -57,15 +57,12 @@ void ForEachRecommendedSetting(Values& config, const HostProfile& host, Func&& f
     entry(config.sync_memory_operations, false);
     entry(config.renderer_force_max_clock, false);
     entry(config.use_disk_shader_cache, true);
+    entry(config.preload_shaders_on_boot, false);
     entry(config.use_vulkan_driver_pipeline_cache, true);
     // PhoenixEmu's default since build 9 ("Skip only redrawn targets").
     entry(config.native_async_draws, NativeAsyncDraws::Transient);
     entry(config.native_pipeline_wait_ms, 8);
-    // Building every cached shader before a game starts holds a lot of RAM and can take many
-    // minutes on a handheld: ask there instead.
-    entry(config.precache_shaders, host.integrated || host.ram_bytes < 14 * GiB
-                                       ? PrecacheShaders::Ask
-                                       : PrecacheShaders::Always);
+    entry(config.precache_shaders, PrecacheShaders::Off);
     // Built shader pipelines kept: Low under 16 GB (a Steam Deck's low-memory daemon ended games
     // while they loaded), Auto picks by RAM otherwise.
     entry(config.ram_usage_mode,

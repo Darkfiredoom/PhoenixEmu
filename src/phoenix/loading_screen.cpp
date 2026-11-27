@@ -427,7 +427,8 @@ void LoadingScreen::OnLoadProgress(VideoCore::LoadCallbackStage stage, std::size
     if (stage != previous_stage) {
         // The fire bar shows from the first stage on; the old bar stays hidden.
         flame_progress->setVisible(true);
-        skip_button->setVisible(stage == VideoCore::LoadCallbackStage::Warm);
+        skip_button->setVisible(stage == VideoCore::LoadCallbackStage::Build ||
+                                stage == VideoCore::LoadCallbackStage::Warm);
         skip_button->setEnabled(true);
         previous_stage = stage;
         // reset back to fast shader compiling since the stage changed

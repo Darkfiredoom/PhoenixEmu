@@ -1877,7 +1877,7 @@ void EmitContext::DefineInputs(const IR::Program& program) {
             }
             continue;
         }
-        if (is_integer) {
+        if (is_integer || runtime_info.flat_generics.test(index)) {
             Decorate(id, spv::Decoration::Flat);
         } else {
             switch (info.interpolation[index]) {

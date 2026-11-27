@@ -235,6 +235,40 @@ void ComputeMeshEpilogue(EmitContext& ctx) {
             write();
         }
     }
+    const u32 primitive_lines{static_cast<u32>(mesh.primitive_lines.size())};
+    if (primitive_lines != 0) {
+        const Id prim_attr_base{
+            ctx.OpIAdd(ctx.U32[1], index_base, ctx.Const(mesh.max_primitives * corners))};
+        for (u32 first = 0; first < mesh.max_primitives; first += threads) {
+            const Id primitive{ctx.OpIAdd(ctx.U32[1], invocation, ctx.Const(first))};
+            const auto copy_prim = [&] {
+                const Id group{ctx.OpShiftRightLogical(ctx.U32[1], primitive, ctx.Const(5U))};
+                const Id slot{ctx.OpBitwiseAnd(ctx.U32[1], primitive, ctx.Const(31U))};
+                const Id source{ctx.OpIAdd(
+                    ctx.U32[1],
+                    ctx.OpIMul(ctx.U32[1], group, ctx.Const(primitive_lines * 32)),
+                    ctx.OpIAdd(ctx.U32[1], slot, ctx.Const(ctx.mesh_primitive_base)))};
+                const Id destination{ctx.OpIAdd(
+                    ctx.U32[1], prim_attr_base,
+                    ctx.OpIMul(ctx.U32[1], primitive, ctx.Const(primitive_lines)))};
+                for (u32 line = 0; line < primitive_lines; ++line) {
+                    const Id word{ctx.OpLoad(
+                        ctx.U32[1],
+                        SharedWord(ctx, ctx.mesh_attributes,
+                                   ctx.OpIAdd(ctx.U32[1], source, ctx.Const(line * 32))))};
+                    ctx.OpStore(
+                        OutputWord(ctx, ctx.OpIAdd(ctx.U32[1], destination, ctx.Const(line))),
+                        word);
+                }
+            };
+            if (first + threads > mesh.max_primitives) {
+                If(ctx, ctx.OpULessThan(ctx.U1, primitive, ctx.Const(mesh.max_primitives)),
+                   copy_prim);
+            } else {
+                copy_prim();
+            }
+        }
+    }
 }
 
 void MeshEpilogue(EmitContext& ctx) {
@@ -533,10 +567,10 @@ std::vector<u32> EmitMeshEmulationVertex(const Profile& profile, const MeshInfo&
         interfaces.push_back(clip_distance);
     }
     std::array<Id, IR::NUM_GENERICS> generics{};
-    for (const u32 line : mesh.vertex_lines) {
+    const auto ensure_generic_output = [&](u32 line) {
         const IR::Attribute attribute{line};
         if (!IR::IsGeneric(attribute)) {
-            continue;
+            return;
         }
         const u32 index{IR::GenericAttributeIndex(attribute)};
         if (!Sirit::ValidId(generics[index])) {
@@ -544,6 +578,12 @@ std::vector<u32> EmitMeshEmulationVertex(const Profile& profile, const MeshInfo&
             module.Decorate(generics[index], spv::Decoration::Location, index);
             interfaces.push_back(generics[index]);
         }
+    };
+    for (const u32 line : mesh.vertex_lines) {
+        ensure_generic_output(line);
+    }
+    for (const u32 line : mesh.primitive_lines) {
+        ensure_generic_output(line);
     }
     if (profile.supported_spirv >= 0x00010400) {
         interfaces.push_back(buffer);
@@ -614,6 +654,27 @@ std::vector<u32> EmitMeshEmulationVertex(const Profile& profile, const MeshInfo&
                            value);
         } else if (attribute == IR::Attribute::PointSize && Sirit::ValidId(point_size_output)) {
             module.OpStore(point_size_output, value);
+        }
+    }
+    const u32 primitive_lines{static_cast<u32>(mesh.primitive_lines.size())};
+    if (primitive_lines != 0) {
+        const Id prim_attr_base{module.OpIAdd(
+            u32_type, block,
+            constant(mesh.max_vertices * vertex_lines + mesh.max_primitives * corners))};
+        const Id prim_base{module.OpIAdd(
+            u32_type, prim_attr_base,
+            module.OpIMul(u32_type, primitive, constant(primitive_lines)))};
+        for (u32 line = 0; line < primitive_lines; ++line) {
+            const IR::Attribute attribute{mesh.primitive_lines[line]};
+            if (!IR::IsGeneric(attribute)) {
+                continue;
+            }
+            const Id value{module.OpBitcast(
+                f32_type, load(module.OpIAdd(u32_type, prim_base, constant(line))))};
+            module.OpStore(module.OpAccessChain(output_f32,
+                                                generics[IR::GenericAttributeIndex(attribute)],
+                                                constant(IR::GenericAttributeElement(attribute))),
+                           value);
         }
     }
     // OpenGL-style clip space, as the mesh epilogue's ConvertDepth: z = (z + w) / 2.

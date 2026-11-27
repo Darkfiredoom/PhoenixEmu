@@ -126,6 +126,9 @@ public:
 
     [[nodiscard]] virtual bool HasNativeInstructions() const { return false; }
 
+    /// Disk-cached environment: whether translation lacked a recorded constant/pointer/texture value.
+    [[nodiscard]] virtual bool HasMissingRecordedValue() const noexcept { return false; }
+
     [[nodiscard]] virtual std::optional<ReplaceConstant> GetReplaceConstBuffer(u32 bank,
                                                                                u32 offset) = 0;
 

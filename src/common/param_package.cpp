@@ -28,7 +28,7 @@ constexpr char ESCAPE_CHARACTER_ESCAPE[] = "$2";
 constexpr char EMPTY_PLACEHOLDER[] = "[empty]";
 
 ParamPackage::ParamPackage(const std::string& serialized) {
-    if (serialized == EMPTY_PLACEHOLDER) {
+    if (serialized.empty() || serialized == EMPTY_PLACEHOLDER) {
         return;
     }
 
@@ -36,10 +36,13 @@ ParamPackage::ParamPackage(const std::string& serialized) {
     Common::SplitString(serialized, PARAM_SEPARATOR, pairs);
 
     for (const std::string& pair : pairs) {
+        if (pair.empty()) {
+            continue;
+        }
         std::vector<std::string> key_value;
         Common::SplitString(pair, KEY_VALUE_SEPARATOR, key_value);
         if (key_value.size() != 2) {
-            LOG_ERROR(Common, "invalid key pair {}", pair);
+            LOG_DEBUG(Common, "invalid key pair {}", pair);
             continue;
         }
 

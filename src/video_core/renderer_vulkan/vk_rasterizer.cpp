@@ -1029,11 +1029,11 @@ void RasterizerVulkan::PrepareDraw(bool is_indexed, Func&& draw_func, bool is_in
             empty += groups == 0;
             total_groups += groups;
             frame_drawn |= groups != 0;
-            if (draws % 2000 == 0) {
-                LOG_INFO(Render_Vulkan,
-                         "Mesh emulation draws: {} ({} with no groups), {} groups; frames with "
-                         "emulated draws: {} of {}",
-                         draws, empty, total_groups, frames_drawn, frames);
+            if (draws % 20000 == 0) {
+                LOG_DEBUG(Render_Vulkan,
+                          "Mesh emulation draws: {} ({} with no groups), {} groups; frames with "
+                          "emulated draws: {} of {}",
+                          draws, empty, total_groups, frames_drawn, frames);
             }
         }
         // Read the pending probe before Request can hand its buffer out again.

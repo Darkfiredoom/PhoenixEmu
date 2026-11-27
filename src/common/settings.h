@@ -698,6 +698,14 @@ struct Values {
     SwitchableSetting<bool> use_disk_shader_cache{linkage, true, "use_disk_shader_cache",
                                                   Category::RendererAdvanced};
 
+    SwitchableSetting<bool> preload_shaders_on_boot{linkage,
+                                                    false,
+                                                    "preload_shaders_on_boot",
+                                                    Category::RendererAdvanced,
+                                                    Specialization::Default,
+                                                    true,
+                                                    true};
+
     SwitchableSetting<bool> use_vulkan_driver_pipeline_cache{
         linkage, true, "use_vulkan_driver_pipeline_cache", Category::RendererAdvanced,
         Specialization::Default};
@@ -732,7 +740,7 @@ struct Values {
     // its shader recipe, the pipelines earlier sessions saved and the game files' own compute
     // programs), with a Skip button on the loading screen.
     SwitchableSetting<PrecacheShaders> precache_shaders{linkage,
-                                                        PrecacheShaders::Always,
+                                                        PrecacheShaders::Off,
                                                         "precache_shaders",
                                                         Category::RendererAdvanced,
                                                         Specialization::Default,

@@ -1178,7 +1178,7 @@ std::unique_ptr<Common::Input::InputDevice> InputFactory::Create(
     if (params.Has("axis")) {
         return CreateAnalogDevice(params);
     }
-    LOG_ERROR(Input, "Invalid parameters given");
+    LOG_DEBUG(Input, "Invalid parameters given");
     return std::make_unique<DummyInput>();
 }
 
